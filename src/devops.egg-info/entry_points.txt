@@ -1,0 +1,3 @@
+[console_scripts]
+cpp_checks = devops.scripts.cpp_checks:main
+update_changelog = devops.scripts.update_changelog:app
