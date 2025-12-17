@@ -1,10 +1,8 @@
 name: Ruff
 
 on:
-  push:
-    branches: ["main", "master"]
   pull_request:
-    branches: ["main", "master"]
+    branches: ['*']
 
 jobs:
   ruff:
@@ -26,7 +24,7 @@ jobs:
           pip install ruff
 
       - name: Run ruff check
-        run: ruff check --config src/devops/ruff.toml .
+        run: ruff check .
 
       - name: Run ruff format check
-        run: ruff format --check --config src/devops/ruff.toml .
+        run: ruff format --check .
