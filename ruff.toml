@@ -15,3 +15,6 @@ pylint.max-args = 6
     "S101",    # allow use of assert in tests
     "PLR2004", # allow use of magic numbers in tests
 ]
+
+[lint.pydocstyle]
+convention = "numpy"
