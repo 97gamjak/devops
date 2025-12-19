@@ -127,9 +127,7 @@ def test_init_config_multiple_config_files_warning_contains_all_files(
 
     # Verify both file names are in the warning message
     warning_messages = [
-        record.message
-        for record in caplog.records
-        if record.levelname == "WARNING"
+        record.message for record in caplog.records if record.levelname == "WARNING"
     ]
     assert len(warning_messages) == 1
 
