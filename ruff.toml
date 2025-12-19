@@ -9,3 +9,12 @@ ignore = [
     "ANN401", # allow Any type annotations for now
 ]
 pylint.max-args = 6
+
+[lint.per-file-ignores]
+"tests/*" = [
+    "S101",    # allow use of assert in tests
+    "PLR2004", # allow use of magic numbers in tests
+]
+
+[lint.pydocstyle]
+convention = "numpy"

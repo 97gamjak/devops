@@ -1,9 +1,0 @@
-Metadata-Version: 2.4
-Name: devops
-Version: 0.0.1
-Summary: This package handles commit and CI checks for mstd
-Requires-Python: >=3.12
-Description-Content-Type: text/markdown
-Requires-Dist: pytest>=9.0.1
-Requires-Dist: ruff>=0.14.6
-Requires-Dist: typer>=0.20.0

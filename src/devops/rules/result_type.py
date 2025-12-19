@@ -16,11 +16,7 @@ class ResultTypeEnum(Enum):
 class ResultType:
     """Class representing the result of a mstd type check."""
 
-    def __init__(
-        self,
-        value: ResultTypeEnum,
-        description: str | None = None
-    ) -> None:
+    def __init__(self, value: ResultTypeEnum, description: str | None = None) -> None:
         """Initialize ResultType with a value and optional description."""
         self.value = value
         self.description = description

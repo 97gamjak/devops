@@ -18,13 +18,10 @@ class CheckKeySeqOrder(Rule):
         """
         super().__init__(
             name=key_sequence,
-            func=lambda line: check_key_sequence_ordered(
-                key_sequence,
-                line
-            ),
+            func=lambda line: check_key_sequence_ordered(key_sequence, line),
             rule_type=RuleType.CPP_STYLE,
             rule_input_type=RuleInputType.LINE,
-            description=f'Use "{key_sequence}" only in this given order.'
+            description=f'Use "{key_sequence}" only in this given order.',
         )
 
 

@@ -81,9 +81,7 @@ def run_checks(rules: list[Rule]) -> None:
         file_results = run_line_checks(rules, filename)
         if any(result.value != ResultTypeEnum.Ok for result in file_results):
             filtered_results = [
-                res
-                for res in file_results
-                if res.value != ResultTypeEnum.Ok
+                res for res in file_results if res.value != ResultTypeEnum.Ok
             ]
             for res in filtered_results:
                 cpp_check_logger.error(
