@@ -102,7 +102,7 @@ def test_init_config_multiple_config_files(
     assert "Multiple config files found" in caplog.text
     assert "devops.toml" in caplog.text
     assert ".devops.toml" in caplog.text
-    assert "Using the first none" in caplog.text
+    assert "Using no config file." in caplog.text
 
 
 def test_init_config_multiple_config_files_warning_contains_all_files(
