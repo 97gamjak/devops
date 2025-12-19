@@ -2,15 +2,13 @@
 
 from __future__ import annotations
 
+import tomllib
 from pathlib import Path
 from typing import Any
 
-import tomllib
 
 # TODO(97gamjak): centralize exception handling
 # https://github.com/97gamjak/devops/issues/24
-
-
 class TomlError(Exception):
     """Custom exception for TOML-related errors."""
 
@@ -50,10 +48,7 @@ def load_toml(file_path: str | Path) -> dict[str, Any]:
         raise TomlError(msg) from e
 
     if not isinstance(data, dict):
-        msg = (
-            f"TOML file '{file_path}' does not "
-            "contain a valid dictionary structure."
-        )
+        msg = f"TOML file '{file_path}' does not contain a valid dictionary structure."
         raise TomlError(msg)
 
     return data
