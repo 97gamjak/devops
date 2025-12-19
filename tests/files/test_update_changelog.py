@@ -105,8 +105,7 @@ class TestUpdateChangelog:
         content = changelog.read_text()
         today = datetime.now(tz=UTC).date().isoformat()
         assert (
-            f"## [2.0.0](https://github.com/test/repo/releases/tag/2.0.0) - {
-                today}"
+            f"## [2.0.0](https://github.com/test/repo/releases/tag/2.0.0) - {today}"
             in content
         )
 

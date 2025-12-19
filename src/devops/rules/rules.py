@@ -1,4 +1,5 @@
 """Module defining rules for mstd checks."""
+
 from __future__ import annotations
 
 import typing
@@ -107,7 +108,7 @@ class Rule:
         rule_type: RuleType = RuleType.GENERAL,
         rule_input_type: RuleInputType = RuleInputType.NONE,
         file_types: set[FileType] | None = None,
-        description: str | None = None
+        description: str | None = None,
     ) -> None:
         """Initialize Rule with a name and optional description."""
         self.name = name
