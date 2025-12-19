@@ -1,6 +1,5 @@
 """Tests for devops.config.config module."""
 
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -135,85 +134,61 @@ def test_read_config_with_none_path() -> None:
     assert result.exclude.buggy_cpp_library_macros == []
 
 
-def test_read_config_with_valid_toml_file() -> None:
+def test_read_config_with_valid_toml_file(tmp_path: Path) -> None:
     """Test reading a valid TOML configuration file."""
     toml_content = """
 [exclude]
 buggy_cpp_library_macros = ["MACRO_A", "MACRO_B"]
 """
 
-    with tempfile.NamedTemporaryFile(
-        mode="w", suffix=".toml", delete=False
-    ) as tmp_file:
-        tmp_file.write(toml_content)
-        tmp_file_path = tmp_file.name
+    toml_file = tmp_path / "config.toml"
+    toml_file.write_text(toml_content)
 
-    try:
-        result = read_config(tmp_file_path)
+    result = read_config(toml_file)
 
-        assert isinstance(result, GlobalConfig)
-        assert result.exclude.buggy_cpp_library_macros == ["MACRO_A", "MACRO_B"]
-    finally:
-        Path(tmp_file_path).unlink()
+    assert isinstance(result, GlobalConfig)
+    assert result.exclude.buggy_cpp_library_macros == ["MACRO_A", "MACRO_B"]
 
 
-def test_read_config_with_path_object() -> None:
+def test_read_config_with_path_object(tmp_path: Path) -> None:
     """Test reading configuration file using Path object."""
     toml_content = """
 [exclude]
 buggy_cpp_library_macros = ["TEST_MACRO"]
 """
 
-    with tempfile.NamedTemporaryFile(
-        mode="w", suffix=".toml", delete=False
-    ) as tmp_file:
-        tmp_file.write(toml_content)
-        tmp_file_path = Path(tmp_file.name)
+    toml_file = tmp_path / "config.toml"
+    toml_file.write_text(toml_content)
 
-    try:
-        result = read_config(tmp_file_path)
+    result = read_config(toml_file)
 
-        assert isinstance(result, GlobalConfig)
-        assert result.exclude.buggy_cpp_library_macros == ["TEST_MACRO"]
-    finally:
-        tmp_file_path.unlink()
+    assert isinstance(result, GlobalConfig)
+    assert result.exclude.buggy_cpp_library_macros == ["TEST_MACRO"]
 
 
-def test_read_config_with_empty_toml_file() -> None:
+def test_read_config_with_empty_toml_file(tmp_path: Path) -> None:
     """Test reading an empty TOML file - should return defaults."""
     toml_content = ""
 
-    with tempfile.NamedTemporaryFile(
-        mode="w", suffix=".toml", delete=False
-    ) as tmp_file:
-        tmp_file.write(toml_content)
-        tmp_file_path = tmp_file.name
+    toml_file = tmp_path / "config.toml"
+    toml_file.write_text(toml_content)
 
-    try:
-        result = read_config(tmp_file_path)
+    result = read_config(toml_file)
 
-        assert isinstance(result, GlobalConfig)
-        assert result.exclude.buggy_cpp_library_macros == []
-    finally:
-        Path(tmp_file_path).unlink()
+    assert isinstance(result, GlobalConfig)
+    assert result.exclude.buggy_cpp_library_macros == []
 
 
-def test_read_config_with_partial_toml_file() -> None:
+def test_read_config_with_partial_toml_file(tmp_path: Path) -> None:
     """Test reading TOML file with exclude section but no macros."""
     toml_content = """
 [exclude]
 """
 
-    with tempfile.NamedTemporaryFile(
-        mode="w", suffix=".toml", delete=False
-    ) as tmp_file:
-        tmp_file.write(toml_content)
-        tmp_file_path = tmp_file.name
+    toml_file = tmp_path / "config.toml"
+    toml_file.write_text(toml_content)
 
-    try:
-        result = read_config(tmp_file_path)
+    result = read_config(toml_file)
 
-        assert isinstance(result, GlobalConfig)
-        assert result.exclude.buggy_cpp_library_macros == []
-    finally:
-        Path(tmp_file_path).unlink()
+    assert isinstance(result, GlobalConfig)
+    assert result.exclude.buggy_cpp_library_macros == []
