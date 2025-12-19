@@ -76,7 +76,7 @@ def get_files_in_dirs(
     paths: Iterable[Path],
     exclude_dirs: list[str] | None = None,
     exclude_files: list[str] | None = None,
-    max_recursion: int = 20
+    max_recursion: int = 20,
 ) -> list[Path]:
     """Get all files in the specified directories.
 
@@ -113,10 +113,7 @@ def get_files_in_dirs(
         if path.is_dir() and path.name not in exclude_dirs:
             all_files.extend(
                 get_files_in_dirs(
-                    path.iterdir(),
-                    exclude_dirs,
-                    exclude_files,
-                    max_recursion - 1
+                    path.iterdir(), exclude_dirs, exclude_files, max_recursion - 1
                 )
             )
         elif path.is_file() and path.name not in exclude_files:
@@ -143,7 +140,7 @@ def get_staged_files() -> list[Path]:
         ["git", "diff", "--name-only", "--cached"],
         capture_output=True,
         text=True,
-        check=True
+        check=True,
     )
 
     files = result.stdout.strip().split("\n")

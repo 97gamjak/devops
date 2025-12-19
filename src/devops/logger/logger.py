@@ -1,4 +1,5 @@
 """Module initializing logger for mstd checks."""
+
 import logging
 import os
 

@@ -11,5 +11,5 @@ __all__ = [
     "FileType",
     "determine_file_type",
     "get_files_in_dirs",
-    "get_staged_files"
+    "get_staged_files",
 ]
