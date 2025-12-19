@@ -33,7 +33,7 @@ def init_config() -> GlobalConfig:
         config = read_config(Path(found_configs[0]))
     elif len(found_configs) > 1:
         config_logger.warning(
-            "Multiple config files found: %s. Using the first none",
+            "Multiple config files found: %s. Using no config file.",
             ", ".join(str(p) for p in found_configs),
         )
         config = read_config()
