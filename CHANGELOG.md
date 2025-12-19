@@ -8,7 +8,7 @@ All notable changes to this project will be documented in this file.
 
 - Add checking if `CHANGELOG.md` was updated
 - Add ruff check and ruff format CI
-- Add pytest CI
+- Add pytest CI with python versions 3.12 and 3.13
 
 ### Config
 
