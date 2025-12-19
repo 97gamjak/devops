@@ -1,8 +1,11 @@
-from devops.utils import check_key_sequence_ordered
+"""Tests for devops.utils.check_key_sequence_ordered."""
+
 from devops.rules import ResultTypeEnum
+from devops.utils import check_key_sequence_ordered
 
 
-def test_check_key_sequence_ordered():
+def test_check_key_sequence_ordered() -> None:
+    """Test the basic functionality of check_key_sequence_ordered."""
     keys = "static inline constexpr"
     line = "static inline constexpr int x = 42;"
     result = check_key_sequence_ordered(keys, line)
@@ -13,7 +16,7 @@ def test_check_key_sequence_ordered():
     assert result.value == ResultTypeEnum.Error
 
 
-def test_check_key_sequence_ordered_first_key_not_in_line():
+def test_check_key_sequence_ordered_first_key_not_in_line() -> None:
     """Test when the first key doesn't appear in the line."""
     keys = "static inline constexpr"
     # Line doesn't contain 'static' (first key)
@@ -23,7 +26,7 @@ def test_check_key_sequence_ordered_first_key_not_in_line():
     assert result.value == ResultTypeEnum.Ok
 
 
-def test_check_key_sequence_ordered_no_keys_in_line():
+def test_check_key_sequence_ordered_no_keys_in_line() -> None:
     """Test when none of the keys appear in the line."""
     keys = "static inline constexpr"
     line = "int x = 42;"
@@ -31,7 +34,7 @@ def test_check_key_sequence_ordered_no_keys_in_line():
     assert result.value == ResultTypeEnum.Ok
 
 
-def test_check_key_sequence_ordered_keys_multiple_positions():
+def test_check_key_sequence_ordered_keys_multiple_positions() -> None:
     """Test when keys appear multiple times in different positions."""
     keys = "static inline"
     # 'static' appears twice, second occurrence is followed by 'inline'
@@ -41,7 +44,7 @@ def test_check_key_sequence_ordered_keys_multiple_positions():
     assert result.value == ResultTypeEnum.Ok
 
 
-def test_check_key_sequence_ordered_keys_multiple_positions_wrong_order():
+def test_check_key_sequence_ordered_keys_multiple_positions_wrong_order() -> None:
     """Test when keys appear multiple times but never in correct sequence."""
     keys = "static inline constexpr"
     # 'static' at positions 0, 3; 'inline' at 1; 'constexpr' at 4
@@ -52,7 +55,7 @@ def test_check_key_sequence_ordered_keys_multiple_positions_wrong_order():
     assert result.value == ResultTypeEnum.Error
 
 
-def test_check_key_sequence_ordered_correct_order_not_consecutive():
+def test_check_key_sequence_ordered_correct_order_not_consecutive() -> None:
     """Test when keys appear in correct order but not consecutively."""
     keys = "static inline constexpr"
     # Keys in order but with other tokens between them
@@ -62,7 +65,7 @@ def test_check_key_sequence_ordered_correct_order_not_consecutive():
     assert result.value == ResultTypeEnum.Error
 
 
-def test_check_key_sequence_ordered_single_key():
+def test_check_key_sequence_ordered_single_key() -> None:
     """Test with a single key."""
     keys = "static"
     line = "static int x = 42;"
@@ -70,7 +73,7 @@ def test_check_key_sequence_ordered_single_key():
     assert result.value == ResultTypeEnum.Ok
 
 
-def test_check_key_sequence_ordered_single_key_not_present():
+def test_check_key_sequence_ordered_single_key_not_present() -> None:
     """Test with a single key that's not present."""
     keys = "static"
     line = "int x = 42;"
@@ -78,7 +81,7 @@ def test_check_key_sequence_ordered_single_key_not_present():
     assert result.value == ResultTypeEnum.Ok
 
 
-def test_check_key_sequence_ordered_partial_keys_present():
+def test_check_key_sequence_ordered_partial_keys_present() -> None:
     """Test when only some keys from the sequence are present."""
     keys = "static inline constexpr"
     # Only 'static' and 'constexpr' are present, 'inline' is missing
