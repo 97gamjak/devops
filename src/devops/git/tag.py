@@ -175,7 +175,11 @@ class GitTag:
             msg = f"Invalid tag format: {tag}"
             raise GitTagError(msg)
 
-        major, minor, patch = map(int, parts)
+        try:
+            major, minor, patch = map(int, parts)
+        except ValueError as exc:
+            msg = f"Invalid numeric components in tag: {tag}"
+            raise GitTagError(msg) from exc
         return GitTag(major, minor, patch)
 
 
@@ -191,6 +195,12 @@ def get_all_tags(*, empty_tag_list_allowed: bool = True) -> list[GitTag]:
     -------
     list[GitTag]
         A list of all Git tags.
+
+    Raises
+    ------
+    GitTagError
+        If there is an error retrieving the Git tags and
+        empty_tag_list_allowed is False.
 
     """
     try:
