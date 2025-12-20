@@ -8,3 +8,4 @@ build/
 tests/test.ipynb
 **_.*.py
 .coverage
+**/__version__.py
