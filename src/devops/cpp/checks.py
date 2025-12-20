@@ -7,6 +7,7 @@ from devops.config import CppConfig
 from devops.files import (
     FileType,
     determine_file_type,
+    get_dirs_in_dir,
     get_files_in_dirs,
     get_staged_files,
     open_file,
@@ -131,8 +132,7 @@ def run_cpp_checks(
     else:
         cpp_check_logger.info("Running full checks...")
 
-        cwd = Path().cwd()
-        dirs = [path.relative_to(cwd) for path in cwd.iterdir() if path.is_dir()]
+        dirs = get_dirs_in_dir()
         files = get_files_in_dirs(dirs)
 
         cpp_check_logger.debug(f"Checking directories: {[str(d) for d in dirs]}")
