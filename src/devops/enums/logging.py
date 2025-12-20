@@ -33,6 +33,7 @@ class LogLevel(StrEnum):
 
         """
         int_to_level = {
+            logging.NOTSET // 10: cls.NONE,
             logging.DEBUG // 10: cls.DEBUG,
             logging.INFO // 10: cls.INFO,
             logging.WARNING // 10: cls.WARNING,
@@ -45,8 +46,8 @@ class LogLevel(StrEnum):
         if level > logging.CRITICAL // 10:
             return cls.CRITICAL
 
-        if level < logging.DEBUG // 10:
-            return cls.DEBUG
+        if level < logging.NOTSET // 10:
+            return cls.NONE
 
         return cls.INFO
 
@@ -60,6 +61,7 @@ class LogLevel(StrEnum):
 
         """
         level_mapping = {
+            LogLevel.NONE: logging.NOTSET,
             LogLevel.DEBUG: logging.DEBUG,
             LogLevel.INFO: logging.INFO,
             LogLevel.WARNING: logging.WARNING,
