@@ -369,7 +369,9 @@ class TestFindHeaderGuard:
             "// code here",
             "#endif",
         ]
-        with pytest.raises(HeaderGuardError, match="Header guard macro not found with #ifndef"):
+        with pytest.raises(
+            HeaderGuardError, match="Header guard macro not found with #ifndef"
+        ):
             find_header_guard(lines)
 
     def test_find_header_guard_missing_define(self) -> None:
@@ -380,7 +382,9 @@ class TestFindHeaderGuard:
             "// code here",
             "#endif",
         ]
-        with pytest.raises(HeaderGuardError, match="Header guard macro not defined with #define"):
+        with pytest.raises(
+            HeaderGuardError, match="Header guard macro not defined with #define"
+        ):
             find_header_guard(lines)
 
     def test_find_header_guard_missing_endif(self) -> None:
@@ -391,7 +395,9 @@ class TestFindHeaderGuard:
             "",
             "// code here",
         ]
-        with pytest.raises(HeaderGuardError, match="Header guard missing closing #endif"):
+        with pytest.raises(
+            HeaderGuardError, match="Header guard missing closing #endif"
+        ):
             find_header_guard(lines)
 
     def test_find_header_guard_malformed_ifndef(self) -> None:
@@ -401,7 +407,9 @@ class TestFindHeaderGuard:
             "#define MY_HEADER_HPP",
             "#endif",
         ]
-        with pytest.raises(HeaderGuardError, match="Header guard macro not found with #ifndef"):
+        with pytest.raises(
+            HeaderGuardError, match="Header guard macro not found with #ifndef"
+        ):
             find_header_guard(lines)
 
     def test_find_header_guard_with_whitespace(self) -> None:
@@ -440,7 +448,9 @@ class TestFindHeaderGuard:
         lines.append("#define MY_HEADER_HPP")
         lines.append("#endif")
 
-        with pytest.raises(HeaderGuardError, match="Header guard macro not found with #ifndef"):
+        with pytest.raises(
+            HeaderGuardError, match="Header guard macro not found with #ifndef"
+        ):
             find_header_guard(lines)
 
 
