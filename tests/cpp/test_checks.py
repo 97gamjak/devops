@@ -255,6 +255,8 @@ class TestRunCppChecks:
             Pytest fixture for capturing log messages.
 
         """
+        import logging
+        
         test_file = tmp_path / "test.cpp"
         test_file.write_text("int main() {}\n")
 
@@ -265,9 +267,10 @@ class TestRunCppChecks:
             rule_input_type=RuleInputType.LINE,
         )
 
-        with patch("devops.cpp.checks.get_staged_files", return_value=[test_file]):
-            config = CppConfig(check_only_staged_files=True)
-            run_cpp_checks([rule], config)
+        with caplog.at_level(logging.DEBUG):
+            with patch("devops.cpp.checks.get_staged_files", return_value=[test_file]):
+                config = CppConfig(check_only_staged_files=True)
+                run_cpp_checks([rule], config)
 
         # Should log the file being checked (at debug level)
         assert any(

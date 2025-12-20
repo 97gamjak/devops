@@ -33,7 +33,7 @@ class TestCppChecksCLI:
             mock_build.return_value = []
             mock_run.return_value = None
 
-            result = runner.invoke(app, ["cpp-checks"])
+            result = runner.invoke(app)
             
             # Command should execute successfully
             assert result.exit_code == 0
@@ -61,7 +61,7 @@ class TestCppChecksCLI:
             mock_build.return_value = []
             mock_run.return_value = None
 
-            result = runner.invoke(app, ["cpp-checks", str(header_file)])
+            result = runner.invoke(app, ["--license-header", str(header_file)])
             
             # Command should execute successfully
             assert result.exit_code == 0
@@ -75,13 +75,11 @@ class TestCppChecksCLI:
         with (
             patch("devops.scripts.cpp_checks.build_cpp_rules") as mock_build,
             patch("devops.scripts.cpp_checks.run_cpp_checks") as mock_run,
-            patch("devops.scripts.cpp_checks.__GLOBAL_CONFIG__") as mock_config,
         ):
             mock_build.return_value = []
             mock_run.return_value = None
-            mock_config.cpp.license_header = "/default/header.txt"
 
-            result = runner.invoke(app, ["cpp-checks"])
+            result = runner.invoke(app)
             
             assert result.exit_code == 0
             # Should use the global config's license_header
@@ -96,7 +94,7 @@ class TestCppChecksCLI:
             mock_build.return_value = []
             mock_run.return_value = None
 
-            result = runner.invoke(app, ["cpp-checks"])
+            result = runner.invoke(app)
             
             assert result.exit_code == 0
             # Should pass config to run_cpp_checks
@@ -113,7 +111,7 @@ class TestCppChecksCLI:
             mock_build.return_value = mock_rules
             mock_run.return_value = None
 
-            result = runner.invoke(app, ["cpp-checks"])
+            result = runner.invoke(app)
             
             assert result.exit_code == 0
             # Should pass the rules from build_cpp_rules to run_cpp_checks
@@ -132,7 +130,7 @@ class TestCppChecksCLI:
             mock_run.return_value = None
             mock_replace.return_value = MagicMock()
 
-            result = runner.invoke(app, ["cpp-checks", "/path/to/header.txt"])
+            result = runner.invoke(app, ["--license-header", "/path/to/header.txt"])
             
             assert result.exit_code == 0
             # Should use replace to create new config
@@ -146,5 +144,5 @@ class TestCppChecksCLI:
         """Test cpp_checks command has correct name in CLI."""
         result = runner.invoke(app, ["--help"])
         assert result.exit_code == 0
-        # Check that cpp-checks command is listed
-        assert "cpp-checks" in result.stdout
+        # Check that help shows the command
+        assert "license-header" in result.stdout.lower() or "license_header" in result.stdout.lower()
