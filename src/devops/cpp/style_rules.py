@@ -132,12 +132,6 @@ def check_header_guards(file_rule_input: FileRuleInput) -> ResultType:
     except HeaderGuardError as e:
         return ResultType(ResultTypeEnum.Error, str(e))
 
-    if guard_macro is None:
-        return ResultType(
-            ResultTypeEnum.Error,
-            "Missing header guard (#ifndef ... #define ... #endif).",
-        )
-
     if __GLOBAL_CONFIG__.cpp.header_guards_according_to_filepath and path is not None:
         expected_macro = str(path).upper()
         expected_macro = expected_macro.removeprefix("INCLUDE/")
