@@ -113,6 +113,11 @@ def run_cpp_checks(
     config: CppConfig
         The global C++ configuration.
 
+    Raises
+    ------
+    CppCheckError
+        If there are errors found during the checks.
+
     """
     if config.check_only_staged_files:
         cpp_check_logger.info("Running checks on staged files...")
@@ -132,15 +137,16 @@ def run_cpp_checks(
         cpp_check_logger.warning("No files to check.")
         return
 
+    file_rules = filter_file_rules(rules)
+    line_rules = filter_line_rules(rules)
+
     for filename in files:
         cpp_check_logger.debug(f"Checking file: {filename}")
 
         # file rules
-        file_rules = filter_file_rules(rules)
         file_results = run_file_rules(file_rules, filename)
 
         # line rules
-        line_rules = filter_line_rules(rules)
         file_results += run_line_checks(line_rules, filename)
 
         if any(result.value != ResultTypeEnum.Ok for result in file_results):
