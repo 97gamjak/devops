@@ -9,6 +9,7 @@ from pathlib import Path
 from devops.logger import config_logger
 
 from .base import get_str_list, get_table
+from .config_cpp import CppConfig, parse_cpp_config
 from .config_git import GitConfig, parse_git_config
 from .config_logging import LoggingConfig, parse_logging_config
 from .constants import Constants
@@ -32,6 +33,7 @@ class GlobalConfig:
     exclude: ExcludeConfig = field(default_factory=ExcludeConfig)
     logging: LoggingConfig = field(default_factory=LoggingConfig)
     git: GitConfig = field(default_factory=GitConfig)
+    cpp: CppConfig = field(default_factory=CppConfig)
 
 
 def parse_config(raw: dict[str, Any]) -> GlobalConfig:
@@ -53,6 +55,7 @@ def parse_config(raw: dict[str, Any]) -> GlobalConfig:
     # as logging config already updates loggers
     logging_config = parse_logging_config(raw)
     git_config = parse_git_config(raw)
+    cpp_config = parse_cpp_config(raw)
 
     # start exclude configuration
     exclude_table = get_table(raw, "exclude")
@@ -64,7 +67,9 @@ def parse_config(raw: dict[str, Any]) -> GlobalConfig:
     )
     # end exclude configuration
 
-    return GlobalConfig(exclude=exclude_config, logging=logging_config, git=git_config)
+    return GlobalConfig(
+        exclude=exclude_config, logging=logging_config, git=git_config, cpp=cpp_config
+    )
 
 
 def read_config(path: str | Path | None = None) -> GlobalConfig:
@@ -107,12 +112,19 @@ def init_config() -> GlobalConfig:
     # Note: we log here after setting up the config to ensure logging config is applied
     # before any logging is done.
 
+    use_default_config = False
+
     if len(found_configs) > 1:
         config_logger.warning(
             "Multiple config files found: %s. Using no config file.",
             ", ".join(str(p) for p in found_configs),
         )
+        use_default_config = True
     elif len(found_configs) < 1:
         config_logger.debug("No config file found. Using default configuration.")
+        use_default_config = True
+
+    if use_default_config:
+        config_logger.info("The default configuration being used is: %s", config)
 
     return config

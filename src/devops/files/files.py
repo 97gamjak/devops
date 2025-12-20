@@ -14,10 +14,25 @@ if typing.TYPE_CHECKING:
 class DevOpsFileNotFoundError(Exception):
     """Exception raised when a specified file is not found."""
 
-    def __init__(self, filepath: Path) -> None:
-        """Initialize the exception with the missing file path."""
-        super().__init__(f"File not found: {filepath}")
+    def __init__(self, filepath: Path, message: str | None = None) -> None:
+        """Initialize the exception with the missing file path.
+
+        Parameters
+        ----------
+        filepath: Path
+            The path to the file that was not found.
+        message: str | None
+            Optional custom message for the exception.
+        """
         self.filepath = filepath
+
+        default_message = f"File not found: {filepath}"
+        if message is not None:
+            final_message = f"{default_message} - {message}"
+        else:
+            final_message = default_message
+
+        super().__init__(final_message)
 
 
 class FileType(Enum):
@@ -44,6 +59,11 @@ class FileType(Enum):
     def cpp_types(cls) -> set[FileType]:
         """Get a set of all CPP related file types."""
         return {FileType.CPPHeader, FileType.CPPSource}
+
+    @classmethod
+    def is_cpp_type(cls, file_type: FileType) -> bool:
+        """Check if the given file type is a C++ related type."""
+        return file_type in cls.cpp_types()
 
 
 def determine_file_type(filename: str | Path) -> FileType:
@@ -145,3 +165,38 @@ def get_staged_files() -> list[Path]:
 
     files = result.stdout.strip().split("\n")
     return [Path(file) for file in files if file]
+
+
+def file_exist(
+    file: str | Path, *, throwing: bool = False, throw_msg: str | None = None
+) -> bool:
+    """Check if a file exists at the given path.
+
+    Parameters
+    ----------
+    file: str | Path
+        The path to the file to check.
+    throwing: bool
+        Whether to raise an exception if the file does not exist.
+    throw_msg: str | None
+        Custom message to use when raising an exception if the file does not exist.
+
+    Returns
+    -------
+    bool
+        True if the file exists, False otherwise.
+
+    Raises
+    ------
+    DevOpsFileNotFoundError
+        If the file does not exist and throwing is True.
+
+    """
+    filepath = Path(file)
+    if filepath.is_file():
+        return True
+
+    if throwing:
+        raise DevOpsFileNotFoundError(filepath, message=throw_msg)
+
+    return False

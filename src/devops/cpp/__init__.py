@@ -1,6 +1,6 @@
 """Package defining C++ check rules."""
 
-from .style_rules import cpp_style_rules
+from .build_rules import build_cpp_rules
+from .checks import run_cpp_checks
 
-cpp_rules = cpp_style_rules
-__all__ = ["cpp_rules"]
+__all__ = ["build_cpp_rules", "run_cpp_checks"]
