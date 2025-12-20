@@ -121,7 +121,7 @@ def run_cpp_checks(
     Raises
     ------
     CppCheckError
-        If there are errors found during the checks.
+        If invalid (non-file or non-line) rules are provided.
 
     """
     if config.check_only_staged_files:
