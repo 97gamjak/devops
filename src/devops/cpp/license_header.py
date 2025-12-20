@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from devops.files import file_exist
 from devops.rules import ResultType, ResultTypeEnum, Rule, RuleInputType, RuleType
 
 
@@ -23,10 +24,22 @@ def check_license_header(
     -------
     ResultType
         The result of the license header check.
+
+    Raises
+    ------
+    DevOpsFileNotFoundError
+        If the required header file does not exist.
     """
     required_header_file = Path(required_header_file)
 
-    with Path.open(required_header_file, "r", encoding="utf-8") as f:
+    # return value can be ignored as exception will be raised if file does not exist
+    file_exist(
+        required_header_file,
+        throwing=True,
+        throw_msg="Required license header file not found.",
+    )
+
+    with required_header_file.open("r", encoding="utf-8") as f:
         required_header = f.read()
 
         if file_content.startswith(required_header):
