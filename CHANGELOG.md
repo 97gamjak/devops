@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file.
 - Add cli command `get_latest_tag`
 - Add cli command `increase_latest_tag`
 - Add new license checking rule to `cpp_checks`
+- Add cli command `generate_toml_template` to get a template default toml file
 
 ### Features
 
