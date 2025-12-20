@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+### API
+
+- Add `dirs` argument to `cpp_checks` cli
+
 ### Bug Fixes
 
 #### Config
