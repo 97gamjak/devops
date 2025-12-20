@@ -166,19 +166,20 @@ class GitTag:
             If the tag string is not in the correct format.
 
         """
+        original_tag = tag
         tag = tag.removeprefix("v")
         parts = tag.split(".")
 
         # TODO(97gamjak): implement support for different version schemes
         # https://97gamjak.atlassian.net/browse/DEV-49
         if len(parts) != 3:  # noqa: PLR2004 this will be removed and cleaned up with further naming schemes
-            msg = f"Invalid tag format: {tag}"
+            msg = f"Invalid tag format: {original_tag}"
             raise GitTagError(msg)
 
         try:
             major, minor, patch = map(int, parts)
         except ValueError as exc:
-            msg = f"Invalid numeric components in tag: {tag}"
+            msg = f"Invalid numeric components in tag: {original_tag}"
             raise GitTagError(msg) from exc
         return GitTag(major, minor, patch)
 
