@@ -4,8 +4,8 @@ import re
 from datetime import UTC, datetime
 from pathlib import Path
 
+from devops.config import Constants
 from devops.files.files import DevOpsFileNotFoundError
-from devops.github import get_github_repo
 
 from .config import __DEFAULT_ENCODING__
 
@@ -13,12 +13,12 @@ __CHANGELOG_PATH__ = Path("CHANGELOG.md")
 __CHANGELOG_INSERTION_MARKER__ = "<!-- insertion marker -->"
 
 
-class MSTDChangelogError(Exception):
+class DevOpsChangelogError(Exception):
     """Base class for changelog related errors."""
 
     def __init__(self, message: str) -> None:
         """Initialize the exception with a message."""
-        super().__init__(f"MSTDChangelogError: {message}")
+        super().__init__(f"DevOpsChangelogError: {message}")
         self.message = message
 
 
@@ -36,7 +36,7 @@ def update_changelog(version: str, changelog_path: Path = __CHANGELOG_PATH__) ->
     ------
     DevOpsFileNotFoundError
         If the changelog file does not exist.
-    MSTDChangelogError
+    DevOpsChangelogError
         If the "## Next Release" marker is not found in the changelog.
 
     """
@@ -46,7 +46,7 @@ def update_changelog(version: str, changelog_path: Path = __CHANGELOG_PATH__) ->
     with changelog_path.open("r", encoding=__DEFAULT_ENCODING__) as f:
         content = f.readlines()
 
-    repo = get_github_repo()
+    repo = Constants.github.github_default_owner_url
     today = datetime.now(tz=UTC).date().isoformat()
     new_entry = f"## [{version}]({repo}/releases/tag/{version}) - {today}"
 
@@ -72,6 +72,6 @@ def update_changelog(version: str, changelog_path: Path = __CHANGELOG_PATH__) ->
 
     if not marker_moved:
         msg = "Could not find '## Next Release' in CHANGELOG.md"
-        raise MSTDChangelogError(msg)
+        raise DevOpsChangelogError(msg)
 
     changelog_path.write_text("".join(updated) + "\n", encoding=__DEFAULT_ENCODING__)
