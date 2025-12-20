@@ -1,7 +1,11 @@
+[build-system]
+requires = ["setuptools>=65.5.1", "setuptools_scm>=6.2.0"]
+
 [project]
 name = "devops"
-version = "0.0.1"
-description = "This package handles commit and CI checks for mstd"
+dynamic = ["version"]
+authors = [{ name = "Jakob Gamper", email = "97gamjak@gmail.com" }]
+description = "This package is a collection of DevOps related tools and scripts."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = ["typer>=0.20.0"]
@@ -14,3 +18,6 @@ cpp_checks = "devops.scripts.cpp_checks:app"
 update_changelog = "devops.scripts.update_changelog:app"
 get_latest_tag = "devops.scripts.get_latest_git_tag:latest_tag"
 increase_latest_tag = "devops.scripts.get_latest_git_tag:increase_tag"
+
+[tool.setuptools_scm]
+version_file = "src/devops/__version__.py"
