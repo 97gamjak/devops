@@ -55,8 +55,8 @@ def get_table(mapping: dict[str, Any], key: str) -> dict[str, Any]:
 
 
 def _get_type(
-    mapping: dict[str, Any], key: str, default: any, expected_type: type
-) -> any:
+    mapping: dict[str, Any], key: str, default: Any, expected_type: type
+) -> Any:
     """Get a value of expected type from a mapping.
 
     Parameters
@@ -65,14 +65,14 @@ def _get_type(
         The mapping to extract the value from.
     key: str
         The key of the value.
-    default: any
+    default: Any
         The default value to return if the key is not found.
     expected_type: type
         The expected type of the value.
 
     Returns
     -------
-    any
+    Any
         The extracted value or the default value if the key is not found.
 
     Raises

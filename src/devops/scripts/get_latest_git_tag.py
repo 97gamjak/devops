@@ -93,6 +93,11 @@ def increase_latest_tag(
 
     Parameters
     ----------
+    prefix: str | None
+        The expected prefix of the Git tags. If None, uses the default prefix.
+    empty_tag_list_allowed: bool | None
+        Whether to allow an empty tag list without raising an error. If None,
+        uses the default setting.
     major: bool
         Whether to increase the major version.
     minor: bool
