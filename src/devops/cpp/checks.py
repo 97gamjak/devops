@@ -14,6 +14,7 @@ from devops.files import (
 )
 from devops.logger import cpp_check_logger
 from devops.rules import (
+    FileRuleInput,
     ResultType,
     Rule,
     filter_file_rules,
@@ -89,6 +90,7 @@ def run_file_rules(rules: list[Rule], file: Path) -> list[ResultType]:
 
     """
     results = []
+    file = Path(file)  # to be 100% sure
     file_type = determine_file_type(file)
 
     if any(not is_file_rule(rule) for rule in rules):
@@ -101,7 +103,7 @@ def run_file_rules(rules: list[Rule], file: Path) -> list[ResultType]:
             if file_type not in rule.file_types:
                 continue
 
-            results.append(rule.apply((content,)))
+            results.append(rule.apply(FileRuleInput(file_content=content, path=file)))
 
     return results
 

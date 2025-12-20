@@ -1,7 +1,8 @@
-"""Top level package for rules in mstd checks."""
+"""Top level package for rules in devops."""
 
 from .result_type import ResultType, ResultTypeEnum
 from .rules import (
+    FileRuleInput,
     Rule,
     RuleInputType,
     RuleType,
@@ -14,6 +15,7 @@ from .rules import (
 
 __all__ = ["ResultType", "ResultTypeEnum"]
 __all__ += [
+    "FileRuleInput",
     "Rule",
     "RuleInputType",
     "RuleType",

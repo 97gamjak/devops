@@ -175,21 +175,6 @@ class TestRuleApplication:
         result = rule.apply("goodbye world")
         assert result.value == ResultTypeEnum.Error
 
-    def test_apply_with_tuple_arg(self) -> None:
-        """Test Rule apply with tuple argument."""
-
-        def check_func(a: str, b: str) -> ResultType:
-            if a == b:
-                return ResultType(ResultTypeEnum.Ok)
-            return ResultType(ResultTypeEnum.Error, "Values don't match")
-
-        rule = Rule(name="match_check", func=check_func)
-        result = rule.apply(("test", "test"))
-        assert result.value == ResultTypeEnum.Ok
-
-        result = rule.apply(("test1", "test2"))
-        assert result.value == ResultTypeEnum.Error
-
 
 class TestRuleFiltering:
     """Tests for rule filtering functions."""

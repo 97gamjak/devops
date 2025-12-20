@@ -5,7 +5,7 @@ from __future__ import annotations
 import typing
 
 from devops.cpp.license_header import CheckLicenseHeader, check_license_header
-from devops.rules import ResultTypeEnum, RuleInputType, RuleType
+from devops.rules import FileRuleInput, ResultTypeEnum, RuleInputType, RuleType
 
 if typing.TYPE_CHECKING:
     from pathlib import Path
@@ -30,7 +30,9 @@ class TestCheckLicenseHeader:
         # Create file content that starts with the header
         file_content = "// Copyright 2024\n// All rights reserved\n\nint main() {}\n"
 
-        result = check_license_header(file_content, header_file)
+        result = check_license_header(
+            FileRuleInput(file_content=file_content), header_file
+        )
         assert result.value == ResultTypeEnum.Ok
 
     def test_check_license_header_missing(self, tmp_path: Path) -> None:
@@ -49,7 +51,9 @@ class TestCheckLicenseHeader:
         # Create file content without the header
         file_content = "int main() {}\n"
 
-        result = check_license_header(file_content, header_file)
+        result = check_license_header(
+            FileRuleInput(file_content=file_content), header_file
+        )
         assert result.value == ResultTypeEnum.Error
         assert result.description == "Missing or incorrect license header."
 
@@ -69,7 +73,9 @@ class TestCheckLicenseHeader:
         # Create file content with different header
         file_content = "// Copyright 2023\n// Some rights reserved\n\nint main() {}\n"
 
-        result = check_license_header(file_content, header_file)
+        result = check_license_header(
+            FileRuleInput(file_content=file_content), header_file
+        )
         assert result.value == ResultTypeEnum.Error
         assert result.description == "Missing or incorrect license header."
 
@@ -89,7 +95,9 @@ class TestCheckLicenseHeader:
         # Create file content with only part of the header
         file_content = "// Copyright 2024\n\nint main() {}\n"
 
-        result = check_license_header(file_content, header_file)
+        result = check_license_header(
+            FileRuleInput(file_content=file_content), header_file
+        )
         assert result.value == ResultTypeEnum.Error
 
     def test_check_license_header_empty_file(self, tmp_path: Path) -> None:
@@ -108,7 +116,9 @@ class TestCheckLicenseHeader:
         # Empty file content
         file_content = ""
 
-        result = check_license_header(file_content, header_file)
+        result = check_license_header(
+            FileRuleInput(file_content=file_content), header_file
+        )
         assert result.value == ResultTypeEnum.Error
 
     def test_check_license_header_empty_header(self, tmp_path: Path) -> None:
@@ -127,7 +137,9 @@ class TestCheckLicenseHeader:
         # Any file content should pass with empty header
         file_content = "int main() {}\n"
 
-        result = check_license_header(file_content, header_file)
+        result = check_license_header(
+            FileRuleInput(file_content=file_content), header_file
+        )
         assert result.value == ResultTypeEnum.Ok
 
     def test_check_license_header_with_str_path(self, tmp_path: Path) -> None:
@@ -146,7 +158,9 @@ class TestCheckLicenseHeader:
         # Create file content with the header
         file_content = "// Header\nint main() {}\n"
 
-        result = check_license_header(file_content, str(header_file))
+        result = check_license_header(
+            FileRuleInput(file_content=file_content), str(header_file)
+        )
         assert result.value == ResultTypeEnum.Ok
 
     def test_check_license_header_multiline(self, tmp_path: Path) -> None:
@@ -171,7 +185,9 @@ class TestCheckLicenseHeader:
         # Create file content with the header
         file_content = header_text + "\n#include <iostream>\n\nint main() {}\n"
 
-        result = check_license_header(file_content, header_file)
+        result = check_license_header(
+            FileRuleInput(file_content=file_content), header_file
+        )
         assert result.value == ResultTypeEnum.Ok
 
     def test_check_license_header_with_leading_whitespace(self, tmp_path: Path) -> None:
@@ -193,7 +209,9 @@ class TestCheckLicenseHeader:
             "  // Copyright 2024\n  // All rights reserved\n\nint main() {}\n"
         )
 
-        result = check_license_header(file_content, header_file)
+        result = check_license_header(
+            FileRuleInput(file_content=file_content), header_file
+        )
         assert result.value == ResultTypeEnum.Ok
 
 
@@ -238,7 +256,7 @@ class TestCheckLicenseHeaderClass:
         rule = CheckLicenseHeader(str(header_file))
         file_content = "// Header\nint main() {}\n"
 
-        result = rule.apply((file_content,))
+        result = rule.apply(FileRuleInput(file_content=file_content))
         assert result.value == ResultTypeEnum.Ok
 
     def test_check_license_header_class_apply_with_invalid_content(
@@ -258,7 +276,7 @@ class TestCheckLicenseHeaderClass:
         rule = CheckLicenseHeader(str(header_file))
         file_content = "int main() {}\n"
 
-        result = rule.apply((file_content,))
+        result = rule.apply(FileRuleInput(file_content=file_content, path=header_file))
         assert result.value == ResultTypeEnum.Error
         assert result.description == "Missing or incorrect license header."
 
@@ -277,5 +295,5 @@ class TestCheckLicenseHeaderClass:
         rule = CheckLicenseHeader(header_file)
         file_content = "// Header\nint main() {}\n"
 
-        result = rule.apply((file_content,))
+        result = rule.apply(FileRuleInput(file_content=file_content, path=header_file))
         assert result.value == ResultTypeEnum.Ok
