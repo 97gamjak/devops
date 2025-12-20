@@ -1,6 +1,9 @@
 """Constants for DevOps checks."""
 
+from dataclasses import dataclass, field
 
+
+@dataclass(frozen=True)
 class GitConstants:
     """Class holding constant Git-related URLs."""
 
@@ -10,10 +13,18 @@ class GitConstants:
     github_default_owner_url: str = github_url + "/repo/owner"
 
 
-GITHUB_CONSTANTS: GitConstants = GitConstants()
+@dataclass(frozen=True)
+class FileConstants:
+    """Class holding constant file-related values."""
+
+    toml_filenames: list[str] = field(
+        default_factory=lambda: ["devops.toml", ".devops.toml"]
+    )
 
 
+@dataclass(frozen=True)
 class Constants:
     """Class holding constant values for DevOps checks."""
 
-    github: GitConstants = GITHUB_CONSTANTS
+    github: GitConstants = GitConstants()
+    files: FileConstants = FileConstants()
