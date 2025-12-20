@@ -5,7 +5,7 @@ import sys
 import typer
 
 from devops.files import update_changelog
-from devops.files.update_changelog import MSTDChangelogError
+from devops.files.update_changelog import DevOpsChangelogError
 from devops.utils import mstd_print
 
 app = typer.Typer()
@@ -24,7 +24,7 @@ def main(version: str) -> None:
     try:
         update_changelog.update_changelog(version)
         mstd_print(f"✅ CHANGELOG.md updated for version {version}")
-    except MSTDChangelogError as e:
+    except DevOpsChangelogError as e:
         mstd_print(f"❌ Error updating changelog: {e}")
         sys.exit(1)
 
