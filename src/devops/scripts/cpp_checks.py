@@ -17,7 +17,7 @@ def cpp_checks(license_header: str | None = None) -> None:
     Parameters
     ----------
     license_header: str | None
-        The license header text to check for. If None, uses the global configuration.
+        The path to the license header file. If None, uses the global configuration.
 
     """
     if license_header is None:
