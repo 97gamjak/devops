@@ -4,17 +4,17 @@ from __future__ import annotations
 
 import logging
 import typing
-from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
 from devops.config.config_cpp import CppConfig
 from devops.cpp.checks import run_cpp_checks
-from devops.files import FileType
 from devops.rules import ResultType, ResultTypeEnum, Rule, RuleInputType, RuleType
 
 if typing.TYPE_CHECKING:
+    from pathlib import Path
+
     from _pytest.logging import LogCaptureFixture
 
 
@@ -26,15 +26,12 @@ class TestRunCppChecks:
         Rule.cpp_style_rule_counter = 0
         Rule.general_rule_counter = 0
 
-    def test_run_cpp_checks_with_no_files(
-        self, tmp_path: Path, caplog: LogCaptureFixture
-    ) -> None:
+    @pytest.mark.usefixtures("tmp_path")
+    def test_run_cpp_checks_with_no_files(self, caplog: LogCaptureFixture) -> None:
         """Test run_cpp_checks when no files are found.
 
         Parameters
         ----------
-        tmp_path: Path
-            Temporary path for creating test files.
         caplog: LogCaptureFixture
             Pytest fixture for capturing log messages.
 
@@ -42,7 +39,7 @@ class TestRunCppChecks:
         # Create a rule
         rule = Rule(
             name="test_rule",
-            func=lambda line: ResultType(ResultTypeEnum.Ok),
+            func=lambda _line: ResultType(ResultTypeEnum.Ok),
             rule_type=RuleType.CPP_STYLE,
             rule_input_type=RuleInputType.LINE,
         )
@@ -71,7 +68,7 @@ class TestRunCppChecks:
         # Create a passing rule
         rule = Rule(
             name="test_rule",
-            func=lambda line: ResultType(ResultTypeEnum.Ok),
+            func=lambda _line: ResultType(ResultTypeEnum.Ok),
             rule_type=RuleType.CPP_STYLE,
             rule_input_type=RuleInputType.LINE,
         )
@@ -82,7 +79,9 @@ class TestRunCppChecks:
             run_cpp_checks([rule], config)
             # Should complete without error
 
-    def test_run_cpp_checks_with_full_check(self, tmp_path: Path, monkeypatch) -> None:
+    def test_run_cpp_checks_with_full_check(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Test run_cpp_checks with full file check configuration.
 
         Parameters
@@ -90,7 +89,7 @@ class TestRunCppChecks:
         tmp_path: Path
             Temporary path for creating test files.
         monkeypatch
-            Pytest fixture for monkeypatching.
+            Pytest fixture for monkey patching.
 
         """
         # Change to tmp directory
@@ -105,7 +104,7 @@ class TestRunCppChecks:
         # Create a passing rule
         rule = Rule(
             name="test_rule",
-            func=lambda line: ResultType(ResultTypeEnum.Ok),
+            func=lambda _line: ResultType(ResultTypeEnum.Ok),
             rule_type=RuleType.CPP_STYLE,
             rule_input_type=RuleInputType.LINE,
         )
@@ -136,15 +135,13 @@ class TestRunCppChecks:
         # Create a failing rule
         rule = Rule(
             name="failing_rule",
-            func=lambda line: ResultType(ResultTypeEnum.Error, "Code error"),
+            func=lambda _line: ResultType(ResultTypeEnum.Error, "Code error"),
             rule_type=RuleType.CPP_STYLE,
             rule_input_type=RuleInputType.LINE,
         )
 
         # Mock get_staged_files to return both files
-        with patch(
-            "devops.cpp.checks.get_staged_files", return_value=[file1, file2]
-        ):
+        with patch("devops.cpp.checks.get_staged_files", return_value=[file1, file2]):
             config = CppConfig(check_only_staged_files=True)
             run_cpp_checks([rule], config)
 
@@ -172,7 +169,7 @@ class TestRunCppChecks:
 
         call_count = [0]
 
-        def counting_func(line: str) -> ResultType:
+        def counting_func(_line: str) -> ResultType:
             call_count[0] += 1
             return ResultType(ResultTypeEnum.Ok)
 
@@ -208,7 +205,7 @@ class TestRunCppChecks:
         # Create a file rule
         rule = Rule(
             name="file_rule",
-            func=lambda content: ResultType(ResultTypeEnum.Ok),
+            func=lambda _content: ResultType(ResultTypeEnum.Ok),
             rule_type=RuleType.CPP_STYLE,
             rule_input_type=RuleInputType.FILE,
         )
@@ -233,13 +230,13 @@ class TestRunCppChecks:
         # Create line and file rules
         line_rule = Rule(
             name="line_rule",
-            func=lambda line: ResultType(ResultTypeEnum.Ok),
+            func=lambda _line: ResultType(ResultTypeEnum.Ok),
             rule_type=RuleType.CPP_STYLE,
             rule_input_type=RuleInputType.LINE,
         )
         file_rule = Rule(
             name="file_rule",
-            func=lambda content: ResultType(ResultTypeEnum.Ok),
+            func=lambda _content: ResultType(ResultTypeEnum.Ok),
             rule_type=RuleType.CPP_STYLE,
             rule_input_type=RuleInputType.FILE,
         )
@@ -262,21 +259,22 @@ class TestRunCppChecks:
             Pytest fixture for capturing log messages.
 
         """
-        
         test_file = tmp_path / "test.cpp"
         test_file.write_text("int main() {}\n")
 
         rule = Rule(
             name="test_rule",
-            func=lambda line: ResultType(ResultTypeEnum.Ok),
+            func=lambda _line: ResultType(ResultTypeEnum.Ok),
             rule_type=RuleType.CPP_STYLE,
             rule_input_type=RuleInputType.LINE,
         )
 
-        with caplog.at_level(logging.DEBUG):
-            with patch("devops.cpp.checks.get_staged_files", return_value=[test_file]):
-                config = CppConfig(check_only_staged_files=True)
-                run_cpp_checks([rule], config)
+        with (
+            caplog.at_level(logging.DEBUG),
+            patch("devops.cpp.checks.get_staged_files", return_value=[test_file]),
+        ):
+            config = CppConfig(check_only_staged_files=True)
+            run_cpp_checks([rule], config)
 
         # Should log the file being checked (at debug level)
         assert any(

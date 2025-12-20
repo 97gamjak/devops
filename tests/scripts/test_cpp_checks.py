@@ -210,7 +210,7 @@ class TestRunFileRules:
 
         rule = Rule(
             name="file_test_rule",
-            func=lambda content: ResultType(ResultTypeEnum.Ok),
+            func=lambda _content: ResultType(ResultTypeEnum.Ok),
             rule_type=RuleType.CPP_STYLE,
             rule_input_type=RuleInputType.FILE,
         )
@@ -233,7 +233,7 @@ class TestRunFileRules:
 
         rule = Rule(
             name="cpp_only_file_rule",
-            func=lambda content: ResultType(ResultTypeEnum.Error, "Should not run"),
+            func=lambda _content: ResultType(ResultTypeEnum.Error, "Should not run"),
             rule_type=RuleType.CPP_STYLE,
             rule_input_type=RuleInputType.FILE,
             file_types={FileType.CPPSource},
@@ -256,13 +256,13 @@ class TestRunFileRules:
 
         rule1 = Rule(
             name="file_rule1",
-            func=lambda content: ResultType(ResultTypeEnum.Ok),
+            func=lambda _content: ResultType(ResultTypeEnum.Ok),
             rule_type=RuleType.CPP_STYLE,
             rule_input_type=RuleInputType.FILE,
         )
         rule2 = Rule(
             name="file_rule2",
-            func=lambda content: ResultType(ResultTypeEnum.Ok),
+            func=lambda _content: ResultType(ResultTypeEnum.Ok),
             rule_type=RuleType.CPP_STYLE,
             rule_input_type=RuleInputType.FILE,
         )
@@ -284,7 +284,7 @@ class TestRunFileRules:
 
         rule = Rule(
             name="error_rule",
-            func=lambda content: ResultType(
+            func=lambda _content: ResultType(
                 ResultTypeEnum.Error, "Content validation failed"
             ),
             rule_type=RuleType.CPP_STYLE,
@@ -310,13 +310,13 @@ class TestRunFileRules:
 
         file_rule = Rule(
             name="file_rule",
-            func=lambda content: ResultType(ResultTypeEnum.Ok),
+            func=lambda _content: ResultType(ResultTypeEnum.Ok),
             rule_type=RuleType.CPP_STYLE,
             rule_input_type=RuleInputType.FILE,
         )
         line_rule = Rule(
             name="line_rule",
-            func=lambda line: ResultType(ResultTypeEnum.Error, "Should not run"),
+            func=lambda _line: ResultType(ResultTypeEnum.Error, "Should not run"),
             rule_type=RuleType.CPP_STYLE,
             rule_input_type=RuleInputType.LINE,
         )
@@ -339,7 +339,7 @@ class TestRunFileRules:
 
         rule = Rule(
             name="file_test_rule",
-            func=lambda content: ResultType(ResultTypeEnum.Ok),
+            func=lambda _content: ResultType(ResultTypeEnum.Ok),
             rule_type=RuleType.CPP_STYLE,
             rule_input_type=RuleInputType.FILE,
         )

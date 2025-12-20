@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import typing
 from unittest.mock import MagicMock, patch
 
@@ -34,7 +35,7 @@ class TestCppChecksCLI:
             mock_run.return_value = None
 
             result = runner.invoke(app)
-            
+
             # Command should execute successfully
             assert result.exit_code == 0
             # Should call build_cpp_rules and run_cpp_checks exactly once
@@ -62,7 +63,7 @@ class TestCppChecksCLI:
             mock_run.return_value = None
 
             result = runner.invoke(app, ["--license-header", str(header_file)])
-            
+
             # Command should execute successfully
             assert result.exit_code == 0
             # Should call with the provided header file
@@ -80,7 +81,7 @@ class TestCppChecksCLI:
             mock_run.return_value = None
 
             result = runner.invoke(app)
-            
+
             assert result.exit_code == 0
             # Should use the global config's license_header
             assert mock_build.call_count == 1
@@ -95,7 +96,7 @@ class TestCppChecksCLI:
             mock_run.return_value = None
 
             result = runner.invoke(app)
-            
+
             assert result.exit_code == 0
             # Should pass config to run_cpp_checks
             assert mock_run.call_count == 1
@@ -112,7 +113,7 @@ class TestCppChecksCLI:
             mock_run.return_value = None
 
             result = runner.invoke(app)
-            
+
             assert result.exit_code == 0
             # Should pass the rules from build_cpp_rules to run_cpp_checks
             assert mock_run.call_count == 1
@@ -131,7 +132,7 @@ class TestCppChecksCLI:
             mock_replace.return_value = MagicMock()
 
             result = runner.invoke(app, ["--license-header", "/path/to/header.txt"])
-            
+
             assert result.exit_code == 0
             # Should use replace to create new config
             assert mock_replace.call_count == 1
@@ -144,7 +145,8 @@ class TestCppChecksCLI:
         """Test cpp_checks command has correct name in CLI."""
         result = runner.invoke(app, ["--help"])
         assert result.exit_code == 0
-        # Check that help shows the license-header option (strip ANSI codes for comparison)
-        import re
-        clean_output = re.sub(r'\x1b\[[0-9;]*m', '', result.stdout)
+        # Check that help shows the license-header option
+        # (strip ANSI codes for comparison)
+
+        clean_output = re.sub(r"\x1b\[[0-9;]*m", "", result.stdout)
         assert "license-header" in clean_output.lower()

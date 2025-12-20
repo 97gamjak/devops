@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import typing
 
-import pytest
-
 from devops.cpp.license_header import CheckLicenseHeader, check_license_header
 from devops.rules import ResultTypeEnum, RuleInputType, RuleType
 
@@ -176,9 +174,7 @@ class TestCheckLicenseHeader:
         result = check_license_header(file_content, header_file)
         assert result.value == ResultTypeEnum.Ok
 
-    def test_check_license_header_with_leading_whitespace(
-        self, tmp_path: Path
-    ) -> None:
+    def test_check_license_header_with_leading_whitespace(self, tmp_path: Path) -> None:
         """Test check with license header containing leading whitespace.
 
         Parameters
@@ -193,7 +189,9 @@ class TestCheckLicenseHeader:
         header_file.write_text(header_text)
 
         # File content must match exactly including whitespace
-        file_content = "  // Copyright 2024\n  // All rights reserved\n\nint main() {}\n"
+        file_content = (
+            "  // Copyright 2024\n  // All rights reserved\n\nint main() {}\n"
+        )
 
         result = check_license_header(file_content, header_file)
         assert result.value == ResultTypeEnum.Ok
@@ -219,7 +217,9 @@ class TestCheckLicenseHeaderClass:
         assert rule.name == "License Header Check"
         assert rule.rule_type == RuleType.CPP_STYLE
         assert rule.rule_input_type == RuleInputType.FILE
-        assert rule.description == "Ensure that the file contains the required license header."
+
+        desc = "Ensure that the file contains the required license header."
+        assert rule.description == desc
 
     def test_check_license_header_class_apply_with_valid_content(
         self, tmp_path: Path

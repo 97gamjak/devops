@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import typing
 
-import pytest
-
 from devops.config.config_cpp import CppConfig
 from devops.cpp.build_rules import build_cpp_rules
 from devops.rules import Rule, RuleType
@@ -106,8 +104,14 @@ class TestBuildCppRules:
         # Should not contain license header rule
         assert rules == []
         # Should log a warning
-        assert any("License header check is enabled" in record.message for record in caplog.records)
-        assert any("no license header text is provided" in record.message for record in caplog.records)
+        assert any(
+            "License header check is enabled" in record.message
+            for record in caplog.records
+        )
+        assert any(
+            "no license header text is provided" in record.message
+            for record in caplog.records
+        )
 
     def test_build_cpp_rules_with_only_license_header(self, tmp_path: Path) -> None:
         """Test building rules with only license header check.

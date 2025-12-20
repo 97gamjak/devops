@@ -13,12 +13,14 @@ class CppConfig:
 
     # Enable or disable running C++ style checks (e.g., clang-format, clang-tidy).
     style_checks: bool = True
-    # Enable or disable verification that source files contain the expected license header.
+    # Enable or disable verification that source files contain
+    # the expected license header.
     license_header_check: bool = True
     # Path to the license header file whose contents should be enforced, or None to use
     # the tool's default behavior (for example, no custom license header content).
     license_header: str | None = None
-    # If True, limit checks to files that are currently staged (e.g., in a pre-commit hook).
+    # If True, limit checks to files that are currently staged
+    # (e.g., in a pre-commit hook).
     check_only_staged_files: bool = False
 
 

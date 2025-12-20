@@ -8,7 +8,10 @@ from devops.rules import (
     RuleInputType,
     RuleType,
     filter_cpp_rules,
+    filter_file_rules,
     filter_line_rules,
+    is_file_rule,
+    is_line_rule,
 )
 
 
@@ -271,8 +274,6 @@ class TestFileRuleFiltering:
 
     def test_filter_file_rules(self) -> None:
         """Test filter_file_rules returns only file input rules."""
-        from devops.rules import filter_file_rules
-
         file_rule = Rule(
             name="file_rule",
             func=lambda _x: ResultType(ResultTypeEnum.Ok),
@@ -298,15 +299,11 @@ class TestFileRuleFiltering:
 
     def test_filter_file_rules_empty_list(self) -> None:
         """Test filter_file_rules with empty list."""
-        from devops.rules import filter_file_rules
-
         filtered = filter_file_rules([])
         assert filtered == []
 
     def test_filter_file_rules_no_matches(self) -> None:
         """Test filter_file_rules when no rules match."""
-        from devops.rules import filter_file_rules
-
         line_rule = Rule(
             name="line_rule",
             func=lambda _x: ResultType(ResultTypeEnum.Ok),
@@ -326,8 +323,6 @@ class TestRuleTypeChecking:
 
     def test_is_line_rule_returns_true(self) -> None:
         """Test is_line_rule returns True for line rules."""
-        from devops.rules import is_line_rule
-
         line_rule = Rule(
             name="line_rule",
             func=lambda _x: ResultType(ResultTypeEnum.Ok),
@@ -337,8 +332,6 @@ class TestRuleTypeChecking:
 
     def test_is_line_rule_returns_false_for_file_rule(self) -> None:
         """Test is_line_rule returns False for file rules."""
-        from devops.rules import is_line_rule
-
         file_rule = Rule(
             name="file_rule",
             func=lambda _x: ResultType(ResultTypeEnum.Ok),
@@ -348,8 +341,6 @@ class TestRuleTypeChecking:
 
     def test_is_line_rule_returns_false_for_none_rule(self) -> None:
         """Test is_line_rule returns False for NONE rules."""
-        from devops.rules import is_line_rule
-
         none_rule = Rule(
             name="none_rule",
             func=lambda _x: ResultType(ResultTypeEnum.Ok),
@@ -359,8 +350,6 @@ class TestRuleTypeChecking:
 
     def test_is_file_rule_returns_true(self) -> None:
         """Test is_file_rule returns True for file rules."""
-        from devops.rules import is_file_rule
-
         file_rule = Rule(
             name="file_rule",
             func=lambda _x: ResultType(ResultTypeEnum.Ok),
@@ -370,8 +359,6 @@ class TestRuleTypeChecking:
 
     def test_is_file_rule_returns_false_for_line_rule(self) -> None:
         """Test is_file_rule returns False for line rules."""
-        from devops.rules import is_file_rule
-
         line_rule = Rule(
             name="line_rule",
             func=lambda _x: ResultType(ResultTypeEnum.Ok),
@@ -381,8 +368,6 @@ class TestRuleTypeChecking:
 
     def test_is_file_rule_returns_false_for_none_rule(self) -> None:
         """Test is_file_rule returns False for NONE rules."""
-        from devops.rules import is_file_rule
-
         none_rule = Rule(
             name="none_rule",
             func=lambda _x: ResultType(ResultTypeEnum.Ok),
