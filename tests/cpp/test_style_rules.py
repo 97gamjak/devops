@@ -20,9 +20,6 @@ from devops.cpp.style_rules import (
 from devops.files import FileType
 from devops.rules import FileRuleInput, ResultTypeEnum, Rule, RuleInputType, RuleType
 
-if typing.TYPE_CHECKING:
-    from pathlib import Path as PathType
-
 
 class TestCheckKeySeqOrder:
     """Tests for CheckKeySeqOrder rule."""
