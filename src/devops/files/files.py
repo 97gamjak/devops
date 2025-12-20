@@ -26,11 +26,13 @@ class DevOpsFileNotFoundError(Exception):
         """
         self.filepath = filepath
 
-        message = f"File not found: {filepath}"
+        default_message = f"File not found: {filepath}"
         if message is not None:
-            message += f" - {message}"
+            final_message = f"{default_message} - {message}"
+        else:
+            final_message = default_message
 
-        super().__init__(message)
+        super().__init__(final_message)
 
 
 class FileType(Enum):

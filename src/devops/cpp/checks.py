@@ -80,6 +80,11 @@ def run_file_rules(rules: list[Rule], file: Path) -> list[ResultType]:
     list[ResultType]
         The list of results from the checks.
 
+    Raises
+    ------
+    CppCheckError
+        If a non-file rule is provided.
+
     """
     results = []
     file_type = determine_file_type(file)

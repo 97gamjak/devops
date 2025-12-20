@@ -15,7 +15,6 @@ All notable changes to this project will be documented in this file.
 #### Git
 
 - Add function to retrieve latest tag from git
-- Add 
 
 #### Config
 
