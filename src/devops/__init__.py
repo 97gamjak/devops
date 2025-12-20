@@ -1,7 +1,14 @@
-"""Top level package for mstd checks."""
+"""Top level package for devops."""
 
 from pathlib import Path
 
-__BASE_DIR__ = Path(__file__).resolve().parent.parent
+from devops.config import init_config
 
-__all__ = ["__BASE_DIR__"]
+__NOT_DEFINED__ = object()
+__GLOBAL_CONFIG__ = __NOT_DEFINED__
+
+__BASE_DIR__ = Path(__file__).resolve().parent
+
+
+if __GLOBAL_CONFIG__ is __NOT_DEFINED__:
+    __GLOBAL_CONFIG__ = init_config()

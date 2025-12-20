@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import typing
 
-from devops.github import __MSTD_ISSUES_PAGE__
+from devops.config import Constants
 from devops.logger import utils_logger
 from devops.rules import ResultType, ResultTypeEnum
 
@@ -32,9 +32,7 @@ def find_indices(list_to_search: list[Any], element: Any) -> list[int]:
 
 
 def check_key_sequence_ordered(
-    key_sequence: str,
-    line: str,
-    key_delimiter: str = " "
+    key_sequence: str, line: str, key_delimiter: str = " "
 ) -> ResultType:
     """Check if keys in key_sequence appear in order on the given line.
 
@@ -60,15 +58,14 @@ def check_key_sequence_ordered(
     if set(key_sequence).intersection(set(line_elements)) != set(key_sequence):
         return ResultType(ResultTypeEnum.Ok)
 
-    indices = [
-        find_indices(line_elements, key)
-        for key in key_sequence
-    ]
+    indices = [find_indices(line_elements, key) for key in key_sequence]
 
     if len(indices) != len(key_sequence):
         msg = f"Expected {len(key_sequence)} indices, but got {len(indices)}. "
         msg += "This indicates an internal error. "
-        msg += f"Please report this issue at {__MSTD_ISSUES_PAGE__}."
+        msg += (
+            f"Please report this issue at {Constants.github.github_devops_issues_url}."
+        )
         raise ValueError(msg)
 
     found_indices = 0
@@ -85,12 +82,11 @@ def check_key_sequence_ordered(
             "All keys from key_sequence %s are present "
             "in line %s and ordered correctly.",
             key_sequence,
-            line
+            line,
         )
         return ResultType(ResultTypeEnum.Ok)
 
     return ResultType(
         ResultTypeEnum.Error,
-        f"key_sequence {key_sequence} not ordered correctly "
-        f"in line {line}."
+        f"key_sequence {key_sequence} not ordered correctly in line {line}.",
     )

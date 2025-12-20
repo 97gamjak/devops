@@ -4,21 +4,19 @@ import re
 from datetime import UTC, datetime
 from pathlib import Path
 
-from devops.files.files import MSTDFileNotFoundError
-from devops.github import get_github_repo
-
-from .config import __DEFAULT_ENCODING__
+from devops.config import Constants
+from devops.files import open_file, write_text
 
 __CHANGELOG_PATH__ = Path("CHANGELOG.md")
 __CHANGELOG_INSERTION_MARKER__ = "<!-- insertion marker -->"
 
 
-class MSTDChangelogError(Exception):
+class DevOpsChangelogError(Exception):
     """Base class for changelog related errors."""
 
     def __init__(self, message: str) -> None:
         """Initialize the exception with a message."""
-        super().__init__(f"MSTDChangelogError: {message}")
+        super().__init__(f"DevOpsChangelogError: {message}")
         self.message = message
 
 
@@ -34,19 +32,16 @@ def update_changelog(version: str, changelog_path: Path = __CHANGELOG_PATH__) ->
 
     Raises
     ------
-    MSTDFileNotFoundError
-        If the changelog file does not exist.
-    MSTDChangelogError
+    DevOpsFileNotFoundError
+        If the changelog file does not exist. Happens inside open_file.
+    DevOpsChangelogError
         If the "## Next Release" marker is not found in the changelog.
 
     """
-    if not changelog_path.is_file():
-        raise MSTDFileNotFoundError(changelog_path)
-
-    with changelog_path.open("r", encoding=__DEFAULT_ENCODING__) as f:
+    with open_file(changelog_path, mode="r") as f:
         content = f.readlines()
 
-    repo = get_github_repo()
+    repo = Constants.github.github_default_owner_url
     today = datetime.now(tz=UTC).date().isoformat()
     new_entry = f"## [{version}]({repo}/releases/tag/{version}) - {today}"
 
@@ -72,7 +67,6 @@ def update_changelog(version: str, changelog_path: Path = __CHANGELOG_PATH__) ->
 
     if not marker_moved:
         msg = "Could not find '## Next Release' in CHANGELOG.md"
-        raise MSTDChangelogError(msg)
+        raise DevOpsChangelogError(msg)
 
-    changelog_path.write_text("".join(updated) + "\n",
-                              encoding=__DEFAULT_ENCODING__)
+    write_text(changelog_path, "".join(updated) + "\n")

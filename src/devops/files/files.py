@@ -4,20 +4,38 @@ from __future__ import annotations
 
 import subprocess
 import typing
+from contextlib import contextmanager
 from enum import Enum
 from pathlib import Path
+
+from devops import __GLOBAL_CONFIG__
 
 if typing.TYPE_CHECKING:
     from collections.abc import Iterable
 
 
-class MSTDFileNotFoundError(Exception):
+class DevOpsFileNotFoundError(Exception):
     """Exception raised when a specified file is not found."""
 
-    def __init__(self, filepath: Path) -> None:
-        """Initialize the exception with the missing file path."""
-        super().__init__(f"File not found: {filepath}")
+    def __init__(self, filepath: Path, message: str | None = None) -> None:
+        """Initialize the exception with the missing file path.
+
+        Parameters
+        ----------
+        filepath: Path
+            The path to the file that was not found.
+        message: str | None
+            Optional custom message for the exception.
+        """
         self.filepath = filepath
+
+        default_message = f"File not found: {filepath}"
+        if message is not None:
+            final_message = f"{default_message} - {message}"
+        else:
+            final_message = default_message
+
+        super().__init__(final_message)
 
 
 class FileType(Enum):
@@ -44,6 +62,11 @@ class FileType(Enum):
     def cpp_types(cls) -> set[FileType]:
         """Get a set of all CPP related file types."""
         return {FileType.CPPHeader, FileType.CPPSource}
+
+    @classmethod
+    def is_cpp_type(cls, file_type: FileType) -> bool:
+        """Check if the given file type is a C++ related type."""
+        return file_type in cls.cpp_types()
 
 
 def determine_file_type(filename: str | Path) -> FileType:
@@ -76,7 +99,7 @@ def get_files_in_dirs(
     paths: Iterable[Path],
     exclude_dirs: list[str] | None = None,
     exclude_files: list[str] | None = None,
-    max_recursion: int = 20
+    max_recursion: int = 20,
 ) -> list[Path]:
     """Get all files in the specified directories.
 
@@ -113,16 +136,31 @@ def get_files_in_dirs(
         if path.is_dir() and path.name not in exclude_dirs:
             all_files.extend(
                 get_files_in_dirs(
-                    path.iterdir(),
-                    exclude_dirs,
-                    exclude_files,
-                    max_recursion - 1
+                    path.iterdir(), exclude_dirs, exclude_files, max_recursion - 1
                 )
             )
         elif path.is_file() and path.name not in exclude_files:
             all_files.append(path)
 
     return all_files
+
+
+def get_dirs_in_dir(directory: str | Path = ".") -> list[Path]:
+    """Get all directories in the specified directory.
+
+    Parameters
+    ----------
+    directory: str | Path
+        The path to the directory to search. Defaults to the current directory.
+
+    Returns
+    -------
+    list[Path]:
+        List of directory paths found in the specified directory.
+
+    """
+    dir_path = Path(directory)
+    return [path for path in dir_path.iterdir() if path.is_dir()]
 
 
 def get_staged_files() -> list[Path]:
@@ -143,8 +181,124 @@ def get_staged_files() -> list[Path]:
         ["git", "diff", "--name-only", "--cached"],
         capture_output=True,
         text=True,
-        check=True
+        check=True,
     )
 
     files = result.stdout.strip().split("\n")
     return [Path(file) for file in files if file]
+
+
+def file_exist(
+    file: str | Path, *, throwing: bool = False, throw_msg: str | None = None
+) -> bool:
+    """Check if a file exists at the given path.
+
+    Parameters
+    ----------
+    file: str | Path
+        The path to the file to check.
+    throwing: bool
+        Whether to raise an exception if the file does not exist.
+    throw_msg: str | None
+        Custom message to use when raising an exception if the file does not exist.
+
+    Returns
+    -------
+    bool
+        True if the file exists, False otherwise.
+
+    Raises
+    ------
+    DevOpsFileNotFoundError
+        If the file does not exist and throwing is True.
+
+    """
+    filepath = Path(file)
+    if filepath.is_file():
+        return True
+
+    if throwing:
+        raise DevOpsFileNotFoundError(filepath, message=throw_msg)
+
+    return False
+
+
+@contextmanager
+def open_file(
+    file: str | Path, mode: str = "r"
+) -> typing.Generator[typing.IO[str], None, None]:
+    """Read the content of a file.
+
+    Parameters
+    ----------
+    file: str | Path
+        The path to the file to read.
+
+    Yields
+    ------
+    typing.IO[str]
+        The opened file object.
+
+    Raises
+    ------
+    DevOpsFileNotFoundError
+        If the file does not exist.
+
+    """
+    file = Path(file)
+
+    if "r" in mode:
+        file_exist(
+            file,
+            throwing=True,
+            throw_msg="Cannot read file as it does not exist.",
+        )
+
+    encoding = __GLOBAL_CONFIG__.file.encoding
+    file = file.open(mode, encoding=encoding)
+
+    try:
+        yield file
+    finally:
+        file.close()
+
+
+def write_text(file: str | Path, content: str) -> None:
+    """Write text content to a file.
+
+    Parameters
+    ----------
+    file: str | Path
+        The path to the file to write.
+    content: str
+        The text content to write to the file.
+
+    """
+    file = Path(file)
+
+    encoding = __GLOBAL_CONFIG__.file.encoding
+
+    file.write_text(content, encoding=encoding)
+
+
+def filter_cpp_files(files: list[Path]) -> list[Path]:
+    """Filter and return only C++ related files from the given list.
+
+    Parameters
+    ----------
+    files: list[Path]
+        The list of file paths to filter.
+
+    Returns
+    -------
+    list[Path]
+        The filtered list containing only C++ related files.
+
+    """
+    cpp_files = []
+    for file in files:
+        file_type = determine_file_type(file)
+        if FileType.is_cpp_type(file_type):
+            cpp_files.append(file)
+
+    return cpp_files

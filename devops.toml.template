@@ -1,0 +1,23 @@
+# DevOps Configuration File
+
+[exclude]
+#buggy_cpp_macros = []
+
+[logging]
+#global_level = "INFO"
+#utils_level = "INFO"
+#config_level = "INFO"
+#cpp_level = "INFO"
+
+[git]
+#tag_prefix = ""
+#empty_tag_list_allowed = true
+
+[cpp]
+#style_checks = true
+#license_header_check = true
+#check_only_staged_files = false
+
+[file]
+#encoding = "utf-8"
+

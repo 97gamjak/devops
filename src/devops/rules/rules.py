@@ -1,4 +1,5 @@
 """Module defining rules for mstd checks."""
+
 from __future__ import annotations
 
 import typing
@@ -107,7 +108,7 @@ class Rule:
         rule_type: RuleType = RuleType.GENERAL,
         rule_input_type: RuleInputType = RuleInputType.NONE,
         file_types: set[FileType] | None = None,
-        description: str | None = None
+        description: str | None = None,
     ) -> None:
         """Initialize Rule with a name and optional description."""
         self.name = name
@@ -178,3 +179,54 @@ def filter_line_rules(rules: list[Rule]) -> list[Rule]:
 
     """
     return [rule for rule in rules if rule.rule_input_type == RuleInputType.LINE]
+
+
+def filter_file_rules(rules: list[Rule]) -> list[Rule]:
+    """Filter and return only file related rules.
+
+    Parameters
+    ----------
+    rules: list[Rule]
+        The list of rules to filter.
+
+    Returns
+    -------
+    list[Rule]
+        A list of file related rules.
+
+    """
+    return [rule for rule in rules if rule.rule_input_type == RuleInputType.FILE]
+
+
+def is_line_rule(rule: Rule) -> bool:
+    """Check if a rule is a line-based rule.
+
+    Parameters
+    ----------
+    rule: Rule
+        The rule to check.
+
+    Returns
+    -------
+    bool
+        True if the rule is line-based, False otherwise.
+
+    """
+    return rule.rule_input_type == RuleInputType.LINE
+
+
+def is_file_rule(rule: Rule) -> bool:
+    """Check if a rule is a file-based rule.
+
+    Parameters
+    ----------
+    rule: Rule
+        The rule to check.
+
+    Returns
+    -------
+    bool
+        True if the rule is file-based, False otherwise.
+
+    """
+    return rule.rule_input_type == RuleInputType.FILE

@@ -1,0 +1,41 @@
+name: Release Pattern Check
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [opened, edited, reopened, synchronize]
+
+jobs:
+  check-release-pattern:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check PR Title, Description, or Hotfix Branch
+        run: |
+          title="${{ github.event.pull_request.title }}"
+          body="${{ github.event.pull_request.body }}"
+          head_ref="${{ github.head_ref }}"
+
+          echo "PR title: $title"
+          echo "PR body: $body"
+          echo "PR source branch: $head_ref"
+
+          # Allow hotfix branches unconditionally
+          if [[ "$head_ref" == hotfix/* ]]; then
+            echo "✅ Hotfix branch detected ($head_ref). Skipping release pattern check."
+            exit 0
+          fi
+
+          # Regex: Release-x.y.z (case-insensitive)
+          regex='[Rr][Ee][Ll][Ee][Aa][Ss][Ee]-[0-9]+\.[0-9]+\.[0-9]+'
+
+          if [[ "$title" =~ $regex ]] || [[ "$body" =~ $regex ]]; then
+            echo "✅ Found valid Release pattern in title or description."
+            exit 0
+          else
+            echo "❌ Invalid PR."
+            echo "   Title or description must contain: Release-x.y.z (e.g., Release-1.2.3)"
+            echo "   OR the branch must start with: hotfix/"
+            exit 1
+          fi

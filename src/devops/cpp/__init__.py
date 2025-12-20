@@ -1,6 +1,13 @@
 """Package defining C++ check rules."""
 
-from .style_rules import cpp_style_rules
+from .buggy_cpp_files import filter_buggy_cpp
+from .build_rules import build_cpp_rules
+from .checks import run_cpp_checks
+from .license_header import add_license_header
 
-cpp_rules = cpp_style_rules
-__all__ = ["cpp_rules"]
+__all__ = [
+    "add_license_header",
+    "build_cpp_rules",
+    "filter_buggy_cpp",
+    "run_cpp_checks",
+]
