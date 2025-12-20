@@ -255,26 +255,26 @@ class TestGitTag:
     def test_increase_methods_with_large_numbers(self) -> None:
         """Test increase methods work correctly with large version numbers."""
         tag = GitTag(99, 199, 299, prefix="v")
-        
+
         major_tag = tag.increase_major()
         assert major_tag == GitTag(100, 0, 0, prefix="v")
-        
+
         minor_tag = tag.increase_minor()
         assert minor_tag == GitTag(99, 200, 0, prefix="v")
-        
+
         patch_tag = tag.increase_patch()
         assert patch_tag == GitTag(99, 199, 300, prefix="v")
 
     def test_increase_methods_with_zeros(self) -> None:
         """Test increase methods work correctly when starting from zeros."""
         tag = GitTag(0, 0, 0, prefix="v")
-        
+
         major_tag = tag.increase_major()
         assert major_tag == GitTag(1, 0, 0, prefix="v")
-        
+
         minor_tag = tag.increase_minor()
         assert minor_tag == GitTag(0, 1, 0, prefix="v")
-        
+
         patch_tag = tag.increase_patch()
         assert patch_tag == GitTag(0, 0, 1, prefix="v")
 
