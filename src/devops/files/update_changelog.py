@@ -4,7 +4,7 @@ import re
 from datetime import UTC, datetime
 from pathlib import Path
 
-from devops.files.files import MSTDFileNotFoundError
+from devops.files.files import DevOpsFileNotFoundError
 from devops.github import get_github_repo
 
 from .config import __DEFAULT_ENCODING__
@@ -34,14 +34,14 @@ def update_changelog(version: str, changelog_path: Path = __CHANGELOG_PATH__) ->
 
     Raises
     ------
-    MSTDFileNotFoundError
+    DevOpsFileNotFoundError
         If the changelog file does not exist.
     MSTDChangelogError
         If the "## Next Release" marker is not found in the changelog.
 
     """
     if not changelog_path.is_file():
-        raise MSTDFileNotFoundError(changelog_path)
+        raise DevOpsFileNotFoundError(changelog_path)
 
     with changelog_path.open("r", encoding=__DEFAULT_ENCODING__) as f:
         content = f.readlines()
