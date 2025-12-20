@@ -1,7 +1,6 @@
 """Constants for DevOps checks."""
 
-from dataclasses import dataclass
-from typing import ClassVar
+from dataclasses import dataclass, field
 
 
 @dataclass(frozen=True)
@@ -18,7 +17,9 @@ class GitConstants:
 class FileConstants:
     """Class holding constant file-related values."""
 
-    toml_filenames: ClassVar[list[str]] = ["devops.toml", ".devops.toml"]
+    toml_filenames: list[str] = field(
+        default_factory=lambda: ["devops.toml", ".devops.toml"]
+    )
 
 
 @dataclass(frozen=True)
