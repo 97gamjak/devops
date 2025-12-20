@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Features
 
-####
+#### CPP Rules
 
 - Add CPP rule to check that in a header file there is always a header guard present
 - Adding option to enforce header guard format via file path
