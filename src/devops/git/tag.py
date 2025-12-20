@@ -24,6 +24,7 @@ class GitTag:
     major: int = 0
     minor: int = 0
     patch: int = 0
+    prefix: str = ""
 
     def __str__(self) -> str:
         """Return the string representation of the Git tag.
@@ -35,7 +36,7 @@ class GitTag:
             in the format 'v<major>.<minor>.<patch>'.
 
         """
-        return f"v{self.major}.{self.minor}.{self.patch}"
+        return f"{self.prefix}{self.major}.{self.minor}.{self.patch}"
 
     @staticmethod
     def from_string(tag: str) -> GitTag:
@@ -58,7 +59,8 @@ class GitTag:
 
         """
         original_tag = tag
-        tag = tag.removeprefix("v")
+        prefix = "v" if tag.startswith("v") else ""
+        tag = tag.removeprefix(prefix)
         parts = tag.split(".")
 
         # TODO(97gamjak): implement support for different version schemes
@@ -72,7 +74,7 @@ class GitTag:
         except ValueError as exc:
             msg = f"Invalid numeric components in tag: {original_tag}"
             raise GitTagError(msg) from exc
-        return GitTag(major, minor, patch)
+        return GitTag(major, minor, patch, prefix=prefix)
 
 
 def get_all_tags(*, empty_tag_list_allowed: bool = True) -> list[GitTag]:
@@ -115,8 +117,13 @@ def get_all_tags(*, empty_tag_list_allowed: bool = True) -> list[GitTag]:
     return tags
 
 
-def get_latest_tag() -> GitTag:
+def get_latest_tag(*, empty_tag_list_allowed: bool = True) -> GitTag:
     """Get the latest Git tag in the repository.
+
+    Parameters
+    ----------
+    empty_tag_list_allowed: bool
+        Whether to allow an empty tag list without raising an error.
 
     Returns
     -------
@@ -124,7 +131,7 @@ def get_latest_tag() -> GitTag:
         The latest Git tag. If no tags exist, returns GitTag(0, 0, 0).
 
     """
-    tags = get_all_tags()
+    tags = get_all_tags(empty_tag_list_allowed=empty_tag_list_allowed)
     if not tags:
         return GitTag(0, 0, 0)
 

@@ -7,5 +7,6 @@ requires-python = ">=3.12"
 dependencies = ["pytest>=9.0.1", "ruff>=0.14.6", "typer>=0.20.0"]
 
 [project.scripts]
-cpp_checks = "devops.scripts.cpp_checks:main"
+cpp_checks = "devops.scripts.cpp_checks:app"
 update_changelog = "devops.scripts.update_changelog:app"
+get_latest_tag = "devops.scripts.get_latest_git_tag:app"
