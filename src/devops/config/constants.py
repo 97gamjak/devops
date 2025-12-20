@@ -10,7 +10,10 @@ class GitConstants:
     github_default_owner_url: str = github_url + "/repo/owner"
 
 
+GITHUB_CONSTANTS: GitConstants = GitConstants()
+
+
 class Constants:
     """Class holding constant values for DevOps checks."""
 
-    github: GitConstants = GitConstants()
+    github: GitConstants = GITHUB_CONSTANTS
