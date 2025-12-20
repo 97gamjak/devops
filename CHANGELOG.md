@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+<!-- insertion marker -->
+## [0.0.1](https://github.com/repo/owner/releases/tag/0.0.1) - 2025-12-20
+
 ### API
 
 - Add cli command `get_latest_tag`
@@ -45,5 +48,5 @@ All notable changes to this project will be documented in this file.
 - Add overnight CI runs for pytest and ruff CIs
 - Add test coverage to pytest CI
 
-<!-- insertion marker -->
+
 
