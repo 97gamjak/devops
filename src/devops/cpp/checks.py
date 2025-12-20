@@ -149,6 +149,6 @@ def run_cpp_checks(
             ]
             for res in filtered_results:
                 cpp_check_logger.error(
-                    f"Line check result in {filename}: {res.description}"
+                    f"CPP check error: result in {filename}: {res.description}"
                 )
             return
