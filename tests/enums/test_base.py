@@ -31,10 +31,10 @@ def test_str_enum_case_insensitive_access() -> None:
 
 def test_str_enum_invalid_value() -> None:
     """Test that invalid values raise ValueError."""
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="is not a valid"):
         SampleEnum("invalid_option")
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="is not a valid"):
         SampleEnum("OPTION_D")
 
 

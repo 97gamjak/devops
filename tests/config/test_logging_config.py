@@ -1,7 +1,6 @@
 """Tests for devops.config.logging_config module."""
 
 import logging
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -84,17 +83,17 @@ def test_parse_logging_config_with_missing_logging_section() -> None:
     """Test parse_logging_config with missing logging section uses defaults."""
     raw_config: dict = {}
 
-    with patch("devops.config.logging_config.set_logging_levels"):
-        with patch("logging.root.level", logging.INFO):
-            with patch("devops.config.logging_config.utils_logger.level", logging.INFO):
-                with patch(
-                    "devops.config.logging_config.config_logger.level", logging.INFO
-                ):
-                    with patch(
-                        "devops.config.logging_config.cpp_check_logger.level",
-                        logging.INFO,
-                    ):
-                        config = parse_logging_config(raw_config)
+    with (
+        patch("devops.config.logging_config.set_logging_levels"),
+        patch("logging.root.level", logging.INFO),
+        patch("devops.config.logging_config.utils_logger.level", logging.INFO),
+        patch("devops.config.logging_config.config_logger.level", logging.INFO),
+        patch(
+            "devops.config.logging_config.cpp_check_logger.level",
+            logging.INFO,
+        ),
+    ):
+        config = parse_logging_config(raw_config)
 
     assert config.global_level == LogLevel.INFO
     assert config.utils_level == LogLevel.INFO
@@ -111,12 +110,12 @@ def test_parse_logging_config_with_partial_levels() -> None:
         }
     }
 
-    with patch("devops.config.logging_config.set_logging_levels"):
-        with patch("devops.config.logging_config.utils_logger.level", logging.WARNING):
-            with patch(
-                "devops.config.logging_config.config_logger.level", logging.ERROR
-            ):
-                config = parse_logging_config(raw_config)
+    with (
+        patch("devops.config.logging_config.set_logging_levels"),
+        patch("devops.config.logging_config.utils_logger.level", logging.WARNING),
+        patch("devops.config.logging_config.config_logger.level", logging.ERROR),
+    ):
+        config = parse_logging_config(raw_config)
 
     assert config.global_level == LogLevel.DEBUG
     assert config.utils_level == LogLevel.WARNING
@@ -173,15 +172,18 @@ def test_parse_logging_config_calls_set_logging_levels() -> None:
         }
     }
 
-    with patch(
-        "devops.config.logging_config.set_logging_levels"
-    ) as mock_set_levels:
-        with patch("devops.config.logging_config.utils_logger.level", logging.INFO):
-            with patch("devops.config.logging_config.config_logger.level", logging.INFO):
-                with patch(
-                    "devops.config.logging_config.cpp_check_logger.level", logging.INFO
-                ):
-                    config = parse_logging_config(raw_config)
+    with (
+        patch(
+            "devops.config.logging_config.set_logging_levels"
+        ) as mock_set_levels,
+        patch("devops.config.logging_config.utils_logger.level", logging.INFO),
+        patch("devops.config.logging_config.config_logger.level", logging.INFO),
+        patch(
+            "devops.config.logging_config.cpp_check_logger.level",
+            logging.INFO,
+        ),
+    ):
+        parse_logging_config(raw_config)
 
         mock_set_levels.assert_called_once()
         call_args = mock_set_levels.call_args[0][0]
@@ -192,14 +194,16 @@ def test_set_logging_levels_sets_global_level() -> None:
     """Test set_logging_levels sets the root logger level."""
     config = LoggingConfig(global_level=LogLevel.DEBUG)
 
-    with patch("logging.getLogger") as mock_get_logger:
+    with (
+        patch("logging.getLogger") as mock_get_logger,
+        patch("devops.config.logging_config.utils_logger"),
+        patch("devops.config.logging_config.config_logger"),
+        patch("devops.config.logging_config.cpp_check_logger"),
+    ):
         mock_logger = MagicMock()
         mock_get_logger.return_value = mock_logger
 
-        with patch("devops.config.logging_config.utils_logger") as mock_utils:
-            with patch("devops.config.logging_config.config_logger") as mock_config:
-                with patch("devops.config.logging_config.cpp_check_logger") as mock_cpp:
-                    set_logging_levels(config)
+        set_logging_levels(config)
 
         mock_logger.setLevel.assert_called_once_with(logging.DEBUG)
 
@@ -213,14 +217,16 @@ def test_set_logging_levels_sets_all_logger_levels() -> None:
         cpp_level=LogLevel.ERROR,
     )
 
-    with patch("logging.getLogger") as mock_get_logger:
+    with (
+        patch("logging.getLogger") as mock_get_logger,
+        patch("devops.config.logging_config.utils_logger") as mock_utils,
+        patch("devops.config.logging_config.config_logger") as mock_config,
+        patch("devops.config.logging_config.cpp_check_logger") as mock_cpp,
+    ):
         mock_root = MagicMock()
         mock_get_logger.return_value = mock_root
 
-        with patch("devops.config.logging_config.utils_logger") as mock_utils:
-            with patch("devops.config.logging_config.config_logger") as mock_config:
-                with patch("devops.config.logging_config.cpp_check_logger") as mock_cpp:
-                    set_logging_levels(config)
+        set_logging_levels(config)
 
         mock_root.setLevel.assert_called_once_with(logging.DEBUG)
         mock_utils.setLevel.assert_called_once_with(logging.INFO)
@@ -236,13 +242,16 @@ def test_parse_logging_config_with_none_level() -> None:
         }
     }
 
-    with patch("devops.config.logging_config.set_logging_levels"):
-        with patch("devops.config.logging_config.utils_logger.level", logging.INFO):
-            with patch("devops.config.logging_config.config_logger.level", logging.INFO):
-                with patch(
-                    "devops.config.logging_config.cpp_check_logger.level", logging.INFO
-                ):
-                    config = parse_logging_config(raw_config)
+    with (
+        patch("devops.config.logging_config.set_logging_levels"),
+        patch("devops.config.logging_config.utils_logger.level", logging.INFO),
+        patch("devops.config.logging_config.config_logger.level", logging.INFO),
+        patch(
+            "devops.config.logging_config.cpp_check_logger.level",
+            logging.INFO,
+        ),
+    ):
+        config = parse_logging_config(raw_config)
 
     assert config.global_level == LogLevel.NONE
 
@@ -251,13 +260,15 @@ def test_set_logging_levels_with_none_level() -> None:
     """Test set_logging_levels correctly converts NONE to NOTSET."""
     config = LoggingConfig(global_level=LogLevel.NONE)
 
-    with patch("logging.getLogger") as mock_get_logger:
+    with (
+        patch("logging.getLogger") as mock_get_logger,
+        patch("devops.config.logging_config.utils_logger"),
+        patch("devops.config.logging_config.config_logger"),
+        patch("devops.config.logging_config.cpp_check_logger"),
+    ):
         mock_logger = MagicMock()
         mock_get_logger.return_value = mock_logger
 
-        with patch("devops.config.logging_config.utils_logger") as mock_utils:
-            with patch("devops.config.logging_config.config_logger") as mock_config:
-                with patch("devops.config.logging_config.cpp_check_logger") as mock_cpp:
-                    set_logging_levels(config)
+        set_logging_levels(config)
 
         mock_logger.setLevel.assert_called_once_with(logging.NOTSET)

@@ -2,8 +2,6 @@
 
 import logging
 
-import pytest
-
 from devops.enums.logging import LogLevel
 
 
@@ -71,7 +69,6 @@ def test_log_level_from_int_with_values_between_levels() -> None:
     # that return INFO. The function only returns INFO as the final fallback
     # which seems unreachable given the current logic.
     # Let's skip this test or adjust it based on actual implementation.
-    pass
 
 
 def test_log_level_from_logging_level_with_standard_levels() -> None:
@@ -169,16 +166,16 @@ def test_log_level_comparison_equality() -> None:
     assert LogLevel.ERROR == LogLevel.ERROR
     assert LogLevel.CRITICAL == LogLevel.CRITICAL
 
-    assert not (LogLevel.DEBUG == LogLevel.INFO)
-    assert not (LogLevel.INFO == LogLevel.WARNING)
-    assert not (LogLevel.NONE == LogLevel.DEBUG)
+    assert LogLevel.DEBUG != LogLevel.INFO
+    assert LogLevel.INFO != LogLevel.WARNING
+    assert LogLevel.NONE != LogLevel.DEBUG
 
 
 def test_log_level_comparison_equality_with_non_log_level() -> None:
     """Test equality comparison with non-LogLevel objects."""
     assert LogLevel.INFO != "INFO"
     assert LogLevel.DEBUG != 10
-    assert LogLevel.INFO != None
+    assert LogLevel.INFO is not None
     assert LogLevel.INFO != 20
 
 
