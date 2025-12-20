@@ -9,7 +9,7 @@ from dataclasses import dataclass
 # TODO(97gamjak): centralize exception handling
 # https://github.com/97gamjak/devops/issues/24
 class GitTagError(Exception):
-    """Exception raised for Git tag-related errors in mstd checks."""
+    """Exception raised for Git tag-related errors in devops checks."""
 
     def __init__(self, message: str) -> None:
         """Initialize the exception with a message."""
@@ -17,7 +17,7 @@ class GitTagError(Exception):
         self.message = message
 
 
-@dataclass(frozen=False)
+@dataclass(frozen=True)
 class GitTag:
     """Class representing a Git tag."""
 
@@ -179,8 +179,13 @@ class GitTag:
         return GitTag(major, minor, patch)
 
 
-def get_all_tags() -> list[GitTag]:
+def get_all_tags(*, empty_tag_list_allowed: bool = True) -> list[GitTag]:
     """Get all Git tags in the repository.
+
+    Parameters
+    ----------
+    empty_tag_list_allowed: bool
+        Whether to allow an empty tag list without raising an error.
 
     Returns
     -------
@@ -194,7 +199,10 @@ def get_all_tags() -> list[GitTag]:
             stderr=subprocess.DEVNULL,
             text=True,
         ).strip()
-    except subprocess.CalledProcessError:
+    except subprocess.CalledProcessError as e:
+        if not empty_tag_list_allowed:
+            msg = "Failed to retrieve Git tags."
+            raise GitTagError(msg) from e
         return []
 
     tags = []
