@@ -4,16 +4,18 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
-### Features
-
 ### API
 
 - Add cli command `get_latest_tag`
 - Add cli command `increase_latest_tag`
+- Add new license checking rule to `cpp_checks`
+
+### Features
 
 #### Git
 
 - Add function to retrieve latest tag from git
+- Add 
 
 #### Config
 
@@ -24,6 +26,10 @@ All notable changes to this project will be documented in this file.
     global_level = "INFO"
     cpp_level = "DEBUG"
     ```
+
+#### CPP Rules
+
+- Add license check rule for cpp header and source files
 
 ### Deployment
 
