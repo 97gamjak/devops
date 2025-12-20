@@ -161,7 +161,7 @@ def test_log_level_comparison_equality_with_non_log_level() -> None:
     """Test equality comparison with non-LogLevel objects."""
     assert LogLevel.INFO != "INFO"
     assert LogLevel.DEBUG != 10
-    assert LogLevel.INFO is not None
+    assert LogLevel.INFO != None  # noqa: E711
     assert LogLevel.INFO != 20
 
 
