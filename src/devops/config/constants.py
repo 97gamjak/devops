@@ -13,15 +13,4 @@ class GitConstants:
 class Constants:
     """Class holding constant values for DevOps checks."""
 
-    @classmethod
-    @property
-    def github(cls) -> GitConstants:
-        """Return the GitConstants instance.
-
-        Returns
-        -------
-        GitConstants
-            The GitConstants instance.
-
-        """
-        return GitConstants()
+    github: GitConstants = GitConstants()
