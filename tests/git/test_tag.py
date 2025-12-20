@@ -171,6 +171,113 @@ class TestGitTag:
         with pytest.raises(FrozenInstanceError, match="cannot assign to field"):
             tag.major = 5  # type: ignore[misc]
 
+    def test_increase_major(self) -> None:
+        """Test increase_major increments major version and resets minor and patch."""
+        tag = GitTag(1, 2, 3, prefix="v")
+        new_tag = tag.increase_major()
+        assert new_tag.major == 2
+        assert new_tag.minor == 0
+        assert new_tag.patch == 0
+        assert new_tag.prefix == "v"
+
+    def test_increase_major_preserves_prefix(self) -> None:
+        """Test increase_major preserves the tag prefix."""
+        tag = GitTag(0, 5, 10, prefix="")
+        new_tag = tag.increase_major()
+        assert new_tag.major == 1
+        assert new_tag.minor == 0
+        assert new_tag.patch == 0
+        assert new_tag.prefix == ""
+
+    def test_increase_major_returns_new_instance(self) -> None:
+        """Test increase_major returns a new instance and doesn't modify original."""
+        tag = GitTag(1, 2, 3, prefix="v")
+        new_tag = tag.increase_major()
+        assert tag.major == 1
+        assert tag.minor == 2
+        assert tag.patch == 3
+        assert new_tag is not tag
+
+    def test_increase_minor(self) -> None:
+        """Test increase_minor increments minor version and resets patch."""
+        tag = GitTag(1, 2, 3, prefix="v")
+        new_tag = tag.increase_minor()
+        assert new_tag.major == 1
+        assert new_tag.minor == 3
+        assert new_tag.patch == 0
+        assert new_tag.prefix == "v"
+
+    def test_increase_minor_preserves_prefix(self) -> None:
+        """Test increase_minor preserves the tag prefix."""
+        tag = GitTag(5, 0, 10, prefix="")
+        new_tag = tag.increase_minor()
+        assert new_tag.major == 5
+        assert new_tag.minor == 1
+        assert new_tag.patch == 0
+        assert new_tag.prefix == ""
+
+    def test_increase_minor_returns_new_instance(self) -> None:
+        """Test increase_minor returns a new instance and doesn't modify original."""
+        tag = GitTag(1, 2, 3, prefix="v")
+        new_tag = tag.increase_minor()
+        assert tag.major == 1
+        assert tag.minor == 2
+        assert tag.patch == 3
+        assert new_tag is not tag
+
+    def test_increase_patch(self) -> None:
+        """Test increase_patch increments patch version only."""
+        tag = GitTag(1, 2, 3, prefix="v")
+        new_tag = tag.increase_patch()
+        assert new_tag.major == 1
+        assert new_tag.minor == 2
+        assert new_tag.patch == 4
+        assert new_tag.prefix == "v"
+
+    def test_increase_patch_preserves_prefix(self) -> None:
+        """Test increase_patch preserves the tag prefix."""
+        tag = GitTag(5, 10, 0, prefix="")
+        new_tag = tag.increase_patch()
+        assert new_tag.major == 5
+        assert new_tag.minor == 10
+        assert new_tag.patch == 1
+        assert new_tag.prefix == ""
+
+    def test_increase_patch_returns_new_instance(self) -> None:
+        """Test increase_patch returns a new instance and doesn't modify original."""
+        tag = GitTag(1, 2, 3, prefix="v")
+        new_tag = tag.increase_patch()
+        assert tag.major == 1
+        assert tag.minor == 2
+        assert tag.patch == 3
+        assert new_tag is not tag
+
+    def test_increase_methods_with_large_numbers(self) -> None:
+        """Test increase methods work correctly with large version numbers."""
+        tag = GitTag(99, 199, 299, prefix="v")
+        
+        major_tag = tag.increase_major()
+        assert major_tag == GitTag(100, 0, 0, prefix="v")
+        
+        minor_tag = tag.increase_minor()
+        assert minor_tag == GitTag(99, 200, 0, prefix="v")
+        
+        patch_tag = tag.increase_patch()
+        assert patch_tag == GitTag(99, 199, 300, prefix="v")
+
+    def test_increase_methods_with_zeros(self) -> None:
+        """Test increase methods work correctly when starting from zeros."""
+        tag = GitTag(0, 0, 0, prefix="v")
+        
+        major_tag = tag.increase_major()
+        assert major_tag == GitTag(1, 0, 0, prefix="v")
+        
+        minor_tag = tag.increase_minor()
+        assert minor_tag == GitTag(0, 1, 0, prefix="v")
+        
+        patch_tag = tag.increase_patch()
+        assert patch_tag == GitTag(0, 0, 1, prefix="v")
+
 
 class TestGetAllTags:
     """Test cases for the get_all_tags function."""
