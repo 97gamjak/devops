@@ -18,6 +18,7 @@ cpp_checks = "devops.scripts.cpp_checks:app"
 update_changelog = "devops.scripts.update_changelog:app"
 get_latest_tag = "devops.scripts.get_latest_git_tag:latest_tag"
 increase_latest_tag = "devops.scripts.get_latest_git_tag:increase_tag"
+generate_toml_template = "devops.scripts.generate_toml_template:app"
 
 [tool.setuptools_scm]
 version_file = "src/devops/__version__.py"

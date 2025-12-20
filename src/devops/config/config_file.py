@@ -12,6 +12,19 @@ class FileConfig:
 
     encoding: str = "utf-8"
 
+    def to_toml_lines(self) -> list[str]:
+        """Convert the FileConfig to TOML lines.
+
+        Returns
+        -------
+        list[str]
+            The list of TOML lines representing the configuration.
+
+        """
+        lines = ["[file]\n"]
+        lines.append(f'#encoding = "{self.encoding}"\n')
+        return lines
+
 
 def parse_file_config(raw_config: dict) -> FileConfig:
     """Parse file configuration from a raw dictionary.

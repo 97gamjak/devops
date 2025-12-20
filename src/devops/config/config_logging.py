@@ -18,6 +18,22 @@ class LoggingConfig:
     config_level: LogLevel = LogLevel.INFO
     cpp_level: LogLevel = LogLevel.INFO
 
+    def to_toml_lines(self) -> list[str]:
+        """Convert the LoggingConfig to TOML lines.
+
+        Returns
+        -------
+        list[str]
+            The list of TOML lines representing the configuration.
+
+        """
+        lines = ["[logging]\n"]
+        lines.append(f'#global_level = "{self.global_level.value}"\n')
+        lines.append(f'#utils_level = "{self.utils_level.value}"\n')
+        lines.append(f'#config_level = "{self.config_level.value}"\n')
+        lines.append(f'#cpp_level = "{self.cpp_level.value}"\n')
+        return lines
+
 
 def parse_logging_config(raw_config: dict) -> LoggingConfig:
     """Parse logging configuration from a raw dictionary.

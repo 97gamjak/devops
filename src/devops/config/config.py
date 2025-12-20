@@ -26,6 +26,25 @@ class ExcludeConfig:
 
     buggy_cpp_library_macros: list[str] = field(default_factory=list)
 
+    def to_toml_lines(self) -> list[str]:
+        """Convert the ExcludeConfig to TOML lines.
+
+        Returns
+        -------
+        list[str]
+            The list of TOML lines representing the configuration.
+
+        """
+        lines = ["[exclude]\n"]
+
+        lines.append(
+            "#buggy_cpp_library_macros = ["
+            + ", ".join(f'"{macro}"' for macro in self.buggy_cpp_library_macros)
+            + "]\n"
+        )
+
+        return lines
+
 
 @dataclass
 class GlobalConfig:
@@ -36,6 +55,28 @@ class GlobalConfig:
     git: GitConfig = field(default_factory=GitConfig)
     cpp: CppConfig = field(default_factory=CppConfig)
     file: FileConfig = field(default_factory=FileConfig)
+
+    def write_default(self) -> None:
+        """Write the current configuration to a TOML file.
+
+        Parameters
+        ----------
+        path: str | Path
+            The path to the output TOML file.
+
+        """
+        lines = ["# DevOps Configuration File\n\n"]
+        lines += [*self.exclude.to_toml_lines(), "\n"]
+        lines += [*self.logging.to_toml_lines(), "\n"]
+        lines += [*self.git.to_toml_lines(), "\n"]
+        lines += [*self.cpp.to_toml_lines(), "\n"]
+        lines += [*self.file.to_toml_lines(), "\n"]
+        file = Path(Constants.files.default_toml_template)
+
+        # NOTE: here we don't want to use any special handling from
+        # the files module to avoid circular imports
+        with file.open("w", encoding=self.file.encoding) as f:
+            f.writelines(lines)
 
 
 def parse_config(raw: dict[str, Any]) -> GlobalConfig:
@@ -133,6 +174,6 @@ def init_config() -> GlobalConfig:
         use_default_config = True
 
     if use_default_config:
-        config_logger.info("The default configuration being used is: %s", config)
+        config_logger.debug("The default configuration being used is: %s", config)
 
     return config

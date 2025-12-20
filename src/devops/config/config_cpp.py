@@ -23,6 +23,31 @@ class CppConfig:
     # (e.g., in a pre-commit hook).
     check_only_staged_files: bool = False
 
+    def to_toml_lines(self) -> list[str]:
+        """Convert the CppConfig to TOML lines.
+
+        Returns
+        -------
+        list[str]
+            The list of TOML lines representing the configuration.
+
+        """
+        lines = ["[cpp]\n"]
+
+        lines.append(f"#style_checks = {str(self.style_checks).lower()}\n")
+        lines.append(
+            f"#license_header_check = {str(self.license_header_check).lower()}\n"
+        )
+
+        if self.license_header is not None:
+            lines.append(f'#license_header = "{self.license_header}"\n')
+
+        lines.append(
+            f"#check_only_staged_files = {str(self.check_only_staged_files).lower()}\n"
+        )
+
+        return lines
+
 
 def parse_cpp_config(raw_config: dict) -> CppConfig:
     """Parse C++ configuration from a raw dictionary.

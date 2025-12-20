@@ -17,6 +17,7 @@ class GitConstants:
 class FileConstants:
     """Class holding constant file-related values."""
 
+    default_toml_template: str = "devops.toml.template"
     toml_filenames: list[str] = field(
         default_factory=lambda: ["devops.toml", ".devops.toml"]
     )

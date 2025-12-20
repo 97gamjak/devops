@@ -14,6 +14,22 @@ class GitConfig:
     tag_prefix: str = ""
     empty_tag_list_allowed: bool = True
 
+    def to_toml_lines(self) -> list[str]:
+        """Convert the GitConfig to TOML lines.
+
+        Returns
+        -------
+        list[str]
+            The list of TOML lines representing the configuration.
+
+        """
+        lines = ["[git]\n"]
+        lines.append(f'#tag_prefix = "{self.tag_prefix}"\n')
+        lines.append(
+            f"#empty_tag_list_allowed = {str(self.empty_tag_list_allowed).lower()}\n"
+        )
+        return lines
+
 
 def parse_git_config(raw_config: dict) -> GitConfig:
     """Parse git configuration from a raw dictionary.
