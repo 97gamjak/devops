@@ -110,7 +110,7 @@ def run_cpp_checks(
     rules: list[Rule],
     config: CppConfig = __GLOBAL_CONFIG__.cpp,
     dirs: list[Path] | None = None,
-) -> None:
+) -> bool:
     """Run C++ checks based on the provided rules.
 
     Returns immediately after encountering the first file with errors.
@@ -126,6 +126,11 @@ def run_cpp_checks(
     ------
     CppCheckError
         If invalid (non-file or non-line) rules are provided.
+
+    Returns
+    -------
+    bool
+        True if all checks pass, False if any check fails.
 
     """
     if dirs is not None:
@@ -148,7 +153,7 @@ def run_cpp_checks(
 
     if not files:
         cpp_check_logger.warning("No files to check.")
-        return
+        return True
 
     file_rules = filter_file_rules(rules)
     line_rules = filter_line_rules(rules)
@@ -170,4 +175,6 @@ def run_cpp_checks(
                 cpp_check_logger.error(
                     f"CPP check error: result in {filename}: {res.description}"
                 )
-            return
+            return False
+
+    return True
