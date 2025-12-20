@@ -51,7 +51,7 @@ def parse_config(raw: dict[str, Any]) -> GlobalConfig:
     # as logging config already updates loggers
     logging_config = parse_logging_config(raw)
 
-    ### start exclude configuration
+    # start exclude configuration
     exclude_table = get_table(raw, "exclude")
 
     buggy_cpp_library_macros = get_str_list(exclude_table, "buggy_cpp_library_macros")
@@ -59,7 +59,7 @@ def parse_config(raw: dict[str, Any]) -> GlobalConfig:
     exclude_config = ExcludeConfig(
         buggy_cpp_library_macros=buggy_cpp_library_macros,
     )
-    ### end exclude configuration
+    # end exclude configuration
 
     return GlobalConfig(exclude=exclude_config, logging=logging_config)
 
