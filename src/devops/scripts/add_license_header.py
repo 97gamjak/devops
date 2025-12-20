@@ -44,7 +44,8 @@ def add_license_header_to_files(
     license_header_path: str
         The path to the license header file.
     dirs: list[str] | None
-        List of directory paths to search for files. If None, uses the current directory.
+        List of directory paths to search for files.
+        If None, uses the current directory.
     dry_run: bool
         If True, only print the files that would be modified without making changes.
     """
