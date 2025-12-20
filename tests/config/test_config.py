@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 
+from devops.config.base import ConfigError
 from devops.config.config import (
-    ConfigError,
     ExcludeConfig,
     GlobalConfig,
     parse_config,

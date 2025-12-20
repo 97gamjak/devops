@@ -5,8 +5,8 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-from devops import init_config
-from devops.config import GlobalConfig
+from devops.config import init_config
+from devops.config.config import GlobalConfig
 
 if TYPE_CHECKING:
     from pathlib import Path

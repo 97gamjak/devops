@@ -13,6 +13,12 @@ All notable changes to this project will be documented in this file.
 #### Config
 
 - Adding possibility to have a `devops.toml` or `.devops.toml` config file
+- Adding logging levels to toml file config: `global_level`, `utils_level`, `config_level`, `cpp_level`
+    ```toml
+    [logging]
+    global_level = "Info"
+    cpp_level = "Debug"
+    ```
 
 ### Deployment
 

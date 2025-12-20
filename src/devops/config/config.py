@@ -6,105 +6,30 @@ import typing
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from devops.logger import config_logger
+
+from .base import get_str_list, get_table
+from .constants import Constants
+from .logging_config import LoggingConfig, parse_logging_config
 from .toml import load_toml
 
 if typing.TYPE_CHECKING:
     from typing import Any
 
 
-# TODO(97gamjak): centralize exception handling
-# https://github.com/97gamjak/devops/issues/24
-class ConfigError(Exception):
-    """Custom exception for configuration-related errors."""
-
-    def __init__(self, message: str) -> None:
-        """Initialize the exception with a message."""
-        super().__init__(f"ConfigError: {message}")
-        self.message = message
-
-
-@dataclass(frozen=True)
+@dataclass
 class ExcludeConfig:
     """Dataclass to hold default exclusion values."""
 
     buggy_cpp_library_macros: list[str] = field(default_factory=list)
 
 
-@dataclass(frozen=True)
+@dataclass
 class GlobalConfig:
     """Dataclass to hold default configuration values."""
 
-    exclude: ExcludeConfig = ExcludeConfig()
-
-
-def _get_table(mapping: dict[str, Any], key: str) -> dict[str, Any]:
-    """Get a sub-table from a mapping.
-
-    Parameters
-    ----------
-    mapping: dict[str, Any]
-        The mapping to extract the sub-table from.
-    key: str
-        The key of the sub-table.
-
-    Returns
-    -------
-    dict[str, Any]
-        The extracted sub-table or an empty dictionary if the key is not found.
-
-    Raises
-    ------
-    ConfigError
-        If the value associated with the key is not a dictionary.
-
-    """
-    value = mapping.get(key)
-
-    if value is None:
-        return {}
-
-    if not isinstance(value, dict):
-        msg = f"Expected dict for key '{key}', got {type(value).__name__}"
-        raise ConfigError(msg)
-
-    return value
-
-
-def _get_str_list(
-    mapping: dict[str, Any], key: str, default: list[str] | None = None
-) -> list[str]:
-    """Get a list of strings from a mapping.
-
-    Parameters
-    ----------
-    mapping: dict[str, Any]
-        The mapping to extract the list from.
-    key: str
-        The key of the list.
-    default: list[str] | None
-        The default value to return if the key is not found. Defaults to None.
-
-    Returns
-    -------
-    list[str]
-        The extracted list of strings or an empty list if the key is not found.
-
-    Raises
-    ------
-    ConfigError
-        If the value associated with the key is not a list of strings.
-
-    """
-    value = mapping.get(key, default)
-
-    if value is None:
-        return []
-
-    if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
-        msg = f"Expected list of strings for key '{key}', got {type(value).__name__}"
-        raise ConfigError(msg)
-
-    return value
+    exclude: ExcludeConfig = field(default_factory=ExcludeConfig)
+    logging: LoggingConfig = field(default_factory=LoggingConfig)
 
 
 def parse_config(raw: dict[str, Any]) -> GlobalConfig:
@@ -121,15 +46,22 @@ def parse_config(raw: dict[str, Any]) -> GlobalConfig:
         The parsed GlobalConfig object.
 
     """
-    exclude_table = _get_table(raw, "exclude")
+    # start logging configuration
+    # NOTE: this should be done before anything else
+    # as logging config already updates loggers
+    logging_config = parse_logging_config(raw)
 
-    buggy_cpp_library_macros = _get_str_list(exclude_table, "buggy_cpp_library_macros")
+    ### start exclude configuration
+    exclude_table = get_table(raw, "exclude")
+
+    buggy_cpp_library_macros = get_str_list(exclude_table, "buggy_cpp_library_macros")
 
     exclude_config = ExcludeConfig(
         buggy_cpp_library_macros=buggy_cpp_library_macros,
     )
+    ### end exclude configuration
 
-    return GlobalConfig(exclude=exclude_config)
+    return GlobalConfig(exclude=exclude_config, logging=logging_config)
 
 
 def read_config(path: str | Path | None = None) -> GlobalConfig:
@@ -146,11 +78,38 @@ def read_config(path: str | Path | None = None) -> GlobalConfig:
     GlobalConfig
         The parsed GlobalConfig object.
     """
-    # TODO(97gamjak): handle some internal global settings also in this class
-    # which means we really need a different handling in here
-    # https://97gamjak.atlassian.net/browse/DEV-46
     if path is None:
         return GlobalConfig()
 
     raw_config = load_toml(Path(path))
     return parse_config(raw_config)
+
+
+def init_config() -> GlobalConfig:
+    """Initialize global config paths.
+
+    Returns
+    -------
+    GlobalConfig
+        The initialized global configuration object.
+    """
+    file_names = Constants.files.toml_filenames
+    found_configs = [Path(fname) for fname in file_names if Path(fname).is_file()]
+
+    if len(found_configs) == 1:
+        config = read_config(Path(found_configs[0]))
+    else:
+        config = read_config()
+
+    # Note: we log here after setting up the config to ensure logging config is applied
+    # before any logging is done.
+
+    if len(found_configs) > 1:
+        config_logger.warning(
+            "Multiple config files found: %s. Using no config file.",
+            ", ".join(str(p) for p in found_configs),
+        )
+    elif len(found_configs) < 1:
+        config_logger.debug("No config file found. Using default configuration.")
+
+    return config

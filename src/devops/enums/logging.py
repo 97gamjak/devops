@@ -68,6 +68,23 @@ class LogLevel(StrEnum):
         }
         return level_mapping[self]
 
+    @classmethod
+    def from_logging_level(cls, level: int) -> LogLevel:
+        """Create LogLevel from an integer logging level.
+
+        Parameters
+        ----------
+        level: int
+            The integer logging level.
+
+        Returns
+        -------
+        LogLevel
+            The corresponding LogLevel enumeration member.
+
+        """
+        return cls.from_int(level / 10)
+
     def __lt__(self, other: LogLevel) -> bool:
         """Compare two LogLevel instances.
 
