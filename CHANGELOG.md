@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+<!-- insertion marker -->
+## [0.0.2](https://github.com/repo/owner/releases/tag/0.0.2) - 2025-12-20
+
 ### API
 
 - Add `dirs` argument to `cpp_checks` cli
@@ -14,7 +17,6 @@ All notable changes to this project will be documented in this file.
 
 - generated default .toml file contains now key `license_header`
 
-<!-- insertion marker -->
 ## [0.0.1](https://github.com/repo/owner/releases/tag/0.0.1) - 2025-12-20
 
 ### API
@@ -57,6 +59,7 @@ All notable changes to this project will be documented in this file.
 - Add automatic release CI for PRs to main (either via title or via hotfix/ branch)
 - Add overnight CI runs for pytest and ruff CIs
 - Add test coverage to pytest CI
+
 
 
 
