@@ -128,6 +128,4 @@ def get_latest_tag() -> GitTag:
     if not tags:
         return GitTag(0, 0, 0)
 
-    sorted_tags = sorted(tags, reverse=True)
-
-    return sorted_tags[0]
+    return max(tags)
