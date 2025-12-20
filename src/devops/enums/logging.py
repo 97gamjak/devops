@@ -33,19 +33,19 @@ class LogLevel(StrEnum):
 
         """
         int_to_level = {
-            logging.DEBUG / 10: cls.DEBUG,
-            logging.INFO / 10: cls.INFO,
-            logging.WARNING / 10: cls.WARNING,
-            logging.ERROR / 10: cls.ERROR,
-            logging.CRITICAL / 10: cls.CRITICAL,
+            logging.DEBUG // 10: cls.DEBUG,
+            logging.INFO // 10: cls.INFO,
+            logging.WARNING // 10: cls.WARNING,
+            logging.ERROR // 10: cls.ERROR,
+            logging.CRITICAL // 10: cls.CRITICAL,
         }
         if level in int_to_level:
             return int_to_level[level]
 
-        if level > logging.CRITICAL / 10:
+        if level > logging.CRITICAL // 10:
             return cls.CRITICAL
 
-        if level < logging.DEBUG / 10:
+        if level < logging.DEBUG // 10:
             return cls.DEBUG
 
         return cls.INFO
@@ -83,7 +83,7 @@ class LogLevel(StrEnum):
             The corresponding LogLevel enumeration member.
 
         """
-        return cls.from_int(level / 10)
+        return cls.from_int(level // 10)
 
     def __lt__(self, other: LogLevel) -> bool:
         """Compare two LogLevel instances.
