@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+### API
+
+- Add `dirs` argument to `cpp_checks` cli
+
+### Bug Fixes
+
+#### Config
+
+- generated default .toml file contains now key `license_header`
+
 <!-- insertion marker -->
 ## [0.0.1](https://github.com/repo/owner/releases/tag/0.0.1) - 2025-12-20
 

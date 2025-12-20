@@ -107,7 +107,9 @@ def run_file_rules(rules: list[Rule], file: Path) -> list[ResultType]:
 
 
 def run_cpp_checks(
-    rules: list[Rule], config: CppConfig = __GLOBAL_CONFIG__.cpp
+    rules: list[Rule],
+    config: CppConfig = __GLOBAL_CONFIG__.cpp,
+    dirs: list[Path] | None = None,
 ) -> None:
     """Run C++ checks based on the provided rules.
 
@@ -126,7 +128,12 @@ def run_cpp_checks(
         If invalid (non-file or non-line) rules are provided.
 
     """
-    if config.check_only_staged_files:
+    if dirs is not None:
+        cpp_check_logger.info(
+            f"Running checks in directories: {[str(d) for d in dirs]}"
+        )
+        files = get_files_in_dirs(dirs)
+    elif config.check_only_staged_files:
         cpp_check_logger.info("Running checks on staged files...")
         files = get_staged_files()
     else:
