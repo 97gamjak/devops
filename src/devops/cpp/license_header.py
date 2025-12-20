@@ -21,9 +21,8 @@ def check_license_header(
 
     Returns
     -------
-    bool
-        True if the file content starts with the required license header,
-        False otherwise.
+    ResultType
+        The result of the license header check.
     """
     required_header_file = Path(required_header_file)
 

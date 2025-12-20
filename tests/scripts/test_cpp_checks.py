@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import typing
-from unittest.mock import patch
 
-from devops.cpp import build_cpp_rules, run_cpp_checks
-from devops.cpp.checks import run_line_checks
+import pytest
+
+from devops.cpp import build_cpp_rules
+from devops.cpp.checks import CppCheckError, run_line_checks
 from devops.files import FileType
 from devops.rules import ResultType, ResultTypeEnum, Rule, RuleInputType, RuleType
-from devops.scripts.cpp_checks import app
 
 if typing.TYPE_CHECKING:
     from pathlib import Path
@@ -146,9 +146,9 @@ class TestRunLineChecks:
             rule_input_type=RuleInputType.FILE,
         )
 
-        results = run_line_checks([line_rule, file_rule], test_file)
-        assert len(results) == 1
-        assert results[0].value == ResultTypeEnum.Ok
+        err_msg = "Non-line rule provided to run_line_checks"
+        with pytest.raises(CppCheckError, match=err_msg):
+            run_line_checks([line_rule, file_rule], test_file)
 
     def test_run_line_checks_empty_file(self, tmp_path: Path) -> None:
         """Test run_line_checks handles empty files.

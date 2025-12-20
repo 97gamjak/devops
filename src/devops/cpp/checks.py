@@ -22,6 +22,10 @@ from devops.rules import (
 from devops.rules.result_type import ResultTypeEnum
 
 
+class CppCheckError(Exception):
+    """Custom exception for C++ check errors."""
+
+
 def run_line_checks(rules: list[Rule], file: Path) -> list[ResultType]:
     """Run line-based C++ checks on a given file.
 
@@ -37,22 +41,23 @@ def run_line_checks(rules: list[Rule], file: Path) -> list[ResultType]:
     list[ResultType]
         The list of results from the checks.
 
+    Raises
+    ------
+    CppCheckError
+        If a non-line rule is provided.
+
     """
     results = []
     file_type = determine_file_type(file)
+
+    if any(not is_line_rule(rule) for rule in rules):
+        msg = "Non-line rule provided to run_line_checks"
+        raise CppCheckError(msg)
 
     with Path(file).open("r", encoding="utf-8") as f:
         for line in f:
             for rule in rules:
                 if file_type not in rule.file_types:
-                    cpp_check_logger.debug(
-                        f"Skipping rule {rule.name} for file type {file_type}"
-                    )
-                    continue
-                if not is_line_rule(rule):
-                    cpp_check_logger.debug(
-                        f"Skipping non-line rule {rule.name} in line checks"
-                    )
                     continue
 
                 results.append(rule.apply(line))
@@ -79,16 +84,14 @@ def run_file_rules(rules: list[Rule], file: Path) -> list[ResultType]:
     results = []
     file_type = determine_file_type(file)
 
+    if any(not is_file_rule(rule) for rule in rules):
+        msg = "Non-file rule provided to run_file_rules"
+        raise CppCheckError(msg)
+
     with Path(file).open("r", encoding="utf-8") as f:
         content = f.read()
         for rule in rules:
             if file_type not in rule.file_types:
-                cpp_check_logger.debug(
-                    f"Skipping rule {rule.name} for file type {file_type}"
-                )
-                continue
-            if not is_file_rule(rule):
-                cpp_check_logger.debug(f"Skipping line rule {rule.name} in file checks")
                 continue
 
             results.append(rule.apply((content,)))
