@@ -255,9 +255,7 @@ class TestGetAllTags:
         assert "Invalid tag format: invalid-tag" in str(exc_info.value)
 
     @patch("devops.git.tag.subprocess.check_output")
-    def test_get_all_tags_without_v_prefix(
-        self, mock_check_output: MagicMock
-    ) -> None:
+    def test_get_all_tags_without_v_prefix(self, mock_check_output: MagicMock) -> None:
         """Test get_all_tags handles tags without 'v' prefix."""
         mock_check_output.return_value = "1.0.0\n2.0.0\n"
 
@@ -295,9 +293,7 @@ class TestGetLatestTag:
         assert latest == GitTag(2, 5, 3)
 
     @patch("devops.git.tag.subprocess.check_output")
-    def test_get_latest_tag_with_single_tag(
-        self, mock_check_output: MagicMock
-    ) -> None:
+    def test_get_latest_tag_with_single_tag(self, mock_check_output: MagicMock) -> None:
         """Test getting latest tag when only one tag exists."""
         mock_check_output.return_value = "v1.0.0\n"
 
