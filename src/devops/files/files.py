@@ -4,8 +4,11 @@ from __future__ import annotations
 
 import subprocess
 import typing
+from contextlib import contextmanager
 from enum import Enum
 from pathlib import Path
+
+from devops import __GLOBAL_CONFIG__
 
 if typing.TYPE_CHECKING:
     from collections.abc import Iterable
@@ -200,3 +203,61 @@ def file_exist(
         raise DevOpsFileNotFoundError(filepath, message=throw_msg)
 
     return False
+
+
+@contextmanager
+def open_file(
+    file: str | Path, mode: str = "r"
+) -> typing.Generator[typing.IO[str], None, None]:
+    """Read the content of a file.
+
+    Parameters
+    ----------
+    file: str | Path
+        The path to the file to read.
+
+    Yields
+    ------
+    typing.IO[str]
+        The opened file object.
+
+    Raises
+    ------
+    DevOpsFileNotFoundError
+        If the file does not exist.
+
+    """
+    file = Path(file)
+
+    if "r" in mode:
+        file_exist(
+            file,
+            throwing=True,
+            throw_msg="Cannot read file as it does not exist.",
+        )
+
+    encoding = __GLOBAL_CONFIG__.file.encoding
+    file = file.open(mode, encoding=encoding)
+
+    try:
+        yield file
+    finally:
+        file.close()
+
+
+def write_text(file: str | Path, content: str) -> None:
+    """Write text content to a file.
+
+    Parameters
+    ----------
+    file: str | Path
+        The path to the file to write.
+    content: str
+        The text content to write to the file.
+
+    """
+    file = Path(file)
+
+    encoding = __GLOBAL_CONFIG__.file.encoding
+
+    file.write_text(content, encoding=encoding)
