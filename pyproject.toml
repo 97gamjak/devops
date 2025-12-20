@@ -4,7 +4,10 @@ version = "0.0.1"
 description = "This package handles commit and CI checks for mstd"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = ["pytest>=9.0.1", "ruff>=0.14.6", "typer>=0.20.0"]
+dependencies = ["typer>=0.20.0"]
+
+[project.optional-dependencies]
+test = ["pytest>=9.0.1", "pytest-cov", "coverage", "docstr-coverage"]
 
 [project.scripts]
 cpp_checks = "devops.scripts.cpp_checks:app"

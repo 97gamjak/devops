@@ -7,3 +7,4 @@ build/
 **.egg-info/
 tests/test.ipynb
 **_.*.py
+.coverage
