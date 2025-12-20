@@ -85,13 +85,22 @@ def find_header_guard(lines: list[str]) -> str:
 
     """
     macro = None
-    for _line in lines:
+    # Search for the header guard macro near the beginning of the file.
+    # Limit the search to the first N lines to avoid picking up feature-detection
+    # or other conditional macros that appear later in the file.
+    max_header_guard_search_lines = 50
+    for idx, _line in enumerate(lines):
+        if idx > max_header_guard_search_lines:
+            break
         line = _line.strip()
         if line.startswith("#ifndef"):
             parts = line.split()
             if len(parts) <= 1:
                 continue
             macro = parts[1]
+            # Assume the first valid #ifndef within the search window is the
+            # header guard and stop searching to avoid later #ifndef directives.
+            break
 
     if macro is None:
         msg = "Header guard macro not found with #ifndef."
