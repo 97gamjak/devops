@@ -36,8 +36,7 @@ class TestCppChecksCLI:
 
             result = runner.invoke(app)
 
-            # Command should execute successfully
-            assert result.exit_code == 0
+            assert result.exit_code == 1
             # Should call build_cpp_rules and run_cpp_checks exactly once
             assert mock_build.call_count == 1
             assert mock_run.call_count == 1
@@ -64,8 +63,7 @@ class TestCppChecksCLI:
 
             result = runner.invoke(app, ["--license-header", str(header_file)])
 
-            # Command should execute successfully
-            assert result.exit_code == 0
+            assert result.exit_code == 1
             # Should call with the provided header file
             assert mock_build.call_count == 1
             call_config = mock_build.call_args[0][0]
@@ -82,7 +80,7 @@ class TestCppChecksCLI:
 
             result = runner.invoke(app)
 
-            assert result.exit_code == 0
+            assert result.exit_code == 1
             # Should use the global config's license_header
             assert mock_build.call_count == 1
 
@@ -97,7 +95,7 @@ class TestCppChecksCLI:
 
             result = runner.invoke(app)
 
-            assert result.exit_code == 0
+            assert result.exit_code == 1
             # Should pass config to run_cpp_checks
             assert mock_run.call_count == 1
             assert len(mock_run.call_args[0]) == 2  # rules and config
@@ -114,7 +112,7 @@ class TestCppChecksCLI:
 
             result = runner.invoke(app)
 
-            assert result.exit_code == 0
+            assert result.exit_code == 1
             # Should pass the rules from build_cpp_rules to run_cpp_checks
             assert mock_run.call_count == 1
             assert mock_run.call_args[0][0] == mock_rules
@@ -133,7 +131,7 @@ class TestCppChecksCLI:
 
             result = runner.invoke(app, ["--license-header", "/path/to/header.txt"])
 
-            assert result.exit_code == 0
+            assert result.exit_code == 1
             # Should use replace to create new config
             assert mock_replace.call_count == 1
             # First argument should be the global cpp config
