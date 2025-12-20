@@ -57,20 +57,6 @@ def test_log_level_from_int_with_values_below_none() -> None:
     assert LogLevel.from_int(-10) == LogLevel.NONE
 
 
-def test_log_level_from_int_with_values_between_levels() -> None:
-    """Test from_int method with values between defined levels returns INFO."""
-    # Values that don't map to specific levels should return INFO
-    # Testing values that are not in the int_to_level mapping
-    # and are between NOTSET and CRITICAL
-    # Since the mapping only has 0, 1, 2, 3, 4, 5, any other value
-    # in the valid range should return INFO (default)
-    # However, looking at the implementation, values > 5 return CRITICAL
-    # and values < 0 return NONE, so we can't test "between" values
-    # that return INFO. The function only returns INFO as the final fallback
-    # which seems unreachable given the current logic.
-    # Let's skip this test or adjust it based on actual implementation.
-
-
 def test_log_level_from_logging_level_with_standard_levels() -> None:
     """Test from_logging_level method with standard logging module levels."""
     assert LogLevel.from_logging_level(logging.NOTSET) == LogLevel.NONE
