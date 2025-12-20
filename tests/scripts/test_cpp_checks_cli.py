@@ -66,7 +66,7 @@ class TestCppChecksCLI:
             # Command should execute successfully
             assert result.exit_code == 0
             # Should call with the provided header file
-            assert mock_build.called
+            assert mock_build.call_count == 1
             call_config = mock_build.call_args[0][0]
             assert call_config.license_header == str(header_file)
 
@@ -83,7 +83,7 @@ class TestCppChecksCLI:
             
             assert result.exit_code == 0
             # Should use the global config's license_header
-            assert mock_build.called
+            assert mock_build.call_count == 1
 
     def test_cpp_checks_passes_config_to_run_cpp_checks(self) -> None:
         """Test cpp_checks passes configuration to run_cpp_checks."""
@@ -98,7 +98,7 @@ class TestCppChecksCLI:
             
             assert result.exit_code == 0
             # Should pass config to run_cpp_checks
-            assert mock_run.called
+            assert mock_run.call_count == 1
             assert len(mock_run.call_args[0]) == 2  # rules and config
 
     def test_cpp_checks_passes_rules_to_run_cpp_checks(self) -> None:
@@ -115,7 +115,7 @@ class TestCppChecksCLI:
             
             assert result.exit_code == 0
             # Should pass the rules from build_cpp_rules to run_cpp_checks
-            assert mock_run.called
+            assert mock_run.call_count == 1
             assert mock_run.call_args[0][0] == mock_rules
 
     def test_cpp_checks_creates_config_with_replace(self) -> None:
@@ -134,7 +134,7 @@ class TestCppChecksCLI:
             
             assert result.exit_code == 0
             # Should use replace to create new config
-            assert mock_replace.called
+            assert mock_replace.call_count == 1
             # First argument should be the global cpp config
             assert mock_replace.call_args[0][0] == mock_global.cpp
             # Should specify license_header in kwargs

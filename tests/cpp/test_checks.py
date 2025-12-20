@@ -35,7 +35,7 @@ class TestRunCppChecks:
         ----------
         tmp_path: Path
             Temporary path for creating test files.
-        caplog
+        caplog: LogCaptureFixture
             Pytest fixture for capturing log messages.
 
         """
@@ -123,7 +123,7 @@ class TestRunCppChecks:
         ----------
         tmp_path: Path
             Temporary path for creating test files.
-        caplog
+        caplog: LogCaptureFixture
             Pytest fixture for capturing log messages.
 
         """
@@ -310,7 +310,7 @@ class TestRunCppChecks:
         ----------
         tmp_path: Path
             Temporary path for creating test files.
-        caplog
+        caplog: LogCaptureFixture
             Pytest fixture for capturing log messages.
 
         """
