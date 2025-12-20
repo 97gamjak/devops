@@ -122,7 +122,3 @@ def increase_latest_tag(
         new_tag = latest_tag.increase_patch()
 
     mstd_print(str(new_tag))
-
-
-if __name__ == "__main__":
-    get_latest_tag()
