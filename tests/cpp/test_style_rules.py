@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-import typing
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import patch
+
+import pytest
 
 from devops.cpp.style_rules import (
     CheckHeaderGuards,
@@ -368,11 +369,8 @@ class TestFindHeaderGuard:
             "// code here",
             "#endif",
         ]
-        try:
+        with pytest.raises(HeaderGuardError, match="Header guard macro not found with #ifndef"):
             find_header_guard(lines)
-            assert False, "Should have raised HeaderGuardError"
-        except HeaderGuardError as e:
-            assert "Header guard macro not found with #ifndef" in str(e)
 
     def test_find_header_guard_missing_define(self) -> None:
         """Test when #define is missing."""
@@ -382,11 +380,8 @@ class TestFindHeaderGuard:
             "// code here",
             "#endif",
         ]
-        try:
+        with pytest.raises(HeaderGuardError, match="Header guard macro not defined with #define"):
             find_header_guard(lines)
-            assert False, "Should have raised HeaderGuardError"
-        except HeaderGuardError as e:
-            assert "Header guard macro not defined with #define" in str(e)
 
     def test_find_header_guard_missing_endif(self) -> None:
         """Test when #endif is missing."""
@@ -396,11 +391,8 @@ class TestFindHeaderGuard:
             "",
             "// code here",
         ]
-        try:
+        with pytest.raises(HeaderGuardError, match="Header guard missing closing #endif"):
             find_header_guard(lines)
-            assert False, "Should have raised HeaderGuardError"
-        except HeaderGuardError as e:
-            assert "Header guard missing closing #endif" in str(e)
 
     def test_find_header_guard_malformed_ifndef(self) -> None:
         """Test with malformed #ifndef (no macro name)."""
@@ -409,11 +401,8 @@ class TestFindHeaderGuard:
             "#define MY_HEADER_HPP",
             "#endif",
         ]
-        try:
+        with pytest.raises(HeaderGuardError, match="Header guard macro not found with #ifndef"):
             find_header_guard(lines)
-            assert False, "Should have raised HeaderGuardError"
-        except HeaderGuardError as e:
-            assert "Header guard macro not found with #ifndef" in str(e)
 
     def test_find_header_guard_with_whitespace(self) -> None:
         """Test header guard with leading/trailing whitespace."""
@@ -451,11 +440,8 @@ class TestFindHeaderGuard:
         lines.append("#define MY_HEADER_HPP")
         lines.append("#endif")
 
-        try:
+        with pytest.raises(HeaderGuardError, match="Header guard macro not found with #ifndef"):
             find_header_guard(lines)
-            assert False, "Should have raised HeaderGuardError"
-        except HeaderGuardError as e:
-            assert "Header guard macro not found with #ifndef" in str(e)
 
 
 class TestCheckHeaderGuards:
