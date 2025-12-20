@@ -45,6 +45,11 @@ class FileType(Enum):
         """Get a set of all CPP related file types."""
         return {FileType.CPPHeader, FileType.CPPSource}
 
+    @classmethod
+    def is_cpp_type(cls, file_type: FileType) -> bool:
+        """Check if the given file type is a C++ related type."""
+        return file_type in cls.cpp_types()
+
 
 def determine_file_type(filename: str | Path) -> FileType:
     """Determine the file type based on the filename extension.

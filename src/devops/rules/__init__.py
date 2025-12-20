@@ -6,7 +6,10 @@ from .rules import (
     RuleInputType,
     RuleType,
     filter_cpp_rules,
+    filter_file_rules,
     filter_line_rules,
+    is_file_rule,
+    is_line_rule,
 )
 
 __all__ = ["ResultType", "ResultTypeEnum"]
@@ -15,5 +18,8 @@ __all__ += [
     "RuleInputType",
     "RuleType",
     "filter_cpp_rules",
+    "filter_file_rules",
     "filter_line_rules",
+    "is_file_rule",
+    "is_line_rule",
 ]
