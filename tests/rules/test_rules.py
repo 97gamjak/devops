@@ -259,3 +259,133 @@ class TestRuleFiltering:
         """Test filter_line_rules with empty list."""
         filtered = filter_line_rules([])
         assert filtered == []
+
+
+class TestFileRuleFiltering:
+    """Tests for file rule filtering functions."""
+
+    def setup_method(self) -> None:
+        """Reset rule counters before each test."""
+        Rule.cpp_style_rule_counter = 0
+        Rule.general_rule_counter = 0
+
+    def test_filter_file_rules(self) -> None:
+        """Test filter_file_rules returns only file input rules."""
+        from devops.rules import filter_file_rules
+
+        file_rule = Rule(
+            name="file_rule",
+            func=lambda _x: ResultType(ResultTypeEnum.Ok),
+            rule_input_type=RuleInputType.FILE,
+        )
+        line_rule = Rule(
+            name="line_rule",
+            func=lambda _x: ResultType(ResultTypeEnum.Ok),
+            rule_input_type=RuleInputType.LINE,
+        )
+        none_rule = Rule(
+            name="none_rule",
+            func=lambda _x: ResultType(ResultTypeEnum.Ok),
+            rule_input_type=RuleInputType.NONE,
+        )
+        rules = [file_rule, line_rule, none_rule]
+
+        filtered = filter_file_rules(rules)
+        assert len(filtered) == 1
+        assert file_rule in filtered
+        assert line_rule not in filtered
+        assert none_rule not in filtered
+
+    def test_filter_file_rules_empty_list(self) -> None:
+        """Test filter_file_rules with empty list."""
+        from devops.rules import filter_file_rules
+
+        filtered = filter_file_rules([])
+        assert filtered == []
+
+    def test_filter_file_rules_no_matches(self) -> None:
+        """Test filter_file_rules when no rules match."""
+        from devops.rules import filter_file_rules
+
+        line_rule = Rule(
+            name="line_rule",
+            func=lambda _x: ResultType(ResultTypeEnum.Ok),
+            rule_input_type=RuleInputType.LINE,
+        )
+        filtered = filter_file_rules([line_rule])
+        assert filtered == []
+
+
+class TestRuleTypeChecking:
+    """Tests for is_line_rule and is_file_rule functions."""
+
+    def setup_method(self) -> None:
+        """Reset rule counters before each test."""
+        Rule.cpp_style_rule_counter = 0
+        Rule.general_rule_counter = 0
+
+    def test_is_line_rule_returns_true(self) -> None:
+        """Test is_line_rule returns True for line rules."""
+        from devops.rules import is_line_rule
+
+        line_rule = Rule(
+            name="line_rule",
+            func=lambda _x: ResultType(ResultTypeEnum.Ok),
+            rule_input_type=RuleInputType.LINE,
+        )
+        assert is_line_rule(line_rule) is True
+
+    def test_is_line_rule_returns_false_for_file_rule(self) -> None:
+        """Test is_line_rule returns False for file rules."""
+        from devops.rules import is_line_rule
+
+        file_rule = Rule(
+            name="file_rule",
+            func=lambda _x: ResultType(ResultTypeEnum.Ok),
+            rule_input_type=RuleInputType.FILE,
+        )
+        assert is_line_rule(file_rule) is False
+
+    def test_is_line_rule_returns_false_for_none_rule(self) -> None:
+        """Test is_line_rule returns False for NONE rules."""
+        from devops.rules import is_line_rule
+
+        none_rule = Rule(
+            name="none_rule",
+            func=lambda _x: ResultType(ResultTypeEnum.Ok),
+            rule_input_type=RuleInputType.NONE,
+        )
+        assert is_line_rule(none_rule) is False
+
+    def test_is_file_rule_returns_true(self) -> None:
+        """Test is_file_rule returns True for file rules."""
+        from devops.rules import is_file_rule
+
+        file_rule = Rule(
+            name="file_rule",
+            func=lambda _x: ResultType(ResultTypeEnum.Ok),
+            rule_input_type=RuleInputType.FILE,
+        )
+        assert is_file_rule(file_rule) is True
+
+    def test_is_file_rule_returns_false_for_line_rule(self) -> None:
+        """Test is_file_rule returns False for line rules."""
+        from devops.rules import is_file_rule
+
+        line_rule = Rule(
+            name="line_rule",
+            func=lambda _x: ResultType(ResultTypeEnum.Ok),
+            rule_input_type=RuleInputType.LINE,
+        )
+        assert is_file_rule(line_rule) is False
+
+    def test_is_file_rule_returns_false_for_none_rule(self) -> None:
+        """Test is_file_rule returns False for NONE rules."""
+        from devops.rules import is_file_rule
+
+        none_rule = Rule(
+            name="none_rule",
+            func=lambda _x: ResultType(ResultTypeEnum.Ok),
+            rule_input_type=RuleInputType.NONE,
+        )
+        assert is_file_rule(none_rule) is False
