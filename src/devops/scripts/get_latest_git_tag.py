@@ -70,11 +70,11 @@ def get_latest_tag_script(
 
     """
     try:
-        latest_tag = _get_latest_tag(
+        tag = _get_latest_tag(
             prefix=prefix,
             empty_tag_list_allowed=empty_tag_list_allowed,
         )
-        mstd_print(str(latest_tag))
+        mstd_print(str(tag))
     except GitTagError as e:
         mstd_print(f"❌ Error retrieving latest git tag: {e}")
         sys.exit(1)
@@ -111,7 +111,7 @@ def increase_latest_tag(
         sys.exit(1)
 
     try:
-        latest_tag = _get_latest_tag(
+        tag = _get_latest_tag(
             prefix=prefix,
             empty_tag_list_allowed=empty_tag_list_allowed,
         )
@@ -120,10 +120,10 @@ def increase_latest_tag(
         sys.exit(1)
 
     if major:
-        new_tag = latest_tag.increase_major()
+        new_tag = tag.increase_major()
     elif minor:
-        new_tag = latest_tag.increase_minor()
+        new_tag = tag.increase_minor()
     else:  # patch
-        new_tag = latest_tag.increase_patch()
+        new_tag = tag.increase_patch()
 
     mstd_print(str(new_tag))

@@ -84,7 +84,7 @@ class GitTag:
         Parameters
         ----------
         tag: str
-            The Git tag string in the format 'v<major>.<minor>.<patch>'.
+            The Git tag string in the format '<prefix><major>.<minor>.<patch>'.
         config: GitConfig
             The Git configuration containing the expected prefix.
 
@@ -97,7 +97,6 @@ class GitTag:
         ------
         GitTagError
             If the tag string does not start with the expected prefix.
-        GitTagError
             If the tag string is not in the correct format.
 
         """
