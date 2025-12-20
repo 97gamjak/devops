@@ -1,20 +1,23 @@
-"""Module defining rules for mstd checks."""
+"""Module defining rules for devops."""
 
 from __future__ import annotations
 
 import typing
+from dataclasses import dataclass
 
 from devops.enums import StrEnum
 from devops.files import FileType
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable
+    from pathlib import Path
+    from typing import Any
 
     from .result_type import ResultType
 
 
 class RuleType(StrEnum):
-    """Enumeration of rule types for mstd checks."""
+    """Enumeration of rule types for devops."""
 
     GENERAL = "GENERAL"
     CPP_STYLE = "CPP_STYLE"
@@ -33,11 +36,19 @@ class RuleType(StrEnum):
 
 
 class RuleInputType(StrEnum):
-    """Enumeration of rule input types for mstd checks."""
+    """Enumeration of rule input types for devops."""
 
     NONE = "NONE"
     LINE = "LINE"
     FILE = "FILE"
+
+
+@dataclass(frozen=True)
+class FileRuleInput:
+    """Dataclass for file rule input."""
+
+    file_content: str
+    path: Path | None = None
 
 
 class Rule:
@@ -127,13 +138,13 @@ class Rule:
 
         self.rule_identifier = Rule.increment_rule_counter(rule_type)
 
-    def apply(self, args: tuple) -> ResultType:
+    def apply(self, rule_input: Any) -> ResultType:
         """Apply the rule on a specific line.
 
         Parameters
         ----------
-        args: tuple
-            The arguments to pass to the rule function.
+        rule_input: Any
+            The rule input to apply the rule on.
 
         Returns
         -------
@@ -141,10 +152,7 @@ class Rule:
             The result of applying the rule.
 
         """
-        if isinstance(args, str):
-            args = (args,)
-
-        return self.func(*args) if args else self.func()
+        return self.func(rule_input)
 
 
 def filter_cpp_rules(rules: list[Rule]) -> list[Rule]:

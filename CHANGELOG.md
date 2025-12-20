@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+### Features
+
+####
+
+- Add CPP rule to check that in a header file there is always a header guard present
+- Adding option to enforce header guard format via file path
+
 <!-- insertion marker -->
 ## [0.0.3](https://github.com/repo/owner/releases/tag/0.0.3) - 2025-12-20
 

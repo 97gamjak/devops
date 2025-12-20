@@ -2,21 +2,25 @@
 
 from __future__ import annotations
 
+import typing
 from pathlib import Path
 
 from devops.files import file_exist, open_file
 from devops.rules import ResultType, ResultTypeEnum, Rule, RuleInputType, RuleType
 
+if typing.TYPE_CHECKING:
+    from devops.rules import FileRuleInput
+
 
 def check_license_header(
-    file_content: str, required_header_file: str | Path
+    file_rule_input: FileRuleInput, required_header_file: str | Path
 ) -> ResultType:
     """Check if the file content starts with the required license header.
 
     Parameters
     ----------
-    file_content: str
-        The content of the file to check.
+    file_rule_input: FileRuleInput
+        The input containing the file content and path to check.
     required_header_file: str | Path
         The path to the file containing the required license header.
 
@@ -30,6 +34,8 @@ def check_license_header(
     DevOpsFileNotFoundError
         If the required header file does not exist.
     """
+    file_content = file_rule_input.file_content
+
     required_header_file = Path(required_header_file)
 
     # return value can be ignored as exception will be raised if file does not exist
