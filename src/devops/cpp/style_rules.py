@@ -112,7 +112,7 @@ def find_header_guard(lines: list[str]) -> str:
         msg = "Header guard macro not defined with #define."
         raise HeaderGuardError(msg)
 
-    if not any("#endif" in line.strip() for line in lines):
+    if not any(line.lstrip().startswith("#endif") for line in lines):
         msg = "Header guard missing closing #endif."
         raise HeaderGuardError(msg)
 
