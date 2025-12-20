@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+<!-- insertion marker -->
+## [0.0.4](https://github.com/repo/owner/releases/tag/0.0.4) - 2025-12-20
+
 ### Features
 
 #### CPP Rules
@@ -11,7 +14,6 @@ All notable changes to this project will be documented in this file.
 - Add CPP rule to check that in a header file there is always a header guard present
 - Adding option to enforce header guard format via file path
 
-<!-- insertion marker -->
 ## [0.0.3](https://github.com/repo/owner/releases/tag/0.0.3) - 2025-12-20
 
 ### Bug Fixes
@@ -74,6 +76,7 @@ All notable changes to this project will be documented in this file.
 - Add automatic release CI for PRs to main (either via title or via hotfix/ branch)
 - Add overnight CI runs for pytest and ruff CIs
 - Add test coverage to pytest CI
+
 
 
 
