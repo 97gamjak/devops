@@ -39,8 +39,12 @@ class CppConfig:
             f"#license_header_check = {str(self.license_header_check).lower()}\n"
         )
 
-        if self.license_header is not None:
-            lines.append(f'#license_header = "{self.license_header}"\n')
+        if self.license_header is None:
+            license_header = "<some file path>"
+        else:
+            license_header = f'"{self.license_header}"'
+
+        lines.append(f"#license_header = {license_header}\n")
 
         lines.append(
             f"#check_only_staged_files = {str(self.check_only_staged_files).lower()}\n"
