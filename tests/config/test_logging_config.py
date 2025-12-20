@@ -173,9 +173,7 @@ def test_parse_logging_config_calls_set_logging_levels() -> None:
     }
 
     with (
-        patch(
-            "devops.config.logging_config.set_logging_levels"
-        ) as mock_set_levels,
+        patch("devops.config.logging_config.set_logging_levels") as mock_set_levels,
         patch("devops.config.logging_config.utils_logger.level", logging.INFO),
         patch("devops.config.logging_config.config_logger.level", logging.INFO),
         patch(
