@@ -1,0 +1,219 @@
+"""Module for Git tag-related constants and functions."""
+
+from __future__ import annotations
+
+import subprocess
+from dataclasses import dataclass
+
+
+# TODO(97gamjak): centralize exception handling
+# https://github.com/97gamjak/devops/issues/24
+class GitTagError(Exception):
+    """Exception raised for Git tag-related errors in mstd checks."""
+
+    def __init__(self, message: str) -> None:
+        """Initialize the exception with a message."""
+        super().__init__(f"GitTagError: {message}")
+        self.message = message
+
+
+@dataclass(frozen=False)
+class GitTag:
+    """Class representing a Git tag."""
+
+    major: int = 0
+    minor: int = 0
+    patch: int = 0
+
+    def __str__(self) -> str:
+        """Return the string representation of the Git tag.
+
+        Returns
+        -------
+        str
+            The string representation of the Git tag
+            in the format 'v<major>.<minor>.<patch>'.
+
+        """
+        return f"v{self.major}.{self.minor}.{self.patch}"
+
+    def __eq__(self, other: object) -> bool:
+        """Check equality between two GitTag instances.
+
+        Parameters
+        ----------
+        other: object
+            The other GitTag instance to compare with.
+
+        Returns
+        -------
+        bool
+            True if both GitTag instances are equal, False otherwise.
+
+        """
+        if not isinstance(other, GitTag):
+            return NotImplemented
+        return (self.major, self.minor, self.patch) == (
+            other.major,
+            other.minor,
+            other.patch,
+        )
+
+    def __hash__(self) -> int:
+        """Return the hash of the GitTag instance.
+
+        Returns
+        -------
+        int
+            The hash value of the GitTag instance.
+
+        """
+        return hash((self.major, self.minor, self.patch))
+
+    def __lt__(self, other: GitTag) -> bool:
+        """Check if this GitTag is less than another GitTag.
+
+        Parameters
+        ----------
+        other: GitTag
+            The other GitTag instance to compare with.
+
+        Returns
+        -------
+        bool
+            True if this GitTag is less than the other GitTag, False otherwise.
+
+        """
+        version_self = (self.major, self.minor, self.patch)
+        version_other = (other.major, other.minor, other.patch)
+        return version_self < version_other
+
+    def __gt__(self, other: GitTag) -> bool:
+        """Check if this GitTag is greater than another GitTag.
+
+        Parameters
+        ----------
+        other: GitTag
+            The other GitTag instance to compare with.
+
+        Returns
+        -------
+        bool
+            True if this GitTag is greater than the other GitTag, False otherwise.
+
+        """
+        version_self = (self.major, self.minor, self.patch)
+        version_other = (other.major, other.minor, other.patch)
+        return version_self > version_other
+
+    def __le__(self, other: GitTag) -> bool:
+        """Check if this GitTag is less than or equal to another GitTag.
+
+        Parameters
+        ----------
+        other: GitTag
+            The other GitTag instance to compare with.
+
+        Returns
+        -------
+        bool
+            True if this GitTag is less than or equal to the other GitTag, False otherwise.
+
+        """
+        version_self = (self.major, self.minor, self.patch)
+        version_other = (other.major, other.minor, other.patch)
+        return version_self <= version_other
+
+    def __ge__(self, other: GitTag) -> bool:
+        """Check if this GitTag is greater than or equal to another GitTag.
+
+        Parameters
+        ----------
+        other: GitTag
+            The other GitTag instance to compare with.
+
+        Returns
+        -------
+        bool
+            True if this GitTag is greater than or equal to the other GitTag, False otherwise.
+
+        """
+        version_self = (self.major, self.minor, self.patch)
+        version_other = (other.major, other.minor, other.patch)
+        return version_self >= version_other
+
+    @staticmethod
+    def from_string(tag: str) -> GitTag:
+        """Create a GitTag instance from a string.
+
+        Parameters
+        ----------
+        tag: str
+            The Git tag string in the format 'v<major>.<minor>.<patch>'.
+
+        Returns
+        -------
+        GitTag
+            The GitTag instance created from the string.
+
+        Raises
+        ------
+        GitTagError
+            If the tag string is not in the correct format.
+
+        """
+        tag = tag.removeprefix("v")
+        parts = tag.split(".")
+
+        # TODO(97gamjak): implement support for different version schemes
+        # https://97gamjak.atlassian.net/browse/DEV-49
+        if len(parts) != 3:
+            msg = f"Invalid tag format: {tag}"
+            raise GitTagError(msg)
+
+        major, minor, patch = map(int, parts)
+        return GitTag(major, minor, patch)
+
+
+def get_all_tags() -> list[GitTag]:
+    """Get all Git tags in the repository.
+
+    Returns
+    -------
+    list[GitTag]
+        A list of all Git tags.
+
+    """
+    try:
+        tags_output = subprocess.check_output(
+            ["git", "tag", "--list"],
+            stderr=subprocess.DEVNULL,
+            text=True,
+        ).strip()
+    except subprocess.CalledProcessError:
+        return []
+
+    tags = []
+    for tag_str in tags_output.splitlines():
+        tag = GitTag.from_string(tag_str)
+        tags.append(tag)
+
+    return tags
+
+
+def get_latest_tag() -> GitTag:
+    """Get the latest Git tag in the repository.
+
+    Returns
+    -------
+    GitTag
+        The latest Git tag. If no tags exist, returns GitTag(0, 0, 0).
+
+    """
+    tags = get_all_tags()
+    if not tags:
+        return GitTag(0, 0, 0)
+
+    sorted_tags = sorted(tags, reverse=True)
+
+    return sorted_tags[0]

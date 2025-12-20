@@ -5,3 +5,4 @@ __pycache__
 dist/
 build/
 **.egg-info/
+tests/test.ipynb

@@ -1,52 +1,47 @@
 """Unit tests for changelog update functionality in mstd checks."""
 
 from datetime import UTC, datetime
-from unittest.mock import patch
 
 import pytest
 
+from devops.config import Constants
 from devops.files.files import MSTDFileNotFoundError
 from devops.files.update_changelog import (
     __CHANGELOG_INSERTION_MARKER__,
-    MSTDChangelogError,
+    DevOpsChangelogError,
     update_changelog,
 )
 
+owner_url = Constants.github.github_default_owner_url
 
-class TestMSTDChangelogError:
-    """Tests for MSTDChangelogError exception class."""
+
+class TestDevOpsChangelogError:
+    """Tests for DevOpsChangelogError exception class."""
 
     def test_changelog_error_message(self) -> None:
-        """Test that MSTDChangelogError formats message correctly."""
-        error = MSTDChangelogError("test error message")
-        assert str(error) == "MSTDChangelogError: test error message"
+        """Test that DevOpsChangelogError formats message correctly."""
+        error = DevOpsChangelogError("test error message")
+        assert str(error) == "DevOpsChangelogError: test error message"
         assert error.message == "test error message"
 
     def test_changelog_error_is_exception(self) -> None:
-        """Test that MSTDChangelogError is a proper exception."""
-        error = MSTDChangelogError("test")
+        """Test that DevOpsChangelogError is a proper exception."""
+        error = DevOpsChangelogError("test")
         assert isinstance(error, Exception)
 
 
 class TestUpdateChangelog:
     """Tests for update_changelog function."""
 
-    @patch("devops.files.update_changelog.get_github_repo")
-    def test_update_changelog_success(
-        self, mock_get_repo: any, tmp_path: pytest.TempdirFactory
-    ) -> None:
+    def test_update_changelog_success(self, tmp_path: pytest.TempdirFactory) -> None:
         """Test successful changelog update with new version.
 
         Parameters
         ----------
-        mock_get_repo : any
-            Mock for get_github_repo function.
         tmp_path : pytest.TempdirFactory
             Temporary directory for test files.
 
         """
-        mock_get_repo.return_value = "https://github.com/test/repo"
-
         changelog = tmp_path / "CHANGELOG.md"
         changelog.write_text(
             "# Changelog\n"
@@ -57,7 +52,7 @@ class TestUpdateChangelog:
             "\n"
             "<!-- insertion marker -->\n"
             "\n"
-            "## [1.0.0](https://github.com/test/repo/releases/tag/1.0.0) - 2024-01-01\n"
+            f"## [1.0.0]({owner_url}/releases/tag/1.0.0) - 2024-01-01\n"
             "\n"
             "- Initial release\n"
         )
@@ -65,7 +60,7 @@ class TestUpdateChangelog:
         update_changelog("1.1.0", changelog)
 
         content = changelog.read_text()
-        assert "## [1.1.0](https://github.com/test/repo/releases/tag/1.1.0)" in content
+        assert f"## [1.1.0]({owner_url}/releases/tag/1.1.0)" in content
         assert "## Next Release" in content
         # Marker should be after Next Release now
         next_release_pos = content.find("## Next Release")
@@ -73,22 +68,15 @@ class TestUpdateChangelog:
         new_version_pos = content.find("## [1.1.0]")
         assert next_release_pos < marker_pos < new_version_pos
 
-    @patch("devops.files.update_changelog.get_github_repo")
-    def test_update_changelog_with_date(
-        self, mock_get_repo: any, tmp_path: pytest.TempdirFactory
-    ) -> None:
+    def test_update_changelog_with_date(self, tmp_path: pytest.TempdirFactory) -> None:
         """Test that changelog entry includes today's date.
 
         Parameters
         ----------
-        mock_get_repo : any
-            Mock for get_github_repo function.
         tmp_path : pytest.TempdirFactory
             Temporary directory for test files.
 
         """
-        mock_get_repo.return_value = "https://github.com/test/repo"
-
         changelog = tmp_path / "CHANGELOG.md"
         changelog.write_text(
             "# Changelog\n"
@@ -104,10 +92,7 @@ class TestUpdateChangelog:
 
         content = changelog.read_text()
         today = datetime.now(tz=UTC).date().isoformat()
-        assert (
-            f"## [2.0.0](https://github.com/test/repo/releases/tag/2.0.0) - {today}"
-            in content
-        )
+        assert f"## [2.0.0]({owner_url}/releases/tag/2.0.0) - {today}" in content
 
     def test_update_changelog_file_not_found(
         self, tmp_path: pytest.TempdirFactory
@@ -127,52 +112,42 @@ class TestUpdateChangelog:
 
         assert exc_info.value.filepath == non_existent
 
-    @patch("devops.files.update_changelog.get_github_repo")
     def test_update_changelog_missing_next_release(
-        self, mock_get_repo: any, tmp_path: pytest.TempdirFactory
+        self, tmp_path: pytest.TempdirFactory
     ) -> None:
-        """Test that MSTDChangelogError is raised when Next Release marker missing.
+        """Test that DevOpsChangelogError is raised when Next Release marker missing.
 
         Parameters
         ----------
-        mock_get_repo : any
-            Mock for get_github_repo function.
         tmp_path : pytest.TempdirFactory
             Temporary directory for test files.
 
         """
-        mock_get_repo.return_value = "https://github.com/test/repo"
-
         changelog = tmp_path / "CHANGELOG.md"
         changelog.write_text(
             "# Changelog\n"
             "\n"
-            "## [1.0.0](https://github.com/test/repo/releases/tag/1.0.0) - 2024-01-01\n"
+            f"## [1.0.0]({owner_url}/releases/tag/1.0.0) - 2024-01-01\n"
             "\n"
             "- Initial release\n"
         )
 
-        with pytest.raises(MSTDChangelogError) as exc_info:
+        with pytest.raises(DevOpsChangelogError) as exc_info:
             update_changelog("1.1.0", changelog)
 
         assert "Next Release" in exc_info.value.message
 
-    @patch("devops.files.update_changelog.get_github_repo")
     def test_update_changelog_removes_old_marker(
-        self, mock_get_repo: any, tmp_path: pytest.TempdirFactory
+        self, tmp_path: pytest.TempdirFactory
     ) -> None:
         """Test that old insertion marker is removed and new one is placed.
 
         Parameters
         ----------
-        mock_get_repo : any
-            Mock for get_github_repo function.
         tmp_path : pytest.TempdirFactory
             Temporary directory for test files.
 
         """
-        mock_get_repo.return_value = "https://github.com/test/repo"
-
         changelog = tmp_path / "CHANGELOG.md"
         changelog.write_text(
             "# Changelog\n"
@@ -181,11 +156,11 @@ class TestUpdateChangelog:
             "\n"
             "- New change\n"
             "\n"
-            "## [1.0.0](https://github.com/test/repo/releases/tag/1.0.0) - 2024-01-01\n"
+            f"## [1.0.0]({owner_url}/releases/tag/1.0.0) - 2024-01-01\n"
             "\n"
             "<!-- insertion marker -->\n"
             "\n"
-            "## [0.9.0](https://github.com/test/repo/releases/tag/0.9.0) - 2023-12-01\n"
+            f"## [0.9.0]({owner_url}/releases/tag/0.9.0) - 2023-12-01\n"
         )
 
         update_changelog("1.1.0", changelog)
@@ -198,22 +173,17 @@ class TestUpdateChangelog:
         marker_pos = content.find(__CHANGELOG_INSERTION_MARKER__)
         assert next_release_pos < marker_pos
 
-    @patch("devops.files.update_changelog.get_github_repo")
     def test_update_changelog_no_existing_marker(
-        self, mock_get_repo: any, tmp_path: pytest.TempdirFactory
+        self, tmp_path: pytest.TempdirFactory
     ) -> None:
         """Test changelog update when no insertion marker exists.
 
         Parameters
         ----------
-        mock_get_repo : any
-            Mock for get_github_repo function.
         tmp_path : pytest.TempdirFactory
             Temporary directory for test files.
 
         """
-        mock_get_repo.return_value = "https://github.com/test/repo"
-
         changelog = tmp_path / "CHANGELOG.md"
         changelog.write_text(
             "# Changelog\n"
@@ -222,7 +192,7 @@ class TestUpdateChangelog:
             "\n"
             "- Feature A\n"
             "\n"
-            "## [1.0.0](https://github.com/test/repo/releases/tag/1.0.0) - 2024-01-01\n"
+            f"## [1.0.0]({owner_url}/releases/tag/1.0.0) - 2024-01-01\n"
         )
 
         update_changelog("1.1.0", changelog)
@@ -231,22 +201,17 @@ class TestUpdateChangelog:
         assert __CHANGELOG_INSERTION_MARKER__ in content
         assert "## [1.1.0]" in content
 
-    @patch("devops.files.update_changelog.get_github_repo")
     def test_update_changelog_preserves_content(
-        self, mock_get_repo: any, tmp_path: pytest.TempdirFactory
+        self, tmp_path: pytest.TempdirFactory
     ) -> None:
         """Test that changelog update preserves existing content.
 
         Parameters
         ----------
-        mock_get_repo : any
-            Mock for get_github_repo function.
         tmp_path : pytest.TempdirFactory
             Temporary directory for test files.
 
         """
-        mock_get_repo.return_value = "https://github.com/test/repo"
-
         changelog = tmp_path / "CHANGELOG.md"
         original_content = (
             "# Changelog\n"
@@ -263,7 +228,7 @@ class TestUpdateChangelog:
             "\n"
             "<!-- insertion marker -->\n"
             "\n"
-            "## [1.0.0](https://github.com/test/repo/releases/tag/1.0.0) - 2024-01-01\n"
+            f"## [1.0.0]({owner_url}/releases/tag/1.0.0) - 2024-01-01\n"
             "\n"
             "### Added\n"
             "- Initial release\n"
@@ -283,22 +248,17 @@ class TestUpdateChangelog:
         assert "- Initial release" in content
         assert "## [1.0.0]" in content
 
-    @patch("devops.files.update_changelog.get_github_repo")
     def test_update_changelog_next_release_regex_variations(
-        self, mock_get_repo: any, tmp_path: pytest.TempdirFactory
+        self, tmp_path: pytest.TempdirFactory
     ) -> None:
         """Test that regex matches various Next Release formats.
 
         Parameters
         ----------
-        mock_get_repo : any
-            Mock for get_github_repo function.
         tmp_path : pytest.TempdirFactory
             Temporary directory for test files.
 
         """
-        mock_get_repo.return_value = "https://github.com/test/repo"
-
         # Test with extra spaces
         changelog = tmp_path / "CHANGELOG.md"
         changelog.write_text(
@@ -316,22 +276,17 @@ class TestUpdateChangelog:
         content = changelog.read_text()
         assert "## [1.0.0]" in content
 
-    @patch("devops.files.update_changelog.get_github_repo")
     def test_update_changelog_empty_next_release(
-        self, mock_get_repo: any, tmp_path: pytest.TempdirFactory
+        self, tmp_path: pytest.TempdirFactory
     ) -> None:
         """Test changelog update when Next Release section is empty.
 
         Parameters
         ----------
-        mock_get_repo : any
-            Mock for get_github_repo function.
         tmp_path : pytest.TempdirFactory
             Temporary directory for test files.
 
         """
-        mock_get_repo.return_value = "https://github.com/test/repo"
-
         changelog = tmp_path / "CHANGELOG.md"
         changelog.write_text(
             "# Changelog\n"
@@ -340,7 +295,7 @@ class TestUpdateChangelog:
             "\n"
             "<!-- insertion marker -->\n"
             "\n"
-            "## [1.0.0](https://github.com/test/repo/releases/tag/1.0.0) - 2024-01-01\n"
+            f"## [1.0.0]({owner_url}/releases/tag/1.0.0) - 2024-01-01\n"
         )
 
         update_changelog("1.1.0", changelog)

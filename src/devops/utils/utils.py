@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import typing
 
-from devops.github import __MSTD_ISSUES_PAGE__
+from devops.config import Constants
 from devops.logger import utils_logger
 from devops.rules import ResultType, ResultTypeEnum
 
@@ -63,7 +63,9 @@ def check_key_sequence_ordered(
     if len(indices) != len(key_sequence):
         msg = f"Expected {len(key_sequence)} indices, but got {len(indices)}. "
         msg += "This indicates an internal error. "
-        msg += f"Please report this issue at {__MSTD_ISSUES_PAGE__}."
+        msg += (
+            f"Please report this issue at {Constants.github.github_devops_issues_url}."
+        )
         raise ValueError(msg)
 
     found_indices = 0
