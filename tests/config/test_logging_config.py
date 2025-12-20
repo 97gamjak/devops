@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from devops.config.base import ConfigError
-from devops.config.logging_config import (
+from devops.config.config_logging import (
     LoggingConfig,
     parse_logging_config,
     set_logging_levels,
@@ -50,7 +50,7 @@ def test_parse_logging_config_with_all_levels() -> None:
         }
     }
 
-    with patch("devops.config.logging_config.set_logging_levels"):
+    with patch("devops.config.config_logging.set_logging_levels"):
         config = parse_logging_config(raw_config)
 
     assert config.global_level == LogLevel.DEBUG
@@ -70,7 +70,7 @@ def test_parse_logging_config_with_case_insensitive_levels() -> None:
         }
     }
 
-    with patch("devops.config.logging_config.set_logging_levels"):
+    with patch("devops.config.config_logging.set_logging_levels"):
         config = parse_logging_config(raw_config)
 
     assert config.global_level == LogLevel.DEBUG
@@ -84,12 +84,12 @@ def test_parse_logging_config_with_missing_logging_section() -> None:
     raw_config: dict = {}
 
     with (
-        patch("devops.config.logging_config.set_logging_levels"),
+        patch("devops.config.config_logging.set_logging_levels"),
         patch("logging.root.level", logging.INFO),
-        patch("devops.config.logging_config.utils_logger.level", logging.INFO),
-        patch("devops.config.logging_config.config_logger.level", logging.INFO),
+        patch("devops.config.config_logging.utils_logger.level", logging.INFO),
+        patch("devops.config.config_logging.config_logger.level", logging.INFO),
         patch(
-            "devops.config.logging_config.cpp_check_logger.level",
+            "devops.config.config_logging.cpp_check_logger.level",
             logging.INFO,
         ),
     ):
@@ -111,9 +111,9 @@ def test_parse_logging_config_with_partial_levels() -> None:
     }
 
     with (
-        patch("devops.config.logging_config.set_logging_levels"),
-        patch("devops.config.logging_config.utils_logger.level", logging.WARNING),
-        patch("devops.config.logging_config.config_logger.level", logging.ERROR),
+        patch("devops.config.config_logging.set_logging_levels"),
+        patch("devops.config.config_logging.utils_logger.level", logging.WARNING),
+        patch("devops.config.config_logging.config_logger.level", logging.ERROR),
     ):
         config = parse_logging_config(raw_config)
 
@@ -173,11 +173,11 @@ def test_parse_logging_config_calls_set_logging_levels() -> None:
     }
 
     with (
-        patch("devops.config.logging_config.set_logging_levels") as mock_set_levels,
-        patch("devops.config.logging_config.utils_logger.level", logging.INFO),
-        patch("devops.config.logging_config.config_logger.level", logging.INFO),
+        patch("devops.config.config_logging.set_logging_levels") as mock_set_levels,
+        patch("devops.config.config_logging.utils_logger.level", logging.INFO),
+        patch("devops.config.config_logging.config_logger.level", logging.INFO),
         patch(
-            "devops.config.logging_config.cpp_check_logger.level",
+            "devops.config.config_logging.cpp_check_logger.level",
             logging.INFO,
         ),
     ):
@@ -194,9 +194,9 @@ def test_set_logging_levels_sets_global_level() -> None:
 
     with (
         patch("logging.getLogger") as mock_get_logger,
-        patch("devops.config.logging_config.utils_logger"),
-        patch("devops.config.logging_config.config_logger"),
-        patch("devops.config.logging_config.cpp_check_logger"),
+        patch("devops.config.config_logging.utils_logger"),
+        patch("devops.config.config_logging.config_logger"),
+        patch("devops.config.config_logging.cpp_check_logger"),
     ):
         mock_logger = MagicMock()
         mock_get_logger.return_value = mock_logger
@@ -217,9 +217,9 @@ def test_set_logging_levels_sets_all_logger_levels() -> None:
 
     with (
         patch("logging.getLogger") as mock_get_logger,
-        patch("devops.config.logging_config.utils_logger") as mock_utils,
-        patch("devops.config.logging_config.config_logger") as mock_config,
-        patch("devops.config.logging_config.cpp_check_logger") as mock_cpp,
+        patch("devops.config.config_logging.utils_logger") as mock_utils,
+        patch("devops.config.config_logging.config_logger") as mock_config,
+        patch("devops.config.config_logging.cpp_check_logger") as mock_cpp,
     ):
         mock_root = MagicMock()
         mock_get_logger.return_value = mock_root
@@ -241,11 +241,11 @@ def test_parse_logging_config_with_none_level() -> None:
     }
 
     with (
-        patch("devops.config.logging_config.set_logging_levels"),
-        patch("devops.config.logging_config.utils_logger.level", logging.INFO),
-        patch("devops.config.logging_config.config_logger.level", logging.INFO),
+        patch("devops.config.config_logging.set_logging_levels"),
+        patch("devops.config.config_logging.utils_logger.level", logging.INFO),
+        patch("devops.config.config_logging.config_logger.level", logging.INFO),
         patch(
-            "devops.config.logging_config.cpp_check_logger.level",
+            "devops.config.config_logging.cpp_check_logger.level",
             logging.INFO,
         ),
     ):
@@ -260,9 +260,9 @@ def test_set_logging_levels_with_none_level() -> None:
 
     with (
         patch("logging.getLogger") as mock_get_logger,
-        patch("devops.config.logging_config.utils_logger"),
-        patch("devops.config.logging_config.config_logger"),
-        patch("devops.config.logging_config.cpp_check_logger"),
+        patch("devops.config.config_logging.utils_logger"),
+        patch("devops.config.config_logging.config_logger"),
+        patch("devops.config.config_logging.cpp_check_logger"),
     ):
         mock_logger = MagicMock()
         mock_get_logger.return_value = mock_logger

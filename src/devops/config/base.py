@@ -54,6 +54,91 @@ def get_table(mapping: dict[str, Any], key: str) -> dict[str, Any]:
     return value
 
 
+def _get_type(
+    mapping: dict[str, Any], key: str, default: Any, expected_type: type
+) -> Any:
+    """Get a value of expected type from a mapping.
+
+    Parameters
+    ----------
+    mapping: dict[str, Any]
+        The mapping to extract the value from.
+    key: str
+        The key of the value.
+    default: Any
+        The default value to return if the key is not found.
+    expected_type: type
+        The expected type of the value.
+
+    Returns
+    -------
+    Any
+        The extracted value or the default value if the key is not found.
+
+    Raises
+    ------
+    ConfigError
+        If the value associated with the key is not of the expected type.
+    """
+    value = mapping.get(key, default)
+
+    if value is None:
+        return None
+
+    if not isinstance(value, expected_type):
+        msg = (
+            f"Expected {expected_type.__name__} for "
+            f"key '{key}', got {type(value).__name__}"
+        )
+        raise ConfigError(msg)
+
+    return value
+
+
+def get_bool(
+    mapping: dict[str, Any], key: str, *, default: bool | None = None
+) -> bool | None:
+    """Get a boolean value from a mapping.
+
+    Parameters
+    ----------
+    mapping: dict[str, Any]
+        The mapping to extract the boolean from.
+    key: str
+        The key of the boolean.
+    default: bool | None
+        The default value to return if the key is not found.
+
+    Returns
+    -------
+    bool | None
+        The extracted boolean value or None if the key is not found.
+    """
+    return _get_type(mapping, key, default, bool)
+
+
+def get_str(
+    mapping: dict[str, Any], key: str, default: str | None = None
+) -> str | None:
+    """Get a string value from a mapping.
+
+    Parameters
+    ----------
+    mapping: dict[str, Any]
+        The mapping to extract the string from.
+    key: str
+        The key of the string.
+    default: str | None
+        The default value to return if the key is not found.
+
+    Returns
+    -------
+    str | None
+        The extracted string value or None if the key is not found.
+    """
+    return _get_type(mapping, key, default, str)
+
+
 def get_str_enum(
     mapping: dict[str, Any], key: str, enum_type: type, default: str | None = None
 ) -> StrEnum | None:
@@ -79,16 +164,11 @@ def get_str_enum(
     ------
     ConfigError
         If the value associated with the key is not a valid enum value.
-        If the value is not a string.
     """
-    value = mapping.get(key, default)
+    value = _get_type(mapping, key, default, str)
 
     if value is None:
         return None
-
-    if not isinstance(value, str):
-        msg = f"Expected str for key '{key}', got {type(value).__name__}"
-        raise ConfigError(msg)
 
     if enum_type.is_valid(value):
         return enum_type(value)

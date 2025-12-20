@@ -6,6 +6,11 @@ All notable changes to this project will be documented in this file.
 
 ### Features
 
+### API
+
+- Add cli command `get_latest_tag`
+- Add cli command `increase_latest_tag`
+
 #### Git
 
 - Add function to retrieve latest tag from git

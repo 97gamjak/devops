@@ -2,10 +2,11 @@
 
 import subprocess
 from dataclasses import FrozenInstanceError
-from unittest.mock import ANY, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
+from devops.config import GitConfig
 from devops.git.tag import GitTag, GitTagError, get_all_tags, get_latest_tag
 
 
@@ -14,22 +15,24 @@ class TestGitTag:
 
     def test_str_representation(self) -> None:
         """Test string representation of GitTag."""
-        tag = GitTag(1, 2, 3)
+        tag = GitTag(1, 2, 3, prefix="v")
         assert str(tag) == "v1.2.3"
 
     def test_str_representation_with_zeros(self) -> None:
         """Test string representation with zero values."""
-        tag = GitTag(0, 0, 0)
+        tag = GitTag(0, 0, 0, prefix="v")
         assert str(tag) == "v0.0.0"
 
     def test_str_representation_with_large_numbers(self) -> None:
         """Test string representation with large version numbers."""
-        tag = GitTag(10, 20, 30)
+        config = GitConfig(tag_prefix="v")
+        tag = GitTag(10, 20, 30, prefix=config.tag_prefix)
         assert str(tag) == "v10.20.30"
 
     def test_from_string_with_v_prefix(self) -> None:
         """Test creating GitTag from string with 'v' prefix."""
-        tag = GitTag.from_string("v1.2.3")
+        config = GitConfig(tag_prefix="v")
+        tag = GitTag.from_string("v1.2.3", config=config)
         assert tag.major == 1
         assert tag.minor == 2
         assert tag.patch == 3
@@ -43,14 +46,16 @@ class TestGitTag:
 
     def test_from_string_with_zeros(self) -> None:
         """Test creating GitTag from string with zero values."""
-        tag = GitTag.from_string("v0.0.0")
+        config = GitConfig(tag_prefix="v")
+        tag = GitTag.from_string("v0.0.0", config=config)
         assert tag.major == 0
         assert tag.minor == 0
         assert tag.patch == 0
 
     def test_from_string_with_large_numbers(self) -> None:
         """Test creating GitTag from string with large version numbers."""
-        tag = GitTag.from_string("v10.20.30")
+        config = GitConfig(tag_prefix="v")
+        tag = GitTag.from_string("v10.20.30", config=config)
         assert tag.major == 10
         assert tag.minor == 20
         assert tag.patch == 30
@@ -106,61 +111,172 @@ class TestGitTag:
 
     def test_ordering_equal_tags(self) -> None:
         """Test ordering of equal tags."""
-        tag1 = GitTag(1, 2, 3)
-        tag2 = GitTag(1, 2, 3)
+        tag1 = GitTag(1, 2, 3, prefix="")
+        tag2 = GitTag(1, 2, 3, prefix="")
         assert tag1 == tag2
         assert not tag1 < tag2
         assert not tag1 > tag2
 
     def test_ordering_different_major(self) -> None:
         """Test ordering based on major version."""
-        tag1 = GitTag(1, 2, 3)
-        tag2 = GitTag(2, 2, 3)
+        tag1 = GitTag(1, 2, 3, prefix="")
+        tag2 = GitTag(2, 2, 3, prefix="")
         assert tag1 < tag2
         assert tag2 > tag1
 
     def test_ordering_different_minor(self) -> None:
         """Test ordering based on minor version."""
-        tag1 = GitTag(1, 2, 3)
-        tag2 = GitTag(1, 3, 3)
+        tag1 = GitTag(1, 2, 3, prefix="")
+        tag2 = GitTag(1, 3, 3, prefix="")
         assert tag1 < tag2
         assert tag2 > tag1
 
     def test_ordering_different_patch(self) -> None:
         """Test ordering based on patch version."""
-        tag1 = GitTag(1, 2, 3)
-        tag2 = GitTag(1, 2, 4)
+        tag1 = GitTag(1, 2, 3, prefix="")
+        tag2 = GitTag(1, 2, 4, prefix="")
         assert tag1 < tag2
         assert tag2 > tag1
 
     def test_ordering_multiple_tags(self) -> None:
         """Test sorting multiple tags."""
         tags = [
-            GitTag(2, 0, 0),
-            GitTag(1, 0, 0),
-            GitTag(1, 2, 0),
-            GitTag(1, 1, 0),
-            GitTag(1, 1, 5),
+            GitTag(2, 0, 0, prefix=""),
+            GitTag(1, 0, 0, prefix=""),
+            GitTag(1, 2, 0, prefix=""),
+            GitTag(1, 1, 0, prefix=""),
+            GitTag(1, 1, 5, prefix=""),
         ]
         sorted_tags = sorted(tags)
         assert sorted_tags == [
-            GitTag(1, 0, 0),
-            GitTag(1, 1, 0),
-            GitTag(1, 1, 5),
-            GitTag(1, 2, 0),
-            GitTag(2, 0, 0),
+            GitTag(1, 0, 0, prefix=""),
+            GitTag(1, 1, 0, prefix=""),
+            GitTag(1, 1, 5, prefix=""),
+            GitTag(1, 2, 0, prefix=""),
+            GitTag(2, 0, 0, prefix=""),
         ]
 
     def test_max_tag(self) -> None:
         """Test finding max tag from list."""
-        tags = [GitTag(1, 0, 0), GitTag(2, 5, 3), GitTag(2, 5, 1)]
-        assert max(tags) == GitTag(2, 5, 3)
+        tags = [
+            GitTag(1, 0, 0, prefix=""),
+            GitTag(2, 5, 3, prefix=""),
+            GitTag(2, 5, 1, prefix=""),
+        ]
+        assert max(tags) == GitTag(2, 5, 3, prefix="")
 
     def test_frozen_dataclass(self) -> None:
         """Test that GitTag is immutable."""
-        tag = GitTag(1, 2, 3)
+        tag = GitTag(1, 2, 3, prefix="")
         with pytest.raises(FrozenInstanceError, match="cannot assign to field"):
             tag.major = 5  # type: ignore[misc]
+
+    def test_increase_major(self) -> None:
+        """Test increase_major increments major version and resets minor and patch."""
+        tag = GitTag(1, 2, 3, prefix="v")
+        new_tag = tag.increase_major()
+        assert new_tag.major == 2
+        assert new_tag.minor == 0
+        assert new_tag.patch == 0
+        assert new_tag.prefix == "v"
+
+    def test_increase_major_preserves_prefix(self) -> None:
+        """Test increase_major preserves the tag prefix."""
+        tag = GitTag(0, 5, 10, prefix="")
+        new_tag = tag.increase_major()
+        assert new_tag.major == 1
+        assert new_tag.minor == 0
+        assert new_tag.patch == 0
+        assert new_tag.prefix == ""
+
+    def test_increase_major_returns_new_instance(self) -> None:
+        """Test increase_major returns a new instance and doesn't modify original."""
+        tag = GitTag(1, 2, 3, prefix="v")
+        new_tag = tag.increase_major()
+        assert tag.major == 1
+        assert tag.minor == 2
+        assert tag.patch == 3
+        assert new_tag is not tag
+
+    def test_increase_minor(self) -> None:
+        """Test increase_minor increments minor version and resets patch."""
+        tag = GitTag(1, 2, 3, prefix="v")
+        new_tag = tag.increase_minor()
+        assert new_tag.major == 1
+        assert new_tag.minor == 3
+        assert new_tag.patch == 0
+        assert new_tag.prefix == "v"
+
+    def test_increase_minor_preserves_prefix(self) -> None:
+        """Test increase_minor preserves the tag prefix."""
+        tag = GitTag(5, 0, 10, prefix="")
+        new_tag = tag.increase_minor()
+        assert new_tag.major == 5
+        assert new_tag.minor == 1
+        assert new_tag.patch == 0
+        assert new_tag.prefix == ""
+
+    def test_increase_minor_returns_new_instance(self) -> None:
+        """Test increase_minor returns a new instance and doesn't modify original."""
+        tag = GitTag(1, 2, 3, prefix="v")
+        new_tag = tag.increase_minor()
+        assert tag.major == 1
+        assert tag.minor == 2
+        assert tag.patch == 3
+        assert new_tag is not tag
+
+    def test_increase_patch(self) -> None:
+        """Test increase_patch increments patch version only."""
+        tag = GitTag(1, 2, 3, prefix="v")
+        new_tag = tag.increase_patch()
+        assert new_tag.major == 1
+        assert new_tag.minor == 2
+        assert new_tag.patch == 4
+        assert new_tag.prefix == "v"
+
+    def test_increase_patch_preserves_prefix(self) -> None:
+        """Test increase_patch preserves the tag prefix."""
+        tag = GitTag(5, 10, 0, prefix="")
+        new_tag = tag.increase_patch()
+        assert new_tag.major == 5
+        assert new_tag.minor == 10
+        assert new_tag.patch == 1
+        assert new_tag.prefix == ""
+
+    def test_increase_patch_returns_new_instance(self) -> None:
+        """Test increase_patch returns a new instance and doesn't modify original."""
+        tag = GitTag(1, 2, 3, prefix="v")
+        new_tag = tag.increase_patch()
+        assert tag.major == 1
+        assert tag.minor == 2
+        assert tag.patch == 3
+        assert new_tag is not tag
+
+    def test_increase_methods_with_large_numbers(self) -> None:
+        """Test increase methods work correctly with large version numbers."""
+        tag = GitTag(99, 199, 299, prefix="v")
+
+        major_tag = tag.increase_major()
+        assert major_tag == GitTag(100, 0, 0, prefix="v")
+
+        minor_tag = tag.increase_minor()
+        assert minor_tag == GitTag(99, 200, 0, prefix="v")
+
+        patch_tag = tag.increase_patch()
+        assert patch_tag == GitTag(99, 199, 300, prefix="v")
+
+    def test_increase_methods_with_zeros(self) -> None:
+        """Test increase methods work correctly when starting from zeros."""
+        tag = GitTag(0, 0, 0, prefix="v")
+
+        major_tag = tag.increase_major()
+        assert major_tag == GitTag(1, 0, 0, prefix="v")
+
+        minor_tag = tag.increase_minor()
+        assert minor_tag == GitTag(0, 1, 0, prefix="v")
+
+        patch_tag = tag.increase_patch()
+        assert patch_tag == GitTag(0, 0, 1, prefix="v")
 
 
 class TestGetAllTags:
@@ -173,27 +289,29 @@ class TestGetAllTags:
         """Test retrieving multiple tags from repository."""
         mock_check_output.return_value = "v1.0.0\nv1.1.0\nv2.0.0\n"
 
-        tags = get_all_tags()
+        config = GitConfig(tag_prefix="v")
+        tags = get_all_tags(config=config)
 
         assert len(tags) == 3
-        assert tags[0] == GitTag(1, 0, 0)
-        assert tags[1] == GitTag(1, 1, 0)
-        assert tags[2] == GitTag(2, 0, 0)
+        assert tags[0] == GitTag(1, 0, 0, prefix=config.tag_prefix)
+        assert tags[1] == GitTag(1, 1, 0, prefix=config.tag_prefix)
+        assert tags[2] == GitTag(2, 0, 0, prefix=config.tag_prefix)
         mock_check_output.assert_called_once_with(
             ["git", "tag", "--list"],
-            stderr=ANY,
+            stderr=subprocess.DEVNULL,
             text=True,
+            shell=False,
         )
 
     @patch("devops.git.tag.subprocess.check_output")
     def test_get_all_tags_with_single_tag(self, mock_check_output: MagicMock) -> None:
         """Test retrieving single tag from repository."""
-        mock_check_output.return_value = "v1.0.0\n"
+        mock_check_output.return_value = "1.0.0\n"
 
         tags = get_all_tags()
 
         assert len(tags) == 1
-        assert tags[0] == GitTag(1, 0, 0)
+        assert tags[0] == GitTag(1, 0, 0, prefix="")
 
     @patch("devops.git.tag.subprocess.check_output")
     def test_get_all_tags_with_empty_repository(
@@ -220,27 +338,21 @@ class TestGetAllTags:
         assert tags == []
 
     @patch("devops.git.tag.subprocess.check_output")
-    def test_get_all_tags_subprocess_error_allowed(
-        self, mock_check_output: MagicMock
-    ) -> None:
-        """Test get_all_tags returns empty list on subprocess error when allowed."""
-        mock_check_output.side_effect = subprocess.CalledProcessError(1, "git")
-
-        tags = get_all_tags(empty_tag_list_allowed=True)
-
-        assert tags == []
-
-    @patch("devops.git.tag.subprocess.check_output")
     def test_get_all_tags_subprocess_error_not_allowed(
         self, mock_check_output: MagicMock
     ) -> None:
         """Test get_all_tags raises error on subprocess error when not allowed."""
         mock_check_output.side_effect = subprocess.CalledProcessError(1, "git")
 
+        config = GitConfig(empty_tag_list_allowed=False)
         with pytest.raises(GitTagError) as exc_info:
-            get_all_tags(empty_tag_list_allowed=False)
+            get_all_tags(config)
 
-        assert "Failed to retrieve Git tags" in str(exc_info.value)
+        msg = (
+            "Error retrieving Git tags. "
+            "Failed to execute git command. Command: 'git tag --list'"
+        )
+        assert msg in str(exc_info.value)
 
     @patch("devops.git.tag.subprocess.check_output")
     def test_get_all_tags_with_invalid_tag_format(
@@ -249,10 +361,13 @@ class TestGetAllTags:
         """Test get_all_tags raises error with invalid tag format."""
         mock_check_output.return_value = "v1.0.0\ninvalid-tag\nv2.0.0\n"
 
+        config = GitConfig(tag_prefix="v")
         with pytest.raises(GitTagError) as exc_info:
-            get_all_tags()
+            get_all_tags(config=config)
 
-        assert "Invalid tag format: invalid-tag" in str(exc_info.value)
+        assert "Tag 'invalid-tag' does not start with the expected prefix 'v'" in str(
+            exc_info.value
+        )
 
     @patch("devops.git.tag.subprocess.check_output")
     def test_get_all_tags_without_v_prefix(self, mock_check_output: MagicMock) -> None:
@@ -262,20 +377,20 @@ class TestGetAllTags:
         tags = get_all_tags()
 
         assert len(tags) == 2
-        assert tags[0] == GitTag(1, 0, 0)
-        assert tags[1] == GitTag(2, 0, 0)
+        assert tags[0] == GitTag(1, 0, 0, prefix="")
+        assert tags[1] == GitTag(2, 0, 0, prefix="")
 
     @patch("devops.git.tag.subprocess.check_output")
     def test_get_all_tags_mixed_prefix(self, mock_check_output: MagicMock) -> None:
         """Test get_all_tags handles mixed prefix tags."""
-        mock_check_output.return_value = "v1.0.0\n2.0.0\nv3.0.0\n"
+        mock_check_output.return_value = "1.0.0\n2.0.0\n3.0.0\n"
 
         tags = get_all_tags()
 
         assert len(tags) == 3
-        assert tags[0] == GitTag(1, 0, 0)
-        assert tags[1] == GitTag(2, 0, 0)
-        assert tags[2] == GitTag(3, 0, 0)
+        assert tags[0] == GitTag(1, 0, 0, prefix="")
+        assert tags[1] == GitTag(2, 0, 0, prefix="")
+        assert tags[2] == GitTag(3, 0, 0, prefix="")
 
 
 class TestGetLatestTag:
@@ -286,20 +401,20 @@ class TestGetLatestTag:
         self, mock_check_output: MagicMock
     ) -> None:
         """Test getting latest tag from multiple tags."""
-        mock_check_output.return_value = "v1.0.0\nv2.5.3\nv2.5.1\nv1.9.9\n"
+        mock_check_output.return_value = "1.0.0\n2.5.3\n2.5.1\n1.9.9\n"
 
         latest = get_latest_tag()
 
-        assert latest == GitTag(2, 5, 3)
+        assert latest == GitTag(2, 5, 3, GitConfig().tag_prefix)
 
     @patch("devops.git.tag.subprocess.check_output")
     def test_get_latest_tag_with_single_tag(self, mock_check_output: MagicMock) -> None:
         """Test getting latest tag when only one tag exists."""
-        mock_check_output.return_value = "v1.0.0\n"
+        mock_check_output.return_value = "1.0.0\n"
 
         latest = get_latest_tag()
 
-        assert latest == GitTag(1, 0, 0)
+        assert latest == GitTag(1, 0, 0, GitConfig().tag_prefix)
 
     @patch("devops.git.tag.subprocess.check_output")
     def test_get_latest_tag_with_no_tags(self, mock_check_output: MagicMock) -> None:
@@ -308,7 +423,7 @@ class TestGetLatestTag:
 
         latest = get_latest_tag()
 
-        assert latest == GitTag(0, 0, 0)
+        assert latest == GitTag(0, 0, 0, GitConfig().tag_prefix)
 
     @patch("devops.git.tag.subprocess.check_output")
     def test_get_latest_tag_ordering_by_major(
@@ -317,20 +432,21 @@ class TestGetLatestTag:
         """Test latest tag is determined by major version."""
         mock_check_output.return_value = "v1.9.9\nv2.0.0\nv1.10.10\n"
 
-        latest = get_latest_tag()
+        config = GitConfig(tag_prefix="v")
+        latest = get_latest_tag(config)
 
-        assert latest == GitTag(2, 0, 0)
+        assert latest == GitTag(2, 0, 0, config.tag_prefix)
 
     @patch("devops.git.tag.subprocess.check_output")
     def test_get_latest_tag_ordering_by_minor(
         self, mock_check_output: MagicMock
     ) -> None:
         """Test latest tag is determined by minor version when major is same."""
-        mock_check_output.return_value = "v1.5.9\nv1.10.0\nv1.9.10\n"
+        mock_check_output.return_value = "1.5.9\n1.10.0\n1.9.10\n"
 
         latest = get_latest_tag()
 
-        assert latest == GitTag(1, 10, 0)
+        assert latest == GitTag(1, 10, 0, GitConfig().tag_prefix)
 
     @patch("devops.git.tag.subprocess.check_output")
     def test_get_latest_tag_ordering_by_patch(
@@ -339,9 +455,11 @@ class TestGetLatestTag:
         """Test latest tag by patch version when major and minor are same."""
         mock_check_output.return_value = "v1.5.9\nv1.5.15\nv1.5.10\n"
 
-        latest = get_latest_tag()
+        config = GitConfig(tag_prefix="v")
 
-        assert latest == GitTag(1, 5, 15)
+        latest = get_latest_tag(config)
+
+        assert latest == GitTag(1, 5, 15, config.tag_prefix)
 
 
 class TestGitTagError:

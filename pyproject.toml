@@ -10,5 +10,7 @@ dependencies = ["typer>=0.20.0"]
 test = ["pytest>=9.0.1", "pytest-cov", "coverage", "docstr-coverage"]
 
 [project.scripts]
-cpp_checks = "devops.scripts.cpp_checks:main"
+cpp_checks = "devops.scripts.cpp_checks:app"
 update_changelog = "devops.scripts.update_changelog:app"
+get_latest_tag = "devops.scripts.get_latest_git_tag:latest_tag"
+increase_latest_tag = "devops.scripts.get_latest_git_tag:increase_tag"

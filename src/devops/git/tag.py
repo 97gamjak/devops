@@ -3,7 +3,13 @@
 from __future__ import annotations
 
 import subprocess
+import typing
 from dataclasses import dataclass
+
+from devops import __GLOBAL_CONFIG__
+
+if typing.TYPE_CHECKING:
+    from devops.config import GitConfig
 
 
 # TODO(97gamjak): centralize exception handling
@@ -21,9 +27,10 @@ class GitTagError(Exception):
 class GitTag:
     """Class representing a Git tag."""
 
-    major: int = 0
-    minor: int = 0
-    patch: int = 0
+    major: int
+    minor: int
+    patch: int
+    prefix: str
 
     def __str__(self) -> str:
         """Return the string representation of the Git tag.
@@ -35,16 +42,51 @@ class GitTag:
             in the format 'v<major>.<minor>.<patch>'.
 
         """
-        return f"v{self.major}.{self.minor}.{self.patch}"
+        return f"{self.prefix}{self.major}.{self.minor}.{self.patch}"
+
+    def increase_major(self) -> GitTag:
+        """Increase the major version by 1 and reset minor and patch to 0.
+
+        Returns
+        -------
+        GitTag
+            A new GitTag instance with the increased major version.
+
+        """
+        return GitTag(self.major + 1, 0, 0, self.prefix)
+
+    def increase_minor(self) -> GitTag:
+        """Increase the minor version by 1 and reset patch to 0.
+
+        Returns
+        -------
+        GitTag
+            A new GitTag instance with the increased minor version.
+
+        """
+        return GitTag(self.major, self.minor + 1, 0, self.prefix)
+
+    def increase_patch(self) -> GitTag:
+        """Increase the patch version by 1.
+
+        Returns
+        -------
+        GitTag
+            A new GitTag instance with the increased patch version.
+
+        """
+        return GitTag(self.major, self.minor, self.patch + 1, self.prefix)
 
     @staticmethod
-    def from_string(tag: str) -> GitTag:
+    def from_string(tag: str, config: GitConfig = __GLOBAL_CONFIG__.git) -> GitTag:
         """Create a GitTag instance from a string.
 
         Parameters
         ----------
         tag: str
-            The Git tag string in the format 'v<major>.<minor>.<patch>'.
+            The Git tag string in the format '<prefix><major>.<minor>.<patch>'.
+        config: GitConfig
+            The Git configuration containing the expected prefix.
 
         Returns
         -------
@@ -54,11 +96,22 @@ class GitTag:
         Raises
         ------
         GitTagError
+            If the tag string does not start with the expected prefix.
             If the tag string is not in the correct format.
 
         """
         original_tag = tag
-        tag = tag.removeprefix("v")
+
+        prefix = config.tag_prefix
+
+        if not tag.startswith(prefix):
+            msg = (
+                f"Tag '{original_tag}' does not start "
+                f"with the expected prefix '{prefix}'"
+            )
+            raise GitTagError(msg)
+
+        tag = tag.removeprefix(prefix)
         parts = tag.split(".")
 
         # TODO(97gamjak): implement support for different version schemes
@@ -72,16 +125,17 @@ class GitTag:
         except ValueError as exc:
             msg = f"Invalid numeric components in tag: {original_tag}"
             raise GitTagError(msg) from exc
-        return GitTag(major, minor, patch)
+        return GitTag(major, minor, patch, prefix)
 
 
-def get_all_tags(*, empty_tag_list_allowed: bool = True) -> list[GitTag]:
+def get_all_tags(config: GitConfig = __GLOBAL_CONFIG__.git) -> list[GitTag]:
     """Get all Git tags in the repository.
 
     Parameters
     ----------
-    empty_tag_list_allowed: bool
-        Whether to allow an empty tag list without raising an error.
+    config: GitConfig
+        The Git configuration containing the expected prefix
+        and empty tag list allowance.
 
     Returns
     -------
@@ -95,37 +149,53 @@ def get_all_tags(*, empty_tag_list_allowed: bool = True) -> list[GitTag]:
         empty_tag_list_allowed is False.
 
     """
+    empty_tag_list_allowed = config.empty_tag_list_allowed
+
     try:
         tags_output = subprocess.check_output(
             ["git", "tag", "--list"],
             stderr=subprocess.DEVNULL,
             text=True,
+            shell=False,
         ).strip()
     except subprocess.CalledProcessError as e:
-        if not empty_tag_list_allowed:
-            msg = "Failed to retrieve Git tags."
-            raise GitTagError(msg) from e
-        return []
+        msg = (
+            "Error retrieving Git tags. "
+            "Failed to execute git command. Command: 'git tag --list'"
+        )
+        raise GitTagError(msg) from e
+
+    if not empty_tag_list_allowed and not tags_output:
+        msg = "Failed to retrieve Git tags."
+        raise GitTagError(msg)
 
     tags = []
     for tag_str in tags_output.splitlines():
-        tag = GitTag.from_string(tag_str)
+        tag = GitTag.from_string(tag_str, config=config)
         tags.append(tag)
 
     return tags
 
 
-def get_latest_tag() -> GitTag:
+def get_latest_tag(
+    config: GitConfig = __GLOBAL_CONFIG__.git,
+) -> GitTag:
     """Get the latest Git tag in the repository.
+
+    Parameters
+    ----------
+    config: GitConfig
+        The Git configuration containing the expected prefix
+        and empty tag list allowance.
 
     Returns
     -------
     GitTag
-        The latest Git tag. If no tags exist, returns GitTag(0, 0, 0).
+        The latest Git tag. If no tags exist, returns GitTag(0, 0, 0, prefix).
 
     """
-    tags = get_all_tags()
+    tags = get_all_tags(config=config)
     if not tags:
-        return GitTag(0, 0, 0)
+        return GitTag(0, 0, 0, config.tag_prefix)
 
     return max(tags)
