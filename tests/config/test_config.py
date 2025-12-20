@@ -18,27 +18,27 @@ def test_parse_config_with_exclude_configuration() -> None:
     """Test parsing exclude configurations from raw config."""
     raw_config = {
         "exclude": {
-            "buggy_cpp_library_macros": ["MACRO1", "MACRO2", "MACRO3"],
+            "buggy_cpp_macros": ["MACRO1", "MACRO2", "MACRO3"],
         }
     }
     result = parse_config(raw_config)
 
     assert isinstance(result, GlobalConfig)
     assert isinstance(result.exclude, ExcludeConfig)
-    assert result.exclude.buggy_cpp_library_macros == ["MACRO1", "MACRO2", "MACRO3"]
+    assert result.exclude.buggy_cpp_macros == ["MACRO1", "MACRO2", "MACRO3"]
 
 
 def test_parse_config_with_empty_exclude_list() -> None:
     """Test parsing exclude configurations with empty list."""
     raw_config = {
         "exclude": {
-            "buggy_cpp_library_macros": [],
+            "buggy_cpp_macros": [],
         }
     }
     result = parse_config(raw_config)
 
     assert isinstance(result, GlobalConfig)
-    assert result.exclude.buggy_cpp_library_macros == []
+    assert result.exclude.buggy_cpp_macros == []
 
 
 def test_parse_config_missing_exclude_section() -> None:
@@ -47,16 +47,16 @@ def test_parse_config_missing_exclude_section() -> None:
     result = parse_config(raw_config)
 
     assert isinstance(result, GlobalConfig)
-    assert result.exclude.buggy_cpp_library_macros == []
+    assert result.exclude.buggy_cpp_macros == []
 
 
-def test_parse_config_missing_buggy_cpp_library_macros_key() -> None:
-    """Test missing 'buggy_cpp_library_macros' key returns empty list."""
+def test_parse_config_missing_buggy_cpp_macros_key() -> None:
+    """Test missing 'buggy_cpp_macros' key returns empty list."""
     raw_config = {"exclude": {}}
     result = parse_config(raw_config)
 
     assert isinstance(result, GlobalConfig)
-    assert result.exclude.buggy_cpp_library_macros == []
+    assert result.exclude.buggy_cpp_macros == []
 
 
 def test_parse_config_exclude_not_dict() -> None:
@@ -81,11 +81,11 @@ def test_parse_config_exclude_is_list() -> None:
     assert "got list" in str(exc_info.value)
 
 
-def test_parse_config_buggy_cpp_library_macros_not_list() -> None:
-    """Test invalid type for buggy_cpp_library_macros raises error."""
+def test_parse_config_buggy_cpp_macros_not_list() -> None:
+    """Test invalid type for buggy_cpp_macros raises error."""
     raw_config = {
         "exclude": {
-            "buggy_cpp_library_macros": "not_a_list",
+            "buggy_cpp_macros": "not_a_list",
         }
     }
 
@@ -93,14 +93,14 @@ def test_parse_config_buggy_cpp_library_macros_not_list() -> None:
         parse_config(raw_config)
 
     assert "Expected list of strings for key" in str(exc_info.value)
-    assert "buggy_cpp_library_macros" in str(exc_info.value)
+    assert "buggy_cpp_macros" in str(exc_info.value)
 
 
-def test_parse_config_buggy_cpp_library_macros_list_with_non_strings() -> None:
+def test_parse_config_buggy_cpp_macros_list_with_non_strings() -> None:
     """Test handling list with non-string elements - should raise ConfigError."""
     raw_config = {
         "exclude": {
-            "buggy_cpp_library_macros": ["MACRO1", 42, "MACRO3"],
+            "buggy_cpp_macros": ["MACRO1", 42, "MACRO3"],
         }
     }
 
@@ -108,14 +108,14 @@ def test_parse_config_buggy_cpp_library_macros_list_with_non_strings() -> None:
         parse_config(raw_config)
 
     assert "Expected list of strings for key" in str(exc_info.value)
-    assert "buggy_cpp_library_macros" in str(exc_info.value)
+    assert "buggy_cpp_macros" in str(exc_info.value)
 
 
-def test_parse_config_buggy_cpp_library_macros_is_dict() -> None:
-    """Test handling invalid data type when buggy_cpp_library_macros is a dict."""
+def test_parse_config_buggy_cpp_macros_is_dict() -> None:
+    """Test handling invalid data type when buggy_cpp_macros is a dict."""
     raw_config = {
         "exclude": {
-            "buggy_cpp_library_macros": {"key": "value"},
+            "buggy_cpp_macros": {"key": "value"},
         }
     }
 
@@ -123,7 +123,7 @@ def test_parse_config_buggy_cpp_library_macros_is_dict() -> None:
         parse_config(raw_config)
 
     assert "Expected list of strings for key" in str(exc_info.value)
-    assert "buggy_cpp_library_macros" in str(exc_info.value)
+    assert "buggy_cpp_macros" in str(exc_info.value)
 
 
 def test_read_config_with_none_path() -> None:
@@ -132,14 +132,14 @@ def test_read_config_with_none_path() -> None:
 
     assert isinstance(result, GlobalConfig)
     assert isinstance(result.exclude, ExcludeConfig)
-    assert result.exclude.buggy_cpp_library_macros == []
+    assert result.exclude.buggy_cpp_macros == []
 
 
 def test_read_config_with_valid_toml_file(tmp_path: Path) -> None:
     """Test reading a valid TOML configuration file."""
     toml_content = """
 [exclude]
-buggy_cpp_library_macros = ["MACRO_A", "MACRO_B"]
+buggy_cpp_macros = ["MACRO_A", "MACRO_B"]
 """
 
     toml_file = tmp_path / "config.toml"
@@ -148,14 +148,14 @@ buggy_cpp_library_macros = ["MACRO_A", "MACRO_B"]
     result = read_config(toml_file)
 
     assert isinstance(result, GlobalConfig)
-    assert result.exclude.buggy_cpp_library_macros == ["MACRO_A", "MACRO_B"]
+    assert result.exclude.buggy_cpp_macros == ["MACRO_A", "MACRO_B"]
 
 
 def test_read_config_with_path_object(tmp_path: Path) -> None:
     """Test reading configuration file using Path object."""
     toml_content = """
 [exclude]
-buggy_cpp_library_macros = ["TEST_MACRO"]
+buggy_cpp_macros = ["TEST_MACRO"]
 """
 
     toml_file = tmp_path / "config.toml"
@@ -164,7 +164,7 @@ buggy_cpp_library_macros = ["TEST_MACRO"]
     result = read_config(toml_file)
 
     assert isinstance(result, GlobalConfig)
-    assert result.exclude.buggy_cpp_library_macros == ["TEST_MACRO"]
+    assert result.exclude.buggy_cpp_macros == ["TEST_MACRO"]
 
 
 def test_read_config_with_empty_toml_file(tmp_path: Path) -> None:
@@ -177,7 +177,7 @@ def test_read_config_with_empty_toml_file(tmp_path: Path) -> None:
     result = read_config(toml_file)
 
     assert isinstance(result, GlobalConfig)
-    assert result.exclude.buggy_cpp_library_macros == []
+    assert result.exclude.buggy_cpp_macros == []
 
 
 def test_read_config_with_partial_toml_file(tmp_path: Path) -> None:
@@ -192,7 +192,7 @@ def test_read_config_with_partial_toml_file(tmp_path: Path) -> None:
     result = read_config(toml_file)
 
     assert isinstance(result, GlobalConfig)
-    assert result.exclude.buggy_cpp_library_macros == []
+    assert result.exclude.buggy_cpp_macros == []
 
 
 def test_get_str_enum_with_valid_value() -> None:

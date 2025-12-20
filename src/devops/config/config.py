@@ -24,7 +24,7 @@ if typing.TYPE_CHECKING:
 class ExcludeConfig:
     """Dataclass to hold default exclusion values."""
 
-    buggy_cpp_library_macros: list[str] = field(default_factory=list)
+    buggy_cpp_macros: list[str] = field(default_factory=list)
 
     def to_toml_lines(self) -> list[str]:
         """Convert the ExcludeConfig to TOML lines.
@@ -38,8 +38,8 @@ class ExcludeConfig:
         lines = ["[exclude]\n"]
 
         lines.append(
-            "#buggy_cpp_library_macros = ["
-            + ", ".join(f'"{macro}"' for macro in self.buggy_cpp_library_macros)
+            "#buggy_cpp_macros = ["
+            + ", ".join(f'"{macro}"' for macro in self.buggy_cpp_macros)
             + "]\n"
         )
 
@@ -105,10 +105,10 @@ def parse_config(raw: dict[str, Any]) -> GlobalConfig:
     # start exclude configuration
     exclude_table = get_table(raw, "exclude")
 
-    buggy_cpp_library_macros = get_str_list(exclude_table, "buggy_cpp_library_macros")
+    buggy_cpp_macros = get_str_list(exclude_table, "buggy_cpp_macros")
 
     exclude_config = ExcludeConfig(
-        buggy_cpp_library_macros=buggy_cpp_library_macros,
+        buggy_cpp_macros=buggy_cpp_macros,
     )
     # end exclude configuration
 

@@ -11,6 +11,7 @@ All notable changes to this project will be documented in this file.
 - Add new license checking rule to `cpp_checks`
 - Add cli command `generate_toml_template` to get a template default toml file
 - Add cli commands `add_license_header` and `add_license_headers`
+- Add cli command `filter_buggy_cpp_files`
 
 ### Features
 

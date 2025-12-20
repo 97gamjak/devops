@@ -21,7 +21,7 @@ def test_init_config_single_config_file(
     """Test init_config when a single config file exists."""
     # Create a single config file
     config_file = tmp_path / "devops.toml"
-    config_file.write_text('[exclude]\nbuggy_cpp_library_macros = ["MACRO1"]\n')
+    config_file.write_text('[exclude]\nbuggy_cpp_macros = ["MACRO1"]\n')
 
     # Change to the temp directory so the config file is found
     monkeypatch.chdir(tmp_path)
@@ -31,7 +31,7 @@ def test_init_config_single_config_file(
 
     # Verify the config was loaded correctly
     assert isinstance(config, GlobalConfig)
-    assert config.exclude.buggy_cpp_library_macros == ["MACRO1"]
+    assert config.exclude.buggy_cpp_macros == ["MACRO1"]
 
 
 def test_init_config_single_hidden_config_file(
@@ -40,7 +40,7 @@ def test_init_config_single_hidden_config_file(
     """Test init_config when a single hidden config file exists."""
     # Create a single hidden config file
     config_file = tmp_path / ".devops.toml"
-    config_file.write_text('[exclude]\nbuggy_cpp_library_macros = ["MACRO2"]\n')
+    config_file.write_text('[exclude]\nbuggy_cpp_macros = ["MACRO2"]\n')
 
     # Change to the temp directory so the config file is found
     monkeypatch.chdir(tmp_path)
@@ -50,7 +50,7 @@ def test_init_config_single_hidden_config_file(
 
     # Verify the config was loaded correctly
     assert isinstance(config, GlobalConfig)
-    assert config.exclude.buggy_cpp_library_macros == ["MACRO2"]
+    assert config.exclude.buggy_cpp_macros == ["MACRO2"]
 
 
 def test_init_config_no_config_file(
@@ -68,7 +68,7 @@ def test_init_config_no_config_file(
 
     # Verify default config is returned
     assert isinstance(config, GlobalConfig)
-    assert config.exclude.buggy_cpp_library_macros == []
+    assert config.exclude.buggy_cpp_macros == []
 
     # Verify the debug message was logged
     assert "No config file found. Using default configuration." in caplog.text
@@ -82,10 +82,10 @@ def test_init_config_multiple_config_files(
     """Test init_config when multiple config files exist."""
     # Create multiple config files
     config_file1 = tmp_path / "devops.toml"
-    config_file1.write_text('[exclude]\nbuggy_cpp_library_macros = ["MACRO1"]\n')
+    config_file1.write_text('[exclude]\nbuggy_cpp_macros = ["MACRO1"]\n')
 
     config_file2 = tmp_path / ".devops.toml"
-    config_file2.write_text('[exclude]\nbuggy_cpp_library_macros = ["MACRO2"]\n')
+    config_file2.write_text('[exclude]\nbuggy_cpp_macros = ["MACRO2"]\n')
 
     # Change to the temp directory
     monkeypatch.chdir(tmp_path)
@@ -96,7 +96,7 @@ def test_init_config_multiple_config_files(
 
     # Verify default config is returned (since multiple files were found)
     assert isinstance(config, GlobalConfig)
-    assert config.exclude.buggy_cpp_library_macros == []
+    assert config.exclude.buggy_cpp_macros == []
 
     # Verify the warning message was logged
     assert "Multiple config files found" in caplog.text
@@ -113,10 +113,10 @@ def test_init_config_multiple_config_files_warning_contains_all_files(
     """Test that the warning message lists all found config files."""
     # Create multiple config files
     config_file1 = tmp_path / "devops.toml"
-    config_file1.write_text('[exclude]\nbuggy_cpp_library_macros = ["MACRO1"]\n')
+    config_file1.write_text('[exclude]\nbuggy_cpp_macros = ["MACRO1"]\n')
 
     config_file2 = tmp_path / ".devops.toml"
-    config_file2.write_text('[exclude]\nbuggy_cpp_library_macros = ["MACRO2"]\n')
+    config_file2.write_text('[exclude]\nbuggy_cpp_macros = ["MACRO2"]\n')
 
     # Change to the temp directory
     monkeypatch.chdir(tmp_path)
