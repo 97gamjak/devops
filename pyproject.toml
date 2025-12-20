@@ -9,4 +9,5 @@ dependencies = ["pytest>=9.0.1", "ruff>=0.14.6", "typer>=0.20.0"]
 [project.scripts]
 cpp_checks = "devops.scripts.cpp_checks:app"
 update_changelog = "devops.scripts.update_changelog:app"
-get_latest_tag = "devops.scripts.get_latest_git_tag:app"
+get_latest_tag = "devops.scripts.get_latest_git_tag:latest_tag"
+increase_latest_tag = "devops.scripts.get_latest_git_tag:increase_tag"

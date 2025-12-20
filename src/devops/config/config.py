@@ -9,8 +9,9 @@ from pathlib import Path
 from devops.logger import config_logger
 
 from .base import get_str_list, get_table
+from .config_git import GitConfig, parse_git_config
+from .config_logging import LoggingConfig, parse_logging_config
 from .constants import Constants
-from .logging_config import LoggingConfig, parse_logging_config
 from .toml import load_toml
 
 if typing.TYPE_CHECKING:
@@ -30,6 +31,7 @@ class GlobalConfig:
 
     exclude: ExcludeConfig = field(default_factory=ExcludeConfig)
     logging: LoggingConfig = field(default_factory=LoggingConfig)
+    git: GitConfig = field(default_factory=GitConfig)
 
 
 def parse_config(raw: dict[str, Any]) -> GlobalConfig:
@@ -50,6 +52,7 @@ def parse_config(raw: dict[str, Any]) -> GlobalConfig:
     # NOTE: this should be done before anything else
     # as logging config already updates loggers
     logging_config = parse_logging_config(raw)
+    git_config = parse_git_config(raw)
 
     # start exclude configuration
     exclude_table = get_table(raw, "exclude")
@@ -61,7 +64,7 @@ def parse_config(raw: dict[str, Any]) -> GlobalConfig:
     )
     # end exclude configuration
 
-    return GlobalConfig(exclude=exclude_config, logging=logging_config)
+    return GlobalConfig(exclude=exclude_config, logging=logging_config, git=git_config)
 
 
 def read_config(path: str | Path | None = None) -> GlobalConfig:

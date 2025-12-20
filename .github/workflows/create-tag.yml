@@ -52,24 +52,7 @@ jobs:
 
             git fetch --tags --force
 
-            latest_tag="$(
-              git tag --list \
-                | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+$' \
-                | sort -V \
-                | tail -n 1 || true
-            )"
-
-            if [[ -z "$latest_tag" ]]; then
-              base="0.0.0"
-              echo "No semver tags found. Using base: $base"
-            else
-              base="${latest_tag#v}"
-              echo "Latest semver tag: $latest_tag (base=$base)"
-            fi
-
-            IFS='.' read -r major minor patch <<< "$base"
-            patch=$((patch + 1))
-            version="${major}.${minor}.${patch}"
+            version="$(increase_latest_tag --patch)"
 
             echo "✅ Hotfix release version: $version"
             echo "version=$version" >> "$GITHUB_OUTPUT"
