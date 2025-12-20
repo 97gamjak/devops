@@ -79,7 +79,7 @@ jobs:
       - name: Update CHANGELOG.md
         run: |
           version="${{ steps.extract_version.outputs.version }}"
-          python3 update_changelog "$version"
+          update_changelog "$version"
 
       - name: Commit and push changelog update
         run: |
