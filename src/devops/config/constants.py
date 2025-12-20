@@ -1,7 +1,5 @@
 """Constants for DevOps checks."""
 
-from dataclasses import dataclass
-
 
 class GitConstants:
     """Class holding constant Git-related URLs."""

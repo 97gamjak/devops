@@ -11,7 +11,7 @@ if typing.TYPE_CHECKING:
     from collections.abc import Iterable
 
 
-class MSTDFileNotFoundError(Exception):
+class DevOpsFileNotFoundError(Exception):
     """Exception raised when a specified file is not found."""
 
     def __init__(self, filepath: Path) -> None:

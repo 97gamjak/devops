@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 import pytest
 
 from devops.config import Constants
-from devops.files.files import MSTDFileNotFoundError
+from devops.files.files import DevOpsFileNotFoundError
 from devops.files.update_changelog import (
     __CHANGELOG_INSERTION_MARKER__,
     DevOpsChangelogError,
@@ -97,7 +97,7 @@ class TestUpdateChangelog:
     def test_update_changelog_file_not_found(
         self, tmp_path: pytest.TempdirFactory
     ) -> None:
-        """Test that MSTDFileNotFoundError is raised when file doesn't exist.
+        """Test that DevOpsFileNotFoundError is raised when file doesn't exist.
 
         Parameters
         ----------
@@ -107,7 +107,7 @@ class TestUpdateChangelog:
         """
         non_existent = tmp_path / "does_not_exist.md"
 
-        with pytest.raises(MSTDFileNotFoundError) as exc_info:
+        with pytest.raises(DevOpsFileNotFoundError) as exc_info:
             update_changelog("1.0.0", non_existent)
 
         assert exc_info.value.filepath == non_existent

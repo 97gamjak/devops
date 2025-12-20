@@ -1,7 +1,5 @@
 """Module for GitHub-related constants and functions."""
 
-import os
-
 __GITHUB_REPO__ = "https://github.com"
 __MSTD_GITHUB_REPO__ = "https://github.com/97gamjak/mstd"
 __MSTD_ISSUES_PAGE__ = f"{__MSTD_GITHUB_REPO__}/issues"

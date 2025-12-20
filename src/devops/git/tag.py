@@ -81,7 +81,8 @@ class GitTag:
         Returns
         -------
         bool
-            True if this GitTag is less than the other GitTag, False otherwise.
+            True if this GitTag is less than the other GitTag,
+            False otherwise.
 
         """
         version_self = (self.major, self.minor, self.patch)
@@ -99,7 +100,8 @@ class GitTag:
         Returns
         -------
         bool
-            True if this GitTag is greater than the other GitTag, False otherwise.
+            True if this GitTag is greater than the other GitTag,
+            False otherwise.
 
         """
         version_self = (self.major, self.minor, self.patch)
@@ -117,7 +119,8 @@ class GitTag:
         Returns
         -------
         bool
-            True if this GitTag is less than or equal to the other GitTag, False otherwise.
+            True if this GitTag is less than or equal to the other GitTag,
+            False otherwise.
 
         """
         version_self = (self.major, self.minor, self.patch)
@@ -135,7 +138,8 @@ class GitTag:
         Returns
         -------
         bool
-            True if this GitTag is greater than or equal to the other GitTag, False otherwise.
+            True if this GitTag is greater than or equal to the other GitTag,
+            False otherwise.
 
         """
         version_self = (self.major, self.minor, self.patch)
