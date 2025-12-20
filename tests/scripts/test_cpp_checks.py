@@ -14,6 +14,8 @@ from devops.rules import ResultType, ResultTypeEnum, Rule, RuleInputType, RuleTy
 if typing.TYPE_CHECKING:
     from pathlib import Path
 
+    from devops.rules import FileRuleInput
+
 cpp_rules = build_cpp_rules()
 
 
@@ -378,8 +380,8 @@ class TestRunFileRules:
 
         received_content = []
 
-        def capture_content(content: str) -> ResultType:
-            received_content.append(content)
+        def capture_content(file_rule_input: FileRuleInput) -> ResultType:
+            received_content.append(file_rule_input.file_content)
             return ResultType(ResultTypeEnum.Ok)
 
         rule = Rule(
