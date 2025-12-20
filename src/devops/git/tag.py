@@ -17,7 +17,7 @@ class GitTagError(Exception):
         self.message = message
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, order=True)
 class GitTag:
     """Class representing a Git tag."""
 
@@ -36,115 +36,6 @@ class GitTag:
 
         """
         return f"v{self.major}.{self.minor}.{self.patch}"
-
-    def __eq__(self, other: object) -> bool:
-        """Check equality between two GitTag instances.
-
-        Parameters
-        ----------
-        other: object
-            The other GitTag instance to compare with.
-
-        Returns
-        -------
-        bool
-            True if both GitTag instances are equal, False otherwise.
-
-        """
-        if not isinstance(other, GitTag):
-            return NotImplemented
-        return (self.major, self.minor, self.patch) == (
-            other.major,
-            other.minor,
-            other.patch,
-        )
-
-    def __hash__(self) -> int:
-        """Return the hash of the GitTag instance.
-
-        Returns
-        -------
-        int
-            The hash value of the GitTag instance.
-
-        """
-        return hash((self.major, self.minor, self.patch))
-
-    def __lt__(self, other: GitTag) -> bool:
-        """Check if this GitTag is less than another GitTag.
-
-        Parameters
-        ----------
-        other: GitTag
-            The other GitTag instance to compare with.
-
-        Returns
-        -------
-        bool
-            True if this GitTag is less than the other GitTag,
-            False otherwise.
-
-        """
-        version_self = (self.major, self.minor, self.patch)
-        version_other = (other.major, other.minor, other.patch)
-        return version_self < version_other
-
-    def __gt__(self, other: GitTag) -> bool:
-        """Check if this GitTag is greater than another GitTag.
-
-        Parameters
-        ----------
-        other: GitTag
-            The other GitTag instance to compare with.
-
-        Returns
-        -------
-        bool
-            True if this GitTag is greater than the other GitTag,
-            False otherwise.
-
-        """
-        version_self = (self.major, self.minor, self.patch)
-        version_other = (other.major, other.minor, other.patch)
-        return version_self > version_other
-
-    def __le__(self, other: GitTag) -> bool:
-        """Check if this GitTag is less than or equal to another GitTag.
-
-        Parameters
-        ----------
-        other: GitTag
-            The other GitTag instance to compare with.
-
-        Returns
-        -------
-        bool
-            True if this GitTag is less than or equal to the other GitTag,
-            False otherwise.
-
-        """
-        version_self = (self.major, self.minor, self.patch)
-        version_other = (other.major, other.minor, other.patch)
-        return version_self <= version_other
-
-    def __ge__(self, other: GitTag) -> bool:
-        """Check if this GitTag is greater than or equal to another GitTag.
-
-        Parameters
-        ----------
-        other: GitTag
-            The other GitTag instance to compare with.
-
-        Returns
-        -------
-        bool
-            True if this GitTag is greater than or equal to the other GitTag,
-            False otherwise.
-
-        """
-        version_self = (self.major, self.minor, self.patch)
-        version_other = (other.major, other.minor, other.patch)
-        return version_self >= version_other
 
     @staticmethod
     def from_string(tag: str) -> GitTag:
