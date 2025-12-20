@@ -9,6 +9,7 @@ from devops.files import (
     determine_file_type,
     get_files_in_dirs,
     get_staged_files,
+    open_file,
 )
 from devops.logger import cpp_check_logger
 from devops.rules import (
@@ -54,7 +55,7 @@ def run_line_checks(rules: list[Rule], file: Path) -> list[ResultType]:
         msg = "Non-line rule provided to run_line_checks"
         raise CppCheckError(msg)
 
-    with Path(file).open("r", encoding="utf-8") as f:
+    with open_file(file, mode="r") as f:
         for line in f:
             for rule in rules:
                 if file_type not in rule.file_types:
@@ -93,7 +94,7 @@ def run_file_rules(rules: list[Rule], file: Path) -> list[ResultType]:
         msg = "Non-file rule provided to run_file_rules"
         raise CppCheckError(msg)
 
-    with Path(file).open("r", encoding="utf-8") as f:
+    with open_file(file, mode="r") as f:
         content = f.read()
         for rule in rules:
             if file_type not in rule.file_types:

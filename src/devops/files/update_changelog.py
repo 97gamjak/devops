@@ -5,9 +5,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from devops.config import Constants
-from devops.files.files import DevOpsFileNotFoundError
-
-from .config import __DEFAULT_ENCODING__
+from devops.files import open_file, write_text
 
 __CHANGELOG_PATH__ = Path("CHANGELOG.md")
 __CHANGELOG_INSERTION_MARKER__ = "<!-- insertion marker -->"
@@ -35,15 +33,12 @@ def update_changelog(version: str, changelog_path: Path = __CHANGELOG_PATH__) ->
     Raises
     ------
     DevOpsFileNotFoundError
-        If the changelog file does not exist.
+        If the changelog file does not exist. Happens inside open_file.
     DevOpsChangelogError
         If the "## Next Release" marker is not found in the changelog.
 
     """
-    if not changelog_path.is_file():
-        raise DevOpsFileNotFoundError(changelog_path)
-
-    with changelog_path.open("r", encoding=__DEFAULT_ENCODING__) as f:
+    with open_file(changelog_path, mode="r") as f:
         content = f.readlines()
 
     repo = Constants.github.github_default_owner_url
@@ -74,4 +69,4 @@ def update_changelog(version: str, changelog_path: Path = __CHANGELOG_PATH__) ->
         msg = "Could not find '## Next Release' in CHANGELOG.md"
         raise DevOpsChangelogError(msg)
 
-    changelog_path.write_text("".join(updated) + "\n", encoding=__DEFAULT_ENCODING__)
+    write_text(changelog_path, "".join(updated) + "\n")

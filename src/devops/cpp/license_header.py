@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from devops.files import file_exist
+from devops.files import file_exist, open_file
 from devops.rules import ResultType, ResultTypeEnum, Rule, RuleInputType, RuleType
 
 
@@ -39,7 +39,7 @@ def check_license_header(
         throw_msg="Required license header file not found.",
     )
 
-    with required_header_file.open("r", encoding="utf-8") as f:
+    with open_file(required_header_file, mode="r") as f:
         required_header = f.read()
 
         if file_content.startswith(required_header):

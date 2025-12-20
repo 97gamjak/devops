@@ -8,6 +8,8 @@ from .files import (
     file_exist,
     get_files_in_dirs,
     get_staged_files,
+    open_file,
+    write_text,
 )
 
 __EXECUTION_DIR__ = Path.cwd()
@@ -19,4 +21,6 @@ __all__ = [
     "file_exist",
     "get_files_in_dirs",
     "get_staged_files",
+    "open_file",
+    "write_text",
 ]

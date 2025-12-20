@@ -25,6 +25,7 @@ All notable changes to this project will be documented in this file.
     global_level = "INFO"
     cpp_level = "DEBUG"
     ```
+- Adding `file.encoding` config for toml configuration
 
 #### CPP Rules
 
