@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import typing
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -14,7 +15,7 @@ from devops.files import FileType
 from devops.rules import ResultType, ResultTypeEnum, Rule, RuleInputType, RuleType
 
 if typing.TYPE_CHECKING:
-    pass
+    from _pytest.logging import LogCaptureFixture
 
 
 class TestRunCppChecks:
@@ -25,7 +26,9 @@ class TestRunCppChecks:
         Rule.cpp_style_rule_counter = 0
         Rule.general_rule_counter = 0
 
-    def test_run_cpp_checks_with_no_files(self, tmp_path: Path, caplog) -> None:
+    def test_run_cpp_checks_with_no_files(
+        self, tmp_path: Path, caplog: LogCaptureFixture
+    ) -> None:
         """Test run_cpp_checks when no files are found.
 
         Parameters
@@ -111,7 +114,9 @@ class TestRunCppChecks:
         run_cpp_checks([rule], config)
         # Should complete without error
 
-    def test_run_cpp_checks_stops_on_error(self, tmp_path: Path, caplog) -> None:
+    def test_run_cpp_checks_stops_on_error(
+        self, tmp_path: Path, caplog: LogCaptureFixture
+    ) -> None:
         """Test run_cpp_checks stops after first file with errors.
 
         Parameters
@@ -244,18 +249,19 @@ class TestRunCppChecks:
             run_cpp_checks([line_rule, file_rule], config)
             # Should complete without error
 
-    def test_run_cpp_checks_logs_checked_file(self, tmp_path: Path, caplog) -> None:
+    def test_run_cpp_checks_logs_checked_file(
+        self, tmp_path: Path, caplog: LogCaptureFixture
+    ) -> None:
         """Test run_cpp_checks logs the files being checked.
 
         Parameters
         ----------
         tmp_path: Path
             Temporary path for creating test files.
-        caplog
+        caplog: LogCaptureFixture
             Pytest fixture for capturing log messages.
 
         """
-        import logging
         
         test_file = tmp_path / "test.cpp"
         test_file.write_text("int main() {}\n")
@@ -295,7 +301,9 @@ class TestRunCppChecks:
             run_cpp_checks([], config)
             # Should complete without error
 
-    def test_run_cpp_checks_only_logs_errors(self, tmp_path: Path, caplog) -> None:
+    def test_run_cpp_checks_only_logs_errors(
+        self, tmp_path: Path, caplog: LogCaptureFixture
+    ) -> None:
         """Test run_cpp_checks only logs non-Ok results.
 
         Parameters

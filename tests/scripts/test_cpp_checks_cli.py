@@ -37,9 +37,9 @@ class TestCppChecksCLI:
             
             # Command should execute successfully
             assert result.exit_code == 0
-            # Should call build_cpp_rules and run_cpp_checks
-            assert mock_build.called
-            assert mock_run.called
+            # Should call build_cpp_rules and run_cpp_checks exactly once
+            assert mock_build.call_count == 1
+            assert mock_run.call_count == 1
 
     def test_cpp_checks_with_license_header_argument(self, tmp_path: Path) -> None:
         """Test cpp_checks command with license_header argument.
@@ -144,5 +144,7 @@ class TestCppChecksCLI:
         """Test cpp_checks command has correct name in CLI."""
         result = runner.invoke(app, ["--help"])
         assert result.exit_code == 0
-        # Check that help shows the command
-        assert "license-header" in result.stdout.lower() or "license_header" in result.stdout.lower()
+        # Check that help shows the license-header option (strip ANSI codes for comparison)
+        import re
+        clean_output = re.sub(r'\x1b\[[0-9;]*m', '', result.stdout)
+        assert "license-header" in clean_output.lower()

@@ -13,6 +13,8 @@ from devops.rules import Rule, RuleType
 if typing.TYPE_CHECKING:
     from pathlib import Path
 
+    from _pytest.logging import LogCaptureFixture
+
 
 class TestBuildCppRules:
     """Tests for build_cpp_rules function."""
@@ -83,12 +85,14 @@ class TestBuildCppRules:
         license_rules = [rule for rule in rules if rule.name == "License Header Check"]
         assert len(license_rules) == 1
 
-    def test_build_cpp_rules_license_header_without_path(self, caplog) -> None:
+    def test_build_cpp_rules_license_header_without_path(
+        self, caplog: LogCaptureFixture
+    ) -> None:
         """Test building rules with license header check but no path.
 
         Parameters
         ----------
-        caplog
+        caplog: LogCaptureFixture
             Pytest fixture for capturing log messages.
 
         """
