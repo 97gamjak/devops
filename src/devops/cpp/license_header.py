@@ -48,6 +48,59 @@ def check_license_header(
         return ResultType(ResultTypeEnum.Error, "Missing or incorrect license header.")
 
 
+def add_license_header(
+    file: str | Path, header_to_add: str | Path, *, dry_run: bool = False
+) -> bool:
+    """Add the license header to the file content if it's missing.
+
+    Parameters
+    ----------
+    file: str | Path
+        The path to the file to modify.
+    header_to_add: str | Path
+        The path to the file containing the license header to add.
+    dry_run: bool
+        If True, do not modify the file, only simulate the addition.
+
+    Returns
+    -------
+    bool
+        True if the license header was added, False if it was already present.
+
+    Raises
+    ------
+    DevOpsFileNotFoundError
+        If the header file does not exist.
+    """
+    header_to_add = Path(header_to_add)
+
+    # return value can be ignored as exception will be raised if file does not exist
+    file_exist(
+        header_to_add,
+        throwing=True,
+        throw_msg="License header file to add not found.",
+    )
+
+    new_content = ""
+
+    with open_file(file, mode="r") as f:
+        file_content = f.read()
+
+    with open_file(header_to_add, mode="r") as f:
+        license_header = f.read()
+
+        if not file_content.startswith(license_header):
+            new_content = license_header + file_content
+
+    if new_content and not dry_run:
+        with open_file(file, mode="w") as f:
+            f.write(new_content)
+
+        return True
+
+    return new_content and dry_run
+
+
 class CheckLicenseHeader(Rule):
     """Rule to check for the presence of a license header in C++ files."""
 

@@ -145,6 +145,24 @@ def get_files_in_dirs(
     return all_files
 
 
+def get_dirs_in_dir(directory: str | Path = ".") -> list[Path]:
+    """Get all directories in the specified directory.
+
+    Parameters
+    ----------
+    directory: str | Path
+        The path to the directory to search. Defaults to the current directory.
+
+    Returns
+    -------
+    list[Path]:
+        List of directory paths found in the specified directory.
+
+    """
+    dir_path = Path(directory)
+    return [path for path in dir_path.iterdir() if path.is_dir()]
+
+
 def get_staged_files() -> list[Path]:
     """Get the list of staged files in the git repository.
 
@@ -261,3 +279,26 @@ def write_text(file: str | Path, content: str) -> None:
     encoding = __GLOBAL_CONFIG__.file.encoding
 
     file.write_text(content, encoding=encoding)
+
+
+def filter_cpp_files(files: list[Path]) -> list[Path]:
+    """Filter and return only C++ related files from the given list.
+
+    Parameters
+    ----------
+    files: list[Path]
+        The list of file paths to filter.
+
+    Returns
+    -------
+    list[Path]
+        The filtered list containing only C++ related files.
+
+    """
+    cpp_files = []
+    for file in files:
+        file_type = determine_file_type(file)
+        if FileType.is_cpp_type(file_type):
+            cpp_files.append(file)
+
+    return cpp_files
