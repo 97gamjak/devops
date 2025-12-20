@@ -186,7 +186,7 @@ def test_parse_logging_config_calls_set_logging_levels() -> None:
         parse_logging_config(raw_config)
 
         mock_set_levels.assert_called_once()
-        call_args = mock_set_levels.call_args[0][0]
+        call_args = mock_set_levels.call_args.args[0]
         assert call_args.global_level == LogLevel.DEBUG
 
 
