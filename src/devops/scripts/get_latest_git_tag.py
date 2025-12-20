@@ -1,4 +1,4 @@
-"""Script for updating the changelog file."""
+"""CLI utilities for retrieving and incrementing Git tags."""
 
 from __future__ import annotations
 
