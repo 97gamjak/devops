@@ -4,13 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+<!-- insertion marker -->
+## [0.0.3](https://github.com/repo/owner/releases/tag/0.0.3) - 2025-12-20
+
 ### Bug Fixes
 
 #### API
 
 - Now `cpp_checks` returns exit(1) if any test fails
 
-<!-- insertion marker -->
 ## [0.0.2](https://github.com/repo/owner/releases/tag/0.0.2) - 2025-12-20
 
 ### API
@@ -65,6 +67,7 @@ All notable changes to this project will be documented in this file.
 - Add automatic release CI for PRs to main (either via title or via hotfix/ branch)
 - Add overnight CI runs for pytest and ruff CIs
 - Add test coverage to pytest CI
+
 
 
 
