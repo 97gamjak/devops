@@ -1,19 +1,19 @@
 [lint]
 select = ["ALL"]
 ignore = [
-    "D203",    # blank line before docstring of class (conflict with other rule)
-    "D213",    # multiline summary second line (conflict with other rule)
-    "COM812",  # trailing comma missing (conflict with other rule)
-    "FIX002",  # missing TODO - already solved by other rules which force linking author and github issue
-    "S607",    # relative paths are not allowed by this rule in subprocess commands
-    "ANN401",  # allow Any type annotations for now
-    "PLR2004", # allow use of magic numbers in tests
+    "D203",   # blank line before docstring of class (conflict with other rule)
+    "D213",   # multiline summary second line (conflict with other rule)
+    "COM812", # trailing comma missing (conflict with other rule)
+    "FIX002", # missing TODO - already solved by other rules which force linking author and github issue
+    "S607",   # relative paths are not allowed by this rule in subprocess commands
+    "ANN401", # allow Any type annotations for now
 ]
 pylint.max-args = 6
 
 [lint.per-file-ignores]
 "tests/*" = [
-    "S101", # allow use of assert in tests
+    "S101",    # allow use of assert in tests
+    "PLR2004", # allow use of magic numbers in tests
 ]
 
 [lint.pydocstyle]

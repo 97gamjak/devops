@@ -171,7 +171,7 @@ class GitTag:
 
         # TODO(97gamjak): implement support for different version schemes
         # https://97gamjak.atlassian.net/browse/DEV-49
-        if len(parts) != 3:
+        if len(parts) != 3:  # noqa: PLR2004 this will be removed and cleaned up with further naming schemes
             msg = f"Invalid tag format: {tag}"
             raise GitTagError(msg)
 
