@@ -16,8 +16,8 @@ All notable changes to this project will be documented in this file.
 - Adding logging levels to toml file config: `global_level`, `utils_level`, `config_level`, `cpp_level`
     ```toml
     [logging]
-    global_level = "Info"
-    cpp_level = "Debug"
+    global_level = "INFO"
+    cpp_level = "DEBUG"
     ```
 
 ### Deployment
