@@ -4,13 +4,14 @@ from pathlib import Path
 
 import pytest
 
-from devops.config.base import ConfigError
+from devops.config.base import ConfigError, get_str_enum
 from devops.config.config import (
     ExcludeConfig,
     GlobalConfig,
     parse_config,
     read_config,
 )
+from devops.enums import LogLevel
 
 
 def test_parse_config_with_exclude_configuration() -> None:
@@ -192,3 +193,92 @@ def test_read_config_with_partial_toml_file(tmp_path: Path) -> None:
 
     assert isinstance(result, GlobalConfig)
     assert result.exclude.buggy_cpp_library_macros == []
+
+
+def test_get_str_enum_with_valid_value() -> None:
+    """Test get_str_enum with valid enum value."""
+    mapping = {"level": "INFO"}
+
+    result = get_str_enum(mapping, "level", LogLevel)
+
+    assert result == LogLevel.INFO
+
+
+def test_get_str_enum_with_valid_case_insensitive_value() -> None:
+    """Test get_str_enum with case-insensitive enum value."""
+    mapping = {"level": "info"}
+
+    result = get_str_enum(mapping, "level", LogLevel)
+
+    assert result == LogLevel.INFO
+
+
+def test_get_str_enum_with_missing_key() -> None:
+    """Test get_str_enum with missing key returns None."""
+    mapping = {"other_key": "value"}
+
+    result = get_str_enum(mapping, "level", LogLevel)
+
+    assert result is None
+
+
+def test_get_str_enum_with_default_value() -> None:
+    """Test get_str_enum with default value when key is missing."""
+    mapping = {"other_key": "value"}
+
+    result = get_str_enum(mapping, "level", LogLevel, default="DEBUG")
+
+    assert result == LogLevel.DEBUG
+
+
+def test_get_str_enum_with_invalid_enum_value() -> None:
+    """Test get_str_enum with invalid enum value raises ConfigError."""
+    mapping = {"level": "INVALID"}
+
+    with pytest.raises(ConfigError) as exc_info:
+        get_str_enum(mapping, "level", LogLevel)
+
+    assert "Invalid value for key 'level': INVALID" in str(exc_info.value)
+    assert "expected one of" in str(exc_info.value)
+
+
+def test_get_str_enum_with_non_string_value() -> None:
+    """Test get_str_enum with non-string value raises ConfigError."""
+    mapping = {"level": 123}
+
+    with pytest.raises(ConfigError) as exc_info:
+        get_str_enum(mapping, "level", LogLevel)
+
+    assert "Expected str for key 'level'" in str(exc_info.value)
+    assert "got int" in str(exc_info.value)
+
+
+def test_get_str_enum_with_none_value() -> None:
+    """Test get_str_enum with None value returns None."""
+    mapping = {"level": None}
+
+    result = get_str_enum(mapping, "level", LogLevel)
+
+    assert result is None
+
+
+def test_get_str_enum_with_list_value() -> None:
+    """Test get_str_enum with list value raises ConfigError."""
+    mapping = {"level": ["INFO", "DEBUG"]}
+
+    with pytest.raises(ConfigError) as exc_info:
+        get_str_enum(mapping, "level", LogLevel)
+
+    assert "Expected str for key 'level'" in str(exc_info.value)
+    assert "got list" in str(exc_info.value)
+
+
+def test_get_str_enum_with_dict_value() -> None:
+    """Test get_str_enum with dict value raises ConfigError."""
+    mapping = {"level": {"nested": "INFO"}}
+
+    with pytest.raises(ConfigError) as exc_info:
+        get_str_enum(mapping, "level", LogLevel)
+
+    assert "Expected str for key 'level'" in str(exc_info.value)
+    assert "got dict" in str(exc_info.value)
