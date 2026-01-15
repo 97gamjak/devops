@@ -1,6 +1,6 @@
 """Module to parse file configuration values."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from .base import ConfigError, get_str, get_table
@@ -11,6 +11,7 @@ class FileConfig:
     """Dataclass to hold file configuration values."""
 
     encoding: str = "utf-8"
+    changelog_path: list[Path] = field(default_factory=lambda: [Path("CHANGELOG.md")])
 
     def to_toml_lines(self) -> list[str]:
         """Convert the FileConfig to TOML lines.
@@ -48,6 +49,7 @@ def parse_file_config(raw_config: dict) -> FileConfig:
 
     encoding = get_str(table, "encoding", default=FileConfig.encoding)
 
+    ### Validate encoding
     try:
         Path(__file__).open("r", encoding=encoding).close()
     except LookupError as e:

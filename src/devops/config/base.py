@@ -139,6 +139,42 @@ def get_str(
     return _get_type(mapping, key, default, str)
 
 
+def get_str_or_str_list(
+    mapping: dict[str, Any], key: str, default: str | list[str] | None = None
+) -> str | list[str] | None:
+    """Get a string or list of strings from a mapping.
+
+    Parameters
+    ----------
+    mapping: dict[str, Any]
+        The mapping to extract the value from.
+    key: str
+        The key of the value.
+    default: str | list[str] | None
+        The default value to return if the key is not found.
+
+    Returns
+    -------
+    str | list[str] | None
+        The extracted string or list of strings value or None if the key is not found.
+    """
+    value = mapping.get(key, default)
+
+    if value is None:
+        return None
+
+    if isinstance(value, str):
+        return get_str(mapping, key, default)
+
+    if isinstance(value, list) and all(isinstance(item, str) for item in value):
+        return get_str_list(
+            mapping, key, default if isinstance(default, list) else None
+        )
+
+    msg = f"Expected str or list of str for key '{key}', got {type(value).__name__}"
+    raise ConfigError(msg)
+
+
 def get_str_enum(
     mapping: dict[str, Any], key: str, enum_type: type, default: str | None = None
 ) -> StrEnum | None:
