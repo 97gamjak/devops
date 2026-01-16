@@ -11,7 +11,22 @@ class FileConfig:
     """Dataclass to hold file configuration values."""
 
     encoding: str = "utf-8"
-    changelog_path: list[Path] = field(default_factory=lambda: [Path("CHANGELOG.md")])
+    changelog_paths: list[Path] = field(default_factory=lambda: [Path("CHANGELOG.md")])
+    _default_changelog_path: Path | None = None
+
+    @property
+    def default_changelog_path(self) -> Path:
+        """Get the default changelog path.
+
+        Returns
+        -------
+        Path
+            The default changelog path.
+        """
+        if self._default_changelog_path is not None:
+            return self._default_changelog_path
+
+        return self.changelog_paths[0]
 
     def to_toml_lines(self) -> list[str]:
         """Convert the FileConfig to TOML lines.
@@ -24,8 +39,9 @@ class FileConfig:
         """
         lines = ["[file]\n"]
         lines.append(f'#encoding = "{self.encoding}"\n')
-        paths_str = '", "'.join(str(p) for p in self.changelog_path)
-        lines.append(f'#changelog_path = ["{paths_str}"]\n')
+        paths_str = '", "'.join(str(p) for p in self.changelog_paths)
+        lines.append(f'#changelog_paths = ["{paths_str}"]\n')
+        lines.append(f'#_default_changelog_path = "{self.default_changelog_path}"\n')
         return lines
 
 
@@ -51,8 +67,13 @@ def parse_file_config(raw_config: dict) -> FileConfig:
 
     encoding = parse_encoding(table)
     changelog_paths = parse_changelog_path(table)
+    default_changelog_path = parse_default_changelog_path(table)
 
-    return FileConfig(encoding=encoding, changelog_path=changelog_paths)
+    return FileConfig(
+        encoding=encoding,
+        changelog_paths=changelog_paths,
+        _default_changelog_path=default_changelog_path,
+    )
 
 
 def parse_encoding(table: dict) -> str:
@@ -106,3 +127,24 @@ def parse_changelog_path(table: dict) -> list[Path]:
         changelog_paths = [changelog_paths]
 
     return [Path(p) for p in changelog_paths]
+
+
+def parse_default_changelog_path(table: dict) -> Path | None:
+    """Parse the default changelog path from a configuration table.
+
+    Parameters
+    ----------
+    table: dict
+        The configuration table.
+
+    Returns
+    -------
+    Path | None
+        The parsed default changelog path, or None if not specified.
+    """
+    default_path_str = get_str(table, "default_changelog_path", default=None)
+
+    if default_path_str is not None:
+        return Path(default_path_str)
+
+    return None
