@@ -119,10 +119,17 @@ def parse_changelog_path(table: dict) -> list[Path]:
     list[Path]
         The parsed list of changelog paths.
     """
+    # Use the same default as FileConfig, but expressed as a list of strings.
+    default_paths = [str(p) for p in FileConfig().changelog_paths]
     changelog_paths = get_str_or_str_list(
-        table, "changelog_path", FileConfig.changelog_paths
+        table,
+        "changelog_paths",
+        default=default_paths,
     )
 
+    # If the configuration explicitly provides no value, fall back to the default.
+    if changelog_paths is None:
+        changelog_paths = default_paths
     if isinstance(changelog_paths, str):
         changelog_paths = [changelog_paths]
 
