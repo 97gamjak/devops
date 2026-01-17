@@ -41,7 +41,7 @@ class FileConfig:
         lines.append(f'#encoding = "{self.encoding}"\n')
         paths_str = '", "'.join(str(p) for p in self.changelog_paths)
         lines.append(f'#changelog_paths = ["{paths_str}"]\n')
-        lines.append(f'#_default_changelog_path = "{self.default_changelog_path}"\n')
+        lines.append(f'#default_changelog_path = "{self.default_changelog_path}"\n')
         return lines
 
 
