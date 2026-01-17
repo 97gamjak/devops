@@ -70,7 +70,7 @@ class TestUpdateChangelogCLI:
             patch("devops.scripts.update_changelog.config") as mock_config,
         ):
             mock_update.return_value = None
-            mock_config.file.default_changelog_path = "/config/path/CHANGELOG.md"
+            mock_config.file.default_changelog_path = Path("/config/path/CHANGELOG.md")
 
             result = runner.invoke(app, ["1.0.0"])
 
@@ -78,8 +78,8 @@ class TestUpdateChangelogCLI:
             assert mock_update.call_count == 1
             call_args = mock_update.call_args[0]
             assert call_args[0] == "1.0.0"
-            # The config returns the value directly (could be Path or str)
-            assert call_args[1] == "/config/path/CHANGELOG.md"
+            # The config returns a Path object
+            assert call_args[1] == Path("/config/path/CHANGELOG.md")
 
     def test_update_changelog_converts_string_to_path(self, tmp_path: PathType) -> None:
         """Test that string input is properly handled for Path conversion.
