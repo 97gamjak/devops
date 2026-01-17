@@ -32,7 +32,7 @@ def test_parse_changelog_path_with_list_of_paths() -> None:
 
 def test_parse_changelog_path_with_missing_key() -> None:
     """Test parsing with missing key returns default."""
-    table: dict[str, str | list[str]] = {}
+    table: dict = {}
     result = parse_changelog_path(table)
 
     assert isinstance(result, list)
