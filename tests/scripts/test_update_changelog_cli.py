@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 from typer.testing import CliRunner
 
+from devops.files.update_changelog import DevOpsChangelogError
 from devops.scripts.update_changelog import app
 
 if typing.TYPE_CHECKING:
@@ -72,7 +73,7 @@ class TestUpdateChangelogCLI:
             mock_update.return_value = None
             mock_config.file.default_changelog_path = Path("/config/path/CHANGELOG.md")
 
-            result = runner.invoke(app, ["1.0.0"])
+            _result = runner.invoke(app, ["1.0.0"])
 
             # Should use the global config's default_changelog_path
             assert mock_update.call_count == 1
@@ -92,8 +93,7 @@ class TestUpdateChangelogCLI:
         """
         changelog_file = tmp_path / "CHANGELOG.md"
         changelog_file.write_text(
-            "# Changelog\n\n## Next Release\n\n- Feature\n\n"
-            "<!-- insertion marker -->\n"
+            "# Changelog\n\n## Next Release\n\n- Feature\n\n<!-- insertion marker -->\n"
         )
 
         with patch(
@@ -115,8 +115,6 @@ class TestUpdateChangelogCLI:
 
     def test_update_changelog_handles_error(self) -> None:
         """Test update_changelog command handles DevOpsChangelogError."""
-        from devops.files.update_changelog import DevOpsChangelogError
-
         with (
             patch(
                 "devops.scripts.update_changelog.update_changelog.update_changelog"
@@ -142,8 +140,7 @@ class TestUpdateChangelogCLI:
         """
         changelog_file = tmp_path / "CHANGELOG.md"
         changelog_file.write_text(
-            "# Changelog\n\n## Next Release\n\n- Change\n\n"
-            "<!-- insertion marker -->\n"
+            "# Changelog\n\n## Next Release\n\n- Change\n\n<!-- insertion marker -->\n"
         )
 
         with patch(
