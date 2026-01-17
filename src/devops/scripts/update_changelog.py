@@ -30,7 +30,7 @@ def main(version: str, changelog_path: str | None = None) -> None:
     else:
         changelog_path = Path(changelog_path)
     try:
-        update_changelog.update_changelog(version, changelog_path)
+        update_changelog.update_changelog(version, changelog_path_obj)
         mstd_print(f"✅ CHANGELOG.md updated for version {version}")
     except DevOpsChangelogError as e:
         mstd_print(f"❌ Error updating changelog: {e}")
