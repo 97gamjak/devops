@@ -170,11 +170,11 @@ def get_str_or_str_list(
         return None
 
     if isinstance(value, str):
-        return get_str(mapping, key, default)
+        return value
 
     if isinstance(value, list):
         if all(isinstance(item, str) for item in value):
-            return get_str_list(mapping, key, default)
+            return value
         msg = (
             f"Expected str or list of str for key '{key}', "
             "got list with non-string items"
