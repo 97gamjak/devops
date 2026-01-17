@@ -172,8 +172,14 @@ def get_str_or_str_list(
     if isinstance(value, str):
         return get_str(mapping, key, default)
 
-    if isinstance(value, list) and all(isinstance(item, str) for item in value):
-        return get_str_list(mapping, key, default)
+    if isinstance(value, list):
+        if all(isinstance(item, str) for item in value):
+            return get_str_list(mapping, key, default)
+        msg = (
+            f"Expected str or list of str for key '{key}', "
+            "got list with non-string items"
+        )
+        raise ConfigError(msg)
 
     msg = f"Expected str or list of str for key '{key}', got {type(value).__name__}"
     raise ConfigError(msg)
