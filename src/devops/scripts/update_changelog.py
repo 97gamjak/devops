@@ -1,6 +1,7 @@
 """Script for updating the changelog file."""
 
 import sys
+from pathlib import Path
 
 import typer
 
@@ -13,7 +14,7 @@ app = typer.Typer()
 
 
 @app.command()
-def main(version: str, changelog_path: str | None) -> None:
+def main(version: str, changelog_path: str | None = None) -> None:
     """Update the changelog file with a new version entry.
 
     Parameters
@@ -25,10 +26,12 @@ def main(version: str, changelog_path: str | None) -> None:
         to the default_changelog_path from the configuration file.
     """
     if changelog_path is None:
-        changelog_path = config.file.default_changelog_path
+        changelog_path_obj = config.file.default_changelog_path
+    else:
+        changelog_path_obj = Path(changelog_path)
 
     try:
-        update_changelog.update_changelog(version, changelog_path)
+        update_changelog.update_changelog(version, changelog_path_obj)
         mstd_print(f"✅ CHANGELOG.md updated for version {version}")
     except DevOpsChangelogError as e:
         mstd_print(f"❌ Error updating changelog: {e}")
