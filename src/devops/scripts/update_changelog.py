@@ -26,10 +26,9 @@ def main(version: str, changelog_path: str | None = None) -> None:
         to the default_changelog_path from the configuration file.
     """
     if changelog_path is None:
-        changelog_path_obj = config.file.default_changelog_path
+        changelog_path = config.file.default_changelog_path
     else:
-        changelog_path_obj = Path(changelog_path)
-
+        changelog_path = Path(changelog_path)
     try:
         update_changelog.update_changelog(version, changelog_path_obj)
         mstd_print(f"✅ CHANGELOG.md updated for version {version}")
