@@ -33,7 +33,7 @@ def test_parse_default_changelog_path_with_none_value() -> None:
 
 def test_parse_default_changelog_path_with_missing_key() -> None:
     """Test parse_default_changelog_path when key is missing from table."""
-    table: dict[str, str] = {}
+    table: dict = {}
 
     result = parse_default_changelog_path(table)
 
