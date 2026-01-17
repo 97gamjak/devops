@@ -96,7 +96,7 @@ def parse_encoding(table: dict) -> str:
     """
     encoding = get_str(table, "encoding", default=FileConfig.encoding)
 
-    ### Validate encoding
+    # Validate encoding
     try:
         Path(__file__).open("r", encoding=encoding).close()
     except LookupError as e:
