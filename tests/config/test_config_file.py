@@ -43,16 +43,6 @@ def test_parse_changelog_path_missing_key_uses_default() -> None:
     assert isinstance(result[0], Path)
 
 
-def test_parse_changelog_path_empty_table_uses_default() -> None:
-    """Test that empty table uses default value."""
-    table: dict[str, str] = {}
-    result = parse_changelog_path(table)
-
-    assert isinstance(result, list)
-    assert len(result) >= 1
-    assert result[0] == Path("CHANGELOG.md")
-
-
 def test_parse_changelog_path_invalid_type_integer() -> None:
     """Test that invalid input type (integer) raises ConfigError."""
     table = {"changelog_paths": 123}
