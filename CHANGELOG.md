@@ -9,6 +9,10 @@ All notable changes to this project will be documented in this file.
 - Add `changelog_paths` to config toml approach
 - Add `default_changelog_path` to config toml approach
 
+#### API
+
+- Add `changelog_path` input to `update_changelog`
+
 <!-- insertion marker -->
 ## [0.0.4](https://github.com/repo/owner/releases/tag/0.0.4) - 2025-12-20
 
