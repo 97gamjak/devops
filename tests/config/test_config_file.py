@@ -12,127 +12,117 @@ from devops.config.config_file import (
 )
 
 
-def test_parse_default_changelog_path_with_valid_string() -> None:
-    """Test parse_default_changelog_path with a valid path string."""
-    table = {"default_changelog_path": "CHANGELOG-custom.md"}
+class TestParseDefaultChangelogPath:
+    """Tests for parse_default_changelog_path function."""
 
-    result = parse_default_changelog_path(table)
-
-    assert result == Path("CHANGELOG-custom.md")
-    assert isinstance(result, Path)
-
-
-def test_parse_default_changelog_path_with_none_value() -> None:
-    """Test parse_default_changelog_path when key has None value."""
-    table = {"default_changelog_path": None}
-
-    result = parse_default_changelog_path(table)
-
-    assert result is None
-
-
-def test_parse_default_changelog_path_with_missing_key() -> None:
-    """Test parse_default_changelog_path when key is missing from table."""
-    table: dict = {}
-
-    result = parse_default_changelog_path(table)
-
-    assert result is None
-
-
-def test_parse_default_changelog_path_with_different_paths() -> None:
-    """Test parse_default_changelog_path with various path formats."""
-    test_cases = [
-        "CHANGELOG.md",
-        "docs/CHANGELOG.md",
-        "path/to/CHANGELOG.txt",
-        "HISTORY.md",
-    ]
-
-    for path_str in test_cases:
-        table = {"default_changelog_path": path_str}
+    def test_parse_default_changelog_path_with_valid_path(self) -> None:
+        """Test parsing a valid path string."""
+        table = {"default_changelog_path": "docs/CHANGELOG.md"}
         result = parse_default_changelog_path(table)
-        assert result == Path(path_str)
+
+        assert result == Path("docs/CHANGELOG.md")
         assert isinstance(result, Path)
 
+    def test_parse_default_changelog_path_with_none(self) -> None:
+        """Test parsing when key is missing returns None."""
+        table: dict[str, str] = {}
+        result = parse_default_changelog_path(table)
 
-def test_parse_default_changelog_path_with_absolute_path() -> None:
-    """Test parse_default_changelog_path with an absolute path."""
-    table = {"default_changelog_path": "/absolute/path/to/CHANGELOG.md"}
+        assert result is None
 
-    result = parse_default_changelog_path(table)
+    def test_parse_default_changelog_path_with_explicit_none(self) -> None:
+        """Test parsing when value is explicitly None."""
+        table = {"default_changelog_path": None}
+        result = parse_default_changelog_path(table)
 
-    assert result == Path("/absolute/path/to/CHANGELOG.md")
+        assert result is None
+
+    def test_parse_default_changelog_path_with_relative_path(self) -> None:
+        """Test parsing with a relative path."""
+        table = {"default_changelog_path": "../CHANGES.md"}
+        result = parse_default_changelog_path(table)
+
+        assert result == Path("../CHANGES.md")
+
+    def test_parse_default_changelog_path_with_absolute_path(self) -> None:
+        """Test parsing with an absolute path."""
+        table = {"default_changelog_path": "/usr/local/CHANGELOG.md"}
+        result = parse_default_changelog_path(table)
+
+        assert result == Path("/usr/local/CHANGELOG.md")
 
 
-def test_file_config_uses_default_changelog_path() -> None:
-    """Test FileConfig uses _default_changelog_path when set."""
-    raw_config = {
-        "file": {
-            "changelog_paths": ["CHANGELOG1.md", "CHANGELOG2.md"],
-            "default_changelog_path": "CHANGELOG2.md",
+class TestFileConfigDefaultChangelogPathInteraction:
+    """Tests for how default_changelog_path interacts with FileConfig."""
+
+    def test_file_config_uses_explicit_default_changelog_path(self) -> None:
+        """Test that FileConfig uses explicit default_changelog_path when provided."""
+        raw_config = {
+            "file": {
+                "changelog_paths": ["CHANGELOG.md", "docs/CHANGELOG.md"],
+                "default_changelog_path": "docs/CHANGELOG.md",
+            }
         }
-    }
+        result = parse_file_config(raw_config)
 
-    config = parse_file_config(raw_config)
+        assert result.default_changelog_path == Path("docs/CHANGELOG.md")
+        assert result.changelog_paths == [
+            Path("CHANGELOG.md"),
+            Path("docs/CHANGELOG.md"),
+        ]
 
-    assert config.default_changelog_path == Path("CHANGELOG2.md")
-    assert config.changelog_paths == [Path("CHANGELOG1.md"), Path("CHANGELOG2.md")]
-
-
-def test_file_config_default_path_fallback_to_first_changelog() -> None:
-    """Test FileConfig falls back to first changelog_path when no default set."""
-    raw_config = {
-        "file": {
-            "changelog_paths": ["FIRST.md", "SECOND.md"],
+    def test_file_config_defaults_to_first_changelog_path(self) -> None:
+        """Test that FileConfig defaults to first changelog_path when no default specified."""
+        raw_config = {
+            "file": {
+                "changelog_paths": ["CHANGELOG.md", "docs/CHANGELOG.md"],
+            }
         }
-    }
+        result = parse_file_config(raw_config)
 
-    config = parse_file_config(raw_config)
+        assert result.default_changelog_path == Path("CHANGELOG.md")
 
-    # Should fall back to first path in changelog_paths
-    assert config.default_changelog_path == Path("FIRST.md")
-
-
-def test_file_config_default_path_independent_of_changelog_paths() -> None:
-    """Test default_changelog_path can be set independently of changelog_paths."""
-    raw_config = {
-        "file": {
-            "changelog_paths": ["CHANGELOG1.md", "CHANGELOG2.md"],
-            "default_changelog_path": "CUSTOM.md",
+    def test_file_config_default_changelog_path_with_single_path(self) -> None:
+        """Test default_changelog_path with single changelog path."""
+        raw_config = {
+            "file": {
+                "changelog_paths": "CHANGELOG.md",
+            }
         }
-    }
+        result = parse_file_config(raw_config)
 
-    config = parse_file_config(raw_config)
+        assert result.default_changelog_path == Path("CHANGELOG.md")
 
-    # default_changelog_path can be different from any in changelog_paths
-    assert config.default_changelog_path == Path("CUSTOM.md")
-    assert Path("CUSTOM.md") not in config.changelog_paths
-
-
-def test_file_config_no_changelog_paths_and_no_default_raises_error() -> None:
-    """Test FileConfig raises error when no changelog paths configured and default accessed."""
-    # This scenario shouldn't happen in normal usage since parse_file_config
-    # provides defaults, but we test the property behavior directly
-    config = FileConfig(changelog_paths=[], _default_changelog_path=None)
-
-    with pytest.raises(ConfigError) as exc_info:
-        _ = config.default_changelog_path
-
-    assert "No changelog paths configured" in str(exc_info.value)
-
-
-def test_file_config_with_only_default_path_set() -> None:
-    """Test FileConfig when only default_changelog_path is explicitly set."""
-    raw_config = {
-        "file": {
-            "default_changelog_path": "SPECIFIC.md",
+    def test_file_config_default_changelog_path_not_in_list(self) -> None:
+        """Test that default_changelog_path can be different from changelog_paths."""
+        raw_config = {
+            "file": {
+                "changelog_paths": ["CHANGELOG.md"],
+                "default_changelog_path": "docs/CHANGES.md",
+            }
         }
-    }
+        result = parse_file_config(raw_config)
 
-    config = parse_file_config(raw_config)
+        # The default_changelog_path doesn't need to be in changelog_paths
+        assert result.default_changelog_path == Path("docs/CHANGES.md")
+        assert result.changelog_paths == [Path("CHANGELOG.md")]
 
-    # changelog_paths should use the default
-    assert config.changelog_paths == [Path("CHANGELOG.md")]
-    # default_changelog_path should be the explicitly set one
-    assert config.default_changelog_path == Path("SPECIFIC.md")
+    def test_file_config_raises_error_when_no_paths_configured(self) -> None:
+        """Test that accessing default_changelog_path raises error when no paths configured."""
+        # Create a FileConfig with empty changelog_paths and no default
+        config = FileConfig(changelog_paths=[], _default_changelog_path=None)
+
+        with pytest.raises(ConfigError) as exc_info:
+            _ = config.default_changelog_path
+
+        assert "No changelog paths configured" in str(exc_info.value)
+        assert "cannot determine default changelog path" in str(exc_info.value)
+
+    def test_file_config_with_no_file_section(self) -> None:
+        """Test parsing config with no file section uses defaults."""
+        raw_config: dict[str, dict[str, str]] = {}
+        result = parse_file_config(raw_config)
+
+        # Should use defaults
+        assert result.default_changelog_path == Path("CHANGELOG.md")
+        assert result.changelog_paths == [Path("CHANGELOG.md")]
