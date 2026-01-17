@@ -120,7 +120,7 @@ def parse_changelog_path(table: dict) -> list[Path]:
         The parsed list of changelog paths.
     """
     changelog_paths = get_str_or_str_list(
-        table, "changelog_path", FileConfig.changelog_path
+        table, "changelog_path", FileConfig.changelog_paths
     )
 
     if isinstance(changelog_paths, str):
