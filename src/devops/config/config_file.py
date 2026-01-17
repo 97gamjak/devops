@@ -26,6 +26,9 @@ class FileConfig:
         if self._default_changelog_path is not None:
             return self._default_changelog_path
 
+        if not self.changelog_paths:
+            msg = "No changelog paths configured; cannot determine default changelog path."
+            raise ConfigError(msg)
         return self.changelog_paths[0]
 
     def to_toml_lines(self) -> list[str]:
