@@ -72,7 +72,7 @@ class TestFileConfigDefaultChangelogPathInteraction:
         ]
 
     def test_file_config_defaults_to_first_changelog_path(self) -> None:
-        """Test that FileConfig defaults to first changelog_path when no default specified."""
+        """Test FileConfig defaults to first changelog_path when no default present."""
         raw_config = {
             "file": {
                 "changelog_paths": ["CHANGELOG.md", "docs/CHANGELOG.md"],
@@ -108,7 +108,10 @@ class TestFileConfigDefaultChangelogPathInteraction:
         assert result.changelog_paths == [Path("CHANGELOG.md")]
 
     def test_file_config_raises_error_when_no_paths_configured(self) -> None:
-        """Test that accessing default_changelog_path raises error when no paths configured."""
+        """Test accessing default_changelog_path.
+
+        When no changelog paths are configured, accessing default_changelog_path
+        """
         # Create a FileConfig with empty changelog_paths and no default
         config = FileConfig(changelog_paths=[], _default_changelog_path=None)
 

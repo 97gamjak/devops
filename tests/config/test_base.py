@@ -33,50 +33,50 @@ class TestGetStrOrStrList:
     def test_mixed_list_with_non_strings(self) -> None:
         """Test that a list with non-string items raises ConfigError."""
         mapping = {"key": ["string", 42, "another"]}
-        
+
         with pytest.raises(ConfigError) as exc_info:
             get_str_or_str_list(mapping, "key")
-        
+
         assert "Expected str or list of str for key 'key'" in str(exc_info.value)
         assert "got list with non-string items" in str(exc_info.value)
 
     def test_mixed_list_with_none(self) -> None:
         """Test that a list containing None raises ConfigError."""
         mapping = {"key": ["string", None, "another"]}
-        
+
         with pytest.raises(ConfigError) as exc_info:
             get_str_or_str_list(mapping, "key")
-        
+
         assert "Expected str or list of str for key 'key'" in str(exc_info.value)
         assert "got list with non-string items" in str(exc_info.value)
 
     def test_non_string_non_list_int(self) -> None:
         """Test that an integer value raises ConfigError."""
         mapping = {"key": 42}
-        
+
         with pytest.raises(ConfigError) as exc_info:
             get_str_or_str_list(mapping, "key")
-        
+
         assert "Expected str or list of str for key 'key'" in str(exc_info.value)
         assert "got int" in str(exc_info.value)
 
     def test_non_string_non_list_dict(self) -> None:
         """Test that a dict value raises ConfigError."""
         mapping = {"key": {"nested": "value"}}
-        
+
         with pytest.raises(ConfigError) as exc_info:
             get_str_or_str_list(mapping, "key")
-        
+
         assert "Expected str or list of str for key 'key'" in str(exc_info.value)
         assert "got dict" in str(exc_info.value)
 
     def test_non_string_non_list_bool(self) -> None:
         """Test that a boolean value raises ConfigError."""
         mapping = {"key": True}
-        
+
         with pytest.raises(ConfigError) as exc_info:
             get_str_or_str_list(mapping, "key")
-        
+
         assert "Expected str or list of str for key 'key'" in str(exc_info.value)
         assert "got bool" in str(exc_info.value)
 
@@ -96,7 +96,9 @@ class TestGetStrOrStrList:
     def test_missing_key_with_list_default(self) -> None:
         """Test that a missing key returns the list default value."""
         mapping = {"other_key": "value"}
-        result = get_str_or_str_list(mapping, "missing_key", default=["default1", "default2"])
+        result = get_str_or_str_list(
+            mapping, "missing_key", default=["default1", "default2"]
+        )
         assert result == ["default1", "default2"]
         assert isinstance(result, list)
 

@@ -27,7 +27,10 @@ class FileConfig:
             return self._default_changelog_path
 
         if not self.changelog_paths:
-            msg = "No changelog paths configured; cannot determine default changelog path."
+            msg = (
+                "No changelog paths configured; "
+                "cannot determine default changelog path."
+            )
             raise ConfigError(msg)
         return self.changelog_paths[0]
 
