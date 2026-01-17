@@ -92,7 +92,7 @@ def test_parse_config_buggy_cpp_macros_not_list() -> None:
     with pytest.raises(ConfigError) as exc_info:
         parse_config(raw_config)
 
-    assert "Expected list of strings for key" in str(exc_info.value)
+    assert "Expected list for key" in str(exc_info.value)
     assert "buggy_cpp_macros" in str(exc_info.value)
 
 
@@ -122,7 +122,7 @@ def test_parse_config_buggy_cpp_macros_is_dict() -> None:
     with pytest.raises(ConfigError) as exc_info:
         parse_config(raw_config)
 
-    assert "Expected list of strings for key" in str(exc_info.value)
+    assert "Expected list for key" in str(exc_info.value)
     assert "buggy_cpp_macros" in str(exc_info.value)
 
 
