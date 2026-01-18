@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+<!-- insertion marker -->
+## [0.1.0](https://github.com/repo/owner/releases/tag/0.1.0) - 2026-01-18
+
 #### Config
 
 - Add `changelog_paths` to config toml approach
@@ -14,7 +17,6 @@ All notable changes to this project will be documented in this file.
 - Add `changelog_path` input to `update_changelog`
 - Add `update_changelogs` to update multiple changelogs at once
 
-<!-- insertion marker -->
 ## [0.0.4](https://github.com/repo/owner/releases/tag/0.0.4) - 2025-12-20
 
 ### Features
@@ -86,6 +88,7 @@ All notable changes to this project will be documented in this file.
 - Add automatic release CI for PRs to main (either via title or via hotfix/ branch)
 - Add overnight CI runs for pytest and ruff CIs
 - Add test coverage to pytest CI
+
 
 
 
