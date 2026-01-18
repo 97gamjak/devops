@@ -51,7 +51,7 @@ def _update_changelogs(version: str, changelog_paths: list[str] | None = None) -
         to the changelog_paths from the configuration file.
     """
     if changelog_paths is None:
-        changelog_paths = config.file.changelog_paths
+        changelog_paths = [Path(p) for p in config.file.changelog_paths]
     else:
         changelog_paths = [Path(p) for p in changelog_paths]
 
