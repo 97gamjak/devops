@@ -11,7 +11,6 @@ from typer.testing import CliRunner
 from devops.files.update_changelog import DevOpsChangelogError
 from devops.scripts.update_changelog import update_changelog, update_changelogs
 
-
 if typing.TYPE_CHECKING:
     from pathlib import Path as PathType
 
@@ -254,10 +253,11 @@ class TestUpdateChangelogsCLI:
         changelog2 = tmp_path / "CHANGELOG2.md"
         changelog3 = tmp_path / "CHANGELOG3.md"
 
-        def mock_update_side_effect(version: str, path: Path) -> None:
+        def mock_update_side_effect(_version: str, path: Path) -> None:
             # Fail for the second changelog
             if path == Path(changelog2):
-                raise DevOpsChangelogError("Mock error for CHANGELOG2")
+                msg = "Mock error for CHANGELOG2"
+                raise DevOpsChangelogError(msg)
 
         with patch(
             "devops.scripts.update_changelog.update_changelog_func"
