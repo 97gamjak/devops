@@ -5,7 +5,7 @@ from pathlib import Path
 
 import typer
 
-from devops.config import config
+from devops import __GLOBAL_CONFIG__
 from devops.files.update_changelog import DevOpsChangelogError
 from devops.files.update_changelog import update_changelog as update_changelog_func
 from devops.utils import mstd_print
@@ -30,7 +30,7 @@ def _update_changelog(version: str, changelog_path: str | None = None) -> None:
         to the default_changelog_path from the configuration file.
     """
     if changelog_path is None:
-        changelog_path = config.file.default_changelog_path
+        changelog_path = __GLOBAL_CONFIG__.file.default_changelog_path
     else:
         changelog_path = Path(changelog_path)
     try:
@@ -54,7 +54,7 @@ def _update_changelogs(version: str, changelog_paths: list[str] | None = None) -
         to the changelog_paths from the configuration file.
     """
     if changelog_paths is None:
-        changelog_paths = config.file.changelog_paths
+        changelog_paths = __GLOBAL_CONFIG__.file.changelog_paths
     else:
         changelog_paths = [Path(p) for p in changelog_paths]
 
