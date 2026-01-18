@@ -6,15 +6,16 @@ from pathlib import Path
 import typer
 
 from devops.config import config
-from devops.files import update_changelog
+from devops.files import update_changelog as update_changelog_func
 from devops.files.update_changelog import DevOpsChangelogError
 from devops.utils import mstd_print
 
-app = typer.Typer()
+update_changelog = typer.Typer()
+update_changelogs = typer.Typer()
 
 
-@app.command()
-def main(version: str, changelog_path: str | None = None) -> None:
+@update_changelog.command()
+def _update_changelog(version: str, changelog_path: str | None = None) -> None:
     """Update the changelog file with a new version entry.
 
     Parameters
@@ -30,12 +31,39 @@ def main(version: str, changelog_path: str | None = None) -> None:
     else:
         changelog_path = Path(changelog_path)
     try:
-        update_changelog.update_changelog(version, changelog_path)
+        update_changelog_func(version, changelog_path)
         mstd_print(f"✅ CHANGELOG.md updated for version {version}")
     except DevOpsChangelogError as e:
         mstd_print(f"❌ Error updating changelog: {e}")
         sys.exit(1)
 
 
-if __name__ == "__main__":
-    app()
+@update_changelogs.command()
+def _update_changelogs(version: str, changelog_paths: list[str] | None = None) -> None:
+    """Update multiple changelog files with a new version entry.
+
+    Parameters
+    ----------
+    version: str
+        The new version to add to the changelogs.
+    changelog_paths: list[str] | None
+        The list of paths to the changelog files. If None, it defaults
+        to the changelog_paths from the configuration file.
+    """
+    if changelog_paths is None:
+        changelog_paths = config.file.changelog_paths
+    else:
+        changelog_paths = [Path(p) for p in changelog_paths]
+
+    failed_updates = []
+
+    for changelog_path in changelog_paths:
+        try:
+            update_changelog_func(version, changelog_path)
+            mstd_print(f"✅ {changelog_path} updated for version {version}")
+        except DevOpsChangelogError as e:
+            mstd_print(f"❌ Error updating {changelog_path}: {e}")
+            failed_updates.append(changelog_path)
+
+    if failed_updates:
+        sys.exit(1)
