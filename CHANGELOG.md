@@ -12,6 +12,7 @@ All notable changes to this project will be documented in this file.
 #### API
 
 - Add `changelog_path` input to `update_changelog`
+- Add `update_changelogs` to update multiple changelogs at once
 
 <!-- insertion marker -->
 ## [0.0.4](https://github.com/repo/owner/releases/tag/0.0.4) - 2025-12-20
