@@ -6,12 +6,14 @@ from pathlib import Path
 import typer
 
 from devops.config import config
-from devops.files import update_changelog as update_changelog_func
-from devops.files.update_changelog import DevOpsChangelogError
+from devops.files.update_changelog import DevOpsChangelogError, update_changelog as update_changelog_func
 from devops.utils import mstd_print
 
 update_changelog = typer.Typer()
 update_changelogs = typer.Typer()
+
+# Alias for tests and backwards compatibility
+app = update_changelog
 
 
 @update_changelog.command()
@@ -51,7 +53,7 @@ def _update_changelogs(version: str, changelog_paths: list[str] | None = None) -
         to the changelog_paths from the configuration file.
     """
     if changelog_paths is None:
-        changelog_paths = [Path(p) for p in config.file.changelog_paths]
+        changelog_paths = config.file.changelog_paths
     else:
         changelog_paths = [Path(p) for p in changelog_paths]
 
