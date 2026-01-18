@@ -54,9 +54,7 @@ def get_table(mapping: dict[str, Any], key: str) -> dict[str, Any]:
     return value
 
 
-def _get_type(
-    mapping: dict[str, Any], key: str, default: Any, expected_type: type
-) -> Any:
+def _get_type(mapping: dict[str, Any], key: str, expected_type: type) -> Any:
     """Get a value of expected type from a mapping.
 
     Parameters
@@ -65,8 +63,6 @@ def _get_type(
         The mapping to extract the value from.
     key: str
         The key of the value.
-    default: Any
-        The default value to return if the key is not found.
     expected_type: type
         The expected type of the value.
 
@@ -80,7 +76,7 @@ def _get_type(
     ConfigError
         If the value associated with the key is not of the expected type.
     """
-    value = mapping.get(key, default)
+    value = mapping.get(key)
 
     if value is None:
         return None
@@ -114,7 +110,12 @@ def get_bool(
     bool | None
         The extracted boolean value or None if the key is not found.
     """
-    return _get_type(mapping, key, default, bool)
+    value = _get_type(mapping, key, bool)
+
+    if value is None:
+        return default
+
+    return value
 
 
 def get_str(
@@ -136,7 +137,52 @@ def get_str(
     str | None
         The extracted string value or None if the key is not found.
     """
-    return _get_type(mapping, key, default, str)
+    value = _get_type(mapping, key, str)
+
+    if value is None:
+        return default
+
+    return value
+
+
+def get_str_or_str_list(
+    mapping: dict[str, Any], key: str, default: str | list[str] | None = None
+) -> str | list[str] | None:
+    """Get a string or list of strings from a mapping.
+
+    Parameters
+    ----------
+    mapping: dict[str, Any]
+        The mapping to extract the value from.
+    key: str
+        The key of the value.
+    default: str | list[str] | None
+        The default value to return if the key is not found.
+
+    Returns
+    -------
+    str | list[str] | None
+        The extracted string or list of strings value or None if the key is not found.
+    """
+    value = mapping.get(key, default)
+
+    if value is None:
+        return None
+
+    if isinstance(value, str):
+        return value
+
+    if isinstance(value, list):
+        if all(isinstance(item, str) for item in value):
+            return value
+        msg = (
+            f"Expected str or list of str for key '{key}', "
+            "got list with non-string items"
+        )
+        raise ConfigError(msg)
+
+    msg = f"Expected str or list of str for key '{key}', got {type(value).__name__}"
+    raise ConfigError(msg)
 
 
 def get_str_enum(
@@ -165,7 +211,10 @@ def get_str_enum(
     ConfigError
         If the value associated with the key is not a valid enum value.
     """
-    value = _get_type(mapping, key, default, str)
+    value = _get_type(mapping, key, str)
+
+    if value is None:
+        value = default
 
     if value is None:
         return None
@@ -205,7 +254,10 @@ def get_str_list(
         If the value associated with the key is not a list of strings.
 
     """
-    value = mapping.get(key, default)
+    value = _get_type(mapping, key, list)
+
+    if value is None:
+        value = default
 
     if value is None:
         return []
