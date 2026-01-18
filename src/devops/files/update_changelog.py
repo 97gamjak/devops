@@ -20,7 +20,7 @@ class DevOpsChangelogError(Exception):
         self.message = message
 
 
-def update_changelog(version: str, changelog_path: Path) -> None:
+def update_changelog(version: str, changelog_path: Path = __CHANGELOG_PATH__) -> None:
     """Update the changelog file with a new version entry.
 
     Parameters
