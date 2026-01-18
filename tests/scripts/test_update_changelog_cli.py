@@ -68,7 +68,7 @@ class TestUpdateChangelogCLI:
             patch(
                 "devops.scripts.update_changelog.update_changelog_func"
             ) as mock_update,
-            patch("devops.scripts.update_changelog.config") as mock_config,
+            patch("devops.scripts.update_changelog.__GLOBAL_CONFIG__") as mock_config,
         ):
             mock_update.return_value = None
             mock_config.file.default_changelog_path = Path("/config/path/CHANGELOG.md")
@@ -217,7 +217,7 @@ class TestUpdateChangelogsCLI:
             patch(
                 "devops.scripts.update_changelog.update_changelog_func"
             ) as mock_update,
-            patch("devops.scripts.update_changelog.config") as mock_config,
+            patch("devops.scripts.update_changelog.__GLOBAL_CONFIG__") as mock_config,
         ):
             mock_update.return_value = None
             mock_config.file.changelog_paths = [
