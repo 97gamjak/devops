@@ -9,7 +9,8 @@ from unittest.mock import patch
 from typer.testing import CliRunner
 
 from devops.files.update_changelog import DevOpsChangelogError
-from devops.scripts.update_changelog import app, update_changelogs
+from devops.scripts.update_changelog import update_changelog, update_changelogs
+
 
 if typing.TYPE_CHECKING:
     from pathlib import Path as PathType
@@ -22,7 +23,7 @@ class TestUpdateChangelogCLI:
 
     def test_update_changelog_command_exists(self) -> None:
         """Test that update_changelog command is registered."""
-        result = runner.invoke(app, ["--help"])
+        result = runner.invoke(update_changelog, ["--help"])
         assert result.exit_code == 0
         assert "Update the changelog file" in result.stdout
 
@@ -50,7 +51,7 @@ class TestUpdateChangelogCLI:
             mock_update.return_value = None
 
             result = runner.invoke(
-                app, ["1.0.0", "--changelog-path", str(changelog_file)]
+                update_changelog, ["1.0.0", "--changelog-path", str(changelog_file)]
             )
 
             assert result.exit_code == 0
@@ -73,7 +74,7 @@ class TestUpdateChangelogCLI:
             mock_update.return_value = None
             mock_config.file.default_changelog_path = Path("/config/path/CHANGELOG.md")
 
-            _result = runner.invoke(app, ["1.0.0"])
+            _result = runner.invoke(update_changelog, ["1.0.0"])
 
             # Should use the global config's default_changelog_path
             assert mock_update.call_count == 1
@@ -103,7 +104,7 @@ class TestUpdateChangelogCLI:
 
             # Pass as string
             result = runner.invoke(
-                app, ["2.0.0", "--changelog-path", str(changelog_file)]
+                update_changelog, ["2.0.0", "--changelog-path", str(changelog_file)]
             )
 
             assert result.exit_code == 0
@@ -124,7 +125,7 @@ class TestUpdateChangelogCLI:
             mock_update.side_effect = DevOpsChangelogError("Test error")
             mock_config.file.default_changelog_path = Path("/default/CHANGELOG.md")
 
-            result = runner.invoke(app, ["1.0.0"])
+            result = runner.invoke(update_changelog, ["1.0.0"])
 
             assert result.exit_code == 1
             assert "Error updating changelog" in result.stdout
@@ -149,7 +150,7 @@ class TestUpdateChangelogCLI:
             mock_update.return_value = None
 
             result = runner.invoke(
-                app, ["3.0.0", "--changelog-path", str(changelog_file)]
+                update_changelog, ["3.0.0", "--changelog-path", str(changelog_file)]
             )
 
             assert result.exit_code == 0
