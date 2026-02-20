@@ -610,8 +610,8 @@ class MockClass {};
 
     def test_check_header_guards_with_h_extension(self) -> None:
         """Test header guards with .h extension."""
-        file_content = """#ifndef __MYHEADER_HPP__
-#define __MYHEADER_HPP__
+        file_content = """#ifndef __MYHEADER_H__
+#define __MYHEADER_H__
 
 void myFunction();
 
