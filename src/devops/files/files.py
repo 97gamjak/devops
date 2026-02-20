@@ -85,7 +85,7 @@ def determine_file_type(filename: str | Path) -> FileType:
     """
     filename = str(filename)
 
-    if filename.endswith((".h", ".hpp")):
+    if filename.endswith((".h", ".hpp", ".tpp", ".impl.hpp")):
         return FileType.CPPHeader
     if filename.endswith((".cpp", ".cxx", ".cc", ".c")):
         return FileType.CPPSource
