@@ -145,10 +145,21 @@ def check_header_guards(file_rule_input: FileRuleInput) -> ResultType:
         expected_macro = str(path).upper()
         expected_macro = expected_macro.removeprefix("INCLUDE/")
         expected_macro = expected_macro.removeprefix("TEST/")
+        expected_macro = expected_macro.removeprefix("SRC/")
         expected_macro = expected_macro.replace("/", "__")
-        expected_macro = expected_macro.removesuffix(".HPP")
-        expected_macro = expected_macro.removesuffix(".H")
-        expected_macro = "__" + expected_macro + "_HPP__"
+
+        if expected_macro.endswith(".IMPL.HPP"):
+            expected_macro = expected_macro.removesuffix(".IMPL.HPP")
+            expected_macro = "__" + expected_macro + "_IMPL_HPP__"
+        elif expected_macro.endswith(".HPP"):
+            expected_macro = expected_macro.removesuffix(".HPP")
+            expected_macro = "__" + expected_macro + "_HPP__"
+        elif expected_macro.endswith(".TPP"):
+            expected_macro = expected_macro.removesuffix(".TPP")
+            expected_macro = "__" + expected_macro + "_TPP__"
+        elif expected_macro.endswith(".H"):
+            expected_macro = expected_macro.removesuffix(".H")
+            expected_macro = "__" + expected_macro + "_H__"
 
         if guard_macro != expected_macro:
             msg = (
