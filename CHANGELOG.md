@@ -4,13 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+<!-- insertion marker -->
+## [0.1.1](https://github.com/repo/owner/releases/tag/0.1.1) - 2026-02-20
+
 ### Features
 
 #### CPP Rules
 
 - make it possible to check header guards also for `.tpp` and `.impl.hpp` files
 
-<!-- insertion marker -->
 ## [0.1.0](https://github.com/repo/owner/releases/tag/0.1.0) - 2026-01-18
 
 #### Config
@@ -94,6 +96,7 @@ All notable changes to this project will be documented in this file.
 - Add automatic release CI for PRs to main (either via title or via hotfix/ branch)
 - Add overnight CI runs for pytest and ruff CIs
 - Add test coverage to pytest CI
+
 
 
 
