@@ -76,6 +76,22 @@ class Check:
         del cursor, filename
         return []
 
+    def configure(self, config: dict) -> None:
+        """Apply check-specific configuration from the user's TOML block.
+
+        Called once during setup with the sub-table keyed by this check's
+        `.id` in ``cpp.ast_check_config``. Override to read your check's
+        own settings. The default implementation ignores all config.
+
+        Parameters
+        ----------
+        config: dict
+            The raw configuration dict for this check, e.g.
+            ``{"type_to_name": {"SimulationBox": "simulationBox"}}``.
+
+        """
+        del config
+
     def finalize(self, filename: str) -> list[Diagnostic]:
         """Run once after the whole file's AST has been walked.
 

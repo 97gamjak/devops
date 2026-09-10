@@ -6,6 +6,7 @@ Add a new check here after implementing it as a `Check` subclass under
 
 from __future__ import annotations
 
+import copy
 import typing
 
 from devops.cpp.ast.checks.enforce_param_name_for_type import EnforceParamNameForType
@@ -70,3 +71,40 @@ def select_checks(
         return [c for c in checks if c.id in allowed and c.id not in disabled]
 
     return [c for c in checks if c.id not in disabled]
+
+
+def configure_checks(
+    checks: list[Check],
+    check_config: dict[str, dict] | None = None,
+) -> list[Check]:
+    """Apply per-check configuration and return a new list of checks.
+
+    Each check whose `.id` appears in `check_config` receives a shallow
+    copy so that the shared `ALL_CHECKS` singletons are never mutated.
+
+    Parameters
+    ----------
+    checks: list[Check]
+        The checks to configure, typically the result of `select_checks`.
+    check_config: dict[str, dict] | None
+        Mapping of check id → raw config dict (the sub-table from
+        ``cpp.ast_check_config.<id>`` in the project TOML). Unknown ids
+        are silently ignored.
+
+    Returns
+    -------
+    list[Check]
+        A new list where configured checks are shallow-copied instances.
+
+    """
+    if not check_config:
+        return list(checks)
+    result: list[Check] = []
+    for check in checks:
+        if check.id in check_config:
+            configured = copy.copy(check)
+            configured.configure(check_config[check.id])
+            result.append(configured)
+        else:
+            result.append(check)
+    return result

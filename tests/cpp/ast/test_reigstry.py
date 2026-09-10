@@ -1,19 +1,24 @@
-"""Tests for devops.cpp.ast.registry.select_checks."""
+"""Tests for devops.cpp.ast.registry.select_checks and configure_checks."""
 
 from __future__ import annotations
 
 import pytest
 
 from devops.cpp.ast.base import Check
-from devops.cpp.ast.registry import select_checks
+from devops.cpp.ast.registry import configure_checks, select_checks
 
 
 class _FakeCheck(Check):
-    """Minimal Check stand-in for exercising select_checks in isolation."""
+    """Minimal Check stand-in for exercising select_checks/configure_checks."""
 
     def __init__(self, check_id: str) -> None:
         """Initialize with a fixed id."""
         self.id = check_id
+        self.received_config: dict | None = None
+
+    def configure(self, config: dict) -> None:
+        """Record the config dict passed in."""
+        self.received_config = config
 
 
 @pytest.fixture
@@ -58,3 +63,68 @@ class TestSelectChecks:
         assert any(
             "Unknown AST check id" in record.message for record in caplog.records
         )
+
+
+class TestConfigureChecks:
+    """Tests for configure_checks."""
+
+    def test_no_config_returns_same_checks(self, checks: list[Check]) -> None:
+        """With no check_config, the original check instances are returned."""
+        result = configure_checks(checks)
+        assert result == checks
+
+    def test_known_id_receives_config(self, checks: list[Check]) -> None:
+        """A check whose id is in check_config gets configure() called.
+
+        Parameters
+        ----------
+        checks: list[Check]
+            Fixture providing three fake checks with ids 'a', 'b', 'c'.
+
+        """
+        result = configure_checks(checks, {"b": {"key": "value"}})
+        b_check = next(c for c in result if c.id == "b")
+        assert isinstance(b_check, _FakeCheck)
+        assert b_check.received_config == {"key": "value"}
+
+    def test_original_not_mutated(self, checks: list[Check]) -> None:
+        """configure_checks works on a shallow copy; original is untouched.
+
+        Parameters
+        ----------
+        checks: list[Check]
+            Fixture providing three fake checks with ids 'a', 'b', 'c'.
+
+        """
+        original_b = next(c for c in checks if c.id == "b")
+        configure_checks(checks, {"b": {"key": "value"}})
+        assert isinstance(original_b, _FakeCheck)
+        assert original_b.received_config is None
+
+    def test_unknown_check_id_in_config_is_ignored(self, checks: list[Check]) -> None:
+        """Config entries whose id matches no check are silently ignored.
+
+        Parameters
+        ----------
+        checks: list[Check]
+            Fixture providing three fake checks with ids 'a', 'b', 'c'.
+
+        """
+        result = configure_checks(checks, {"does-not-exist": {"x": 1}})
+        assert [c.id for c in result] == ["a", "b", "c"]
+
+    def test_unconfigured_checks_pass_through_unchanged(
+        self, checks: list[Check]
+    ) -> None:
+        """Checks not in check_config are returned as-is (not copied).
+
+        Parameters
+        ----------
+        checks: list[Check]
+            Fixture providing three fake checks with ids 'a', 'b', 'c'.
+
+        """
+        result = configure_checks(checks, {"b": {}})
+        a_result = next(c for c in result if c.id == "a")
+        a_original = next(c for c in checks if c.id == "a")
+        assert a_result is a_original

@@ -46,6 +46,11 @@ class CppConfig:
     # ast_check_enabled_ids. See devops.cpp.ast.registry.ALL_CHECKS.
     ast_check_disabled_ids: list[str] = field(default_factory=list)
 
+    # Per-check configuration keyed by check id.  Each value is a free-form
+    # dict whose keys/types are defined by the individual check's configure()
+    # method.  Declared in TOML as sub-tables of cpp.ast_check_config.
+    ast_check_config: dict[str, dict] = field(default_factory=dict)
+
     def to_toml_lines(self) -> list[str]:
         """Convert the CppConfig to TOML lines.
 
@@ -88,6 +93,14 @@ class CppConfig:
 
         disabled = ", ".join(f'"{cid}"' for cid in self.ast_check_disabled_ids)
         lines.append(f"#ast_check_disabled_ids = [{disabled}]\n")
+
+        lines.append(
+            "#\n"
+            "# Per-check configuration (one sub-table per check id):\n"
+            "#[cpp.ast_check_config.paramNameForType]\n"
+            '#type_to_name = { SimulationBox = "simulationBox", '
+            'ForceField = "forceField" }\n'
+        )
 
         return lines
 
@@ -137,6 +150,12 @@ def parse_cpp_config(raw_config: dict) -> CppConfig:
 
     ast_check_disabled_ids = get_str_list(table, "ast_check_disabled_ids")
 
+    raw_check_config = get_table(table, "ast_check_config")
+    ast_check_config = {
+        check_id: get_table(raw_check_config, check_id)
+        for check_id in raw_check_config
+    }
+
     config = CppConfig(
         style_checks=style_checks,
         license_header_check=license_header_check,
@@ -147,6 +166,7 @@ def parse_cpp_config(raw_config: dict) -> CppConfig:
         ast_check_compile_args=ast_check_compile_args,
         ast_check_enabled_ids=ast_check_enabled_ids,
         ast_check_disabled_ids=ast_check_disabled_ids,
+        ast_check_config=ast_check_config,
     )
 
     config_logger.debug(f"Parsed C++ configuration: {config}")

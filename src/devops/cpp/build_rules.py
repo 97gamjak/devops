@@ -40,6 +40,7 @@ def build_cpp_rules(config: CppConfig = __GLOBAL_CONFIG__.cpp) -> list[Rule]:
                     compile_args=config.ast_check_compile_args,
                     enabled_check_ids=config.ast_check_enabled_ids,
                     disabled_check_ids=config.ast_check_disabled_ids,
+                    check_config=config.ast_check_config,
                 )
             )
         else:

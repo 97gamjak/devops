@@ -1,8 +1,12 @@
 """Enforce a canonical parameter name for parameters of a given type.
 
-Maintain the TYPE_TO_NAME map below: <base type name> -> <required
-parameter name>. Cv-qualifiers (const/volatile) and pointer/reference
-decoration are stripped from the parameter's type before lookup, so
+Configure the type→name mapping via the project TOML file:
+
+    [cpp.ast_check_config.paramNameForType]
+    type_to_name = { SimulationBox = "simulationBox", ForceField = "forceField" }
+
+Cv-qualifiers (const/volatile) and pointer/reference decoration are
+stripped from the parameter's type before lookup, so
 "const SimulationBox &", "SimulationBox *" and "SimulationBox" all
 resolve to the same key and all require the same parameter name.
 """
@@ -13,14 +17,8 @@ import re
 
 import clang.cindex as clang
 
+from devops.config.base import ConfigError
 from devops.cpp.ast.base import Check, Diagnostic
-
-TYPE_TO_NAME = {
-    "SimulationBox": "simulationBox",
-    "ForceField": "forceField",
-    "Optimizer": "optimizer",
-    # add more as they come up
-}
 
 _QUALIFIER_RE = re.compile(r"\b(const|volatile)\b")
 _DECORATION_RE = re.compile(r"[&*]")
@@ -47,9 +45,43 @@ def base_type_name(type_spelling: str) -> str:
 
 
 class EnforceParamNameForType(Check):
-    """Flag parameters of a mapped type that don't use the required name."""
+    """Flag parameters of a mapped type that don't use the required name.
+
+    The type→name mapping is empty by default and must be populated via
+    ``configure()`` (driven by ``cpp.ast_check_config.paramNameForType``
+    in the project TOML file).
+    """
 
     id = "paramNameForType"
+
+    def __init__(self) -> None:
+        """Initialise with an empty type-to-name mapping."""
+        self.type_to_name: dict[str, str] = {}
+
+    def configure(self, config: dict) -> None:
+        """Load the type→name mapping from the check's TOML config block.
+
+        Parameters
+        ----------
+        config: dict
+            Expected shape: ``{"type_to_name": {"TypeName": "paramName", ...}}``.
+
+        Raises
+        ------
+        ConfigError
+            If ``type_to_name`` is present but is not a ``dict[str, str]``.
+
+        """
+        raw = config.get("type_to_name", {})
+        if not isinstance(raw, dict) or not all(
+            isinstance(k, str) and isinstance(v, str) for k, v in raw.items()
+        ):
+            msg = (
+                "paramNameForType: 'type_to_name' must be a table of "
+                "string → string mappings"
+            )
+            raise ConfigError(msg)
+        self.type_to_name = dict(raw)
 
     def visit(self, cursor: clang.Cursor, filename: str) -> list[Diagnostic]:
         """Flag the cursor if it's a mapped-type parameter with the wrong name.
@@ -78,7 +110,7 @@ class EnforceParamNameForType(Check):
             return []
 
         type_name = base_type_name(cursor.type.spelling)
-        expected = TYPE_TO_NAME.get(type_name)
+        expected = self.type_to_name.get(type_name)
         if expected is None or name == expected:
             return []
 

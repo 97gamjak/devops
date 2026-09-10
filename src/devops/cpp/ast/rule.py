@@ -5,7 +5,7 @@ from __future__ import annotations
 import typing
 
 from devops.cpp.ast.engine import run_ast_checks
-from devops.cpp.ast.registry import ALL_CHECKS, select_checks
+from devops.cpp.ast.registry import ALL_CHECKS, configure_checks, select_checks
 from devops.rules import ResultType, ResultTypeEnum, Rule, RuleInputType, RuleType
 
 if typing.TYPE_CHECKING:
@@ -28,6 +28,7 @@ class ASTChecksRule(Rule):
         compile_args: list[str] | None = None,
         enabled_check_ids: list[str] | None = None,
         disabled_check_ids: list[str] | None = None,
+        check_config: dict[str, dict] | None = None,
     ) -> None:
         """Initialize ASTChecksRule.
 
@@ -41,13 +42,20 @@ class ASTChecksRule(Rule):
             (see `devops.cpp.ast.registry.select_checks`).
         disabled_check_ids: list[str] | None
             Checks whose `.id` is in this list never run.
+        check_config: dict[str, dict] | None
+            Per-check configuration keyed by check id (from
+            ``cpp.ast_check_config`` in the project TOML). Passed to
+            each check's ``configure()`` method.
 
         """
         self.compile_args = compile_args or DEFAULT_COMPILE_ARGS
-        self.checks = select_checks(
-            ALL_CHECKS,
-            enabled_ids=enabled_check_ids,
-            disabled_ids=disabled_check_ids,
+        self.checks = configure_checks(
+            select_checks(
+                ALL_CHECKS,
+                enabled_ids=enabled_check_ids,
+                disabled_ids=disabled_check_ids,
+            ),
+            check_config,
         )
 
         super().__init__(

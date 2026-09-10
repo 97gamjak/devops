@@ -6,8 +6,9 @@ import typing
 
 import pytest
 
+from devops.config.base import ConfigError
 from devops.cpp.ast.checks.enforce_param_name_for_type import (
-    TYPE_TO_NAME,
+    EnforceParamNameForType,
     base_type_name,
 )
 from devops.cpp.ast.engine import run_ast_checks
@@ -18,6 +19,21 @@ if typing.TYPE_CHECKING:
 pytest.importorskip("clang.cindex")
 
 STRUCT_DEFS = "struct SimulationBox {};\nstruct ForceField {};\n"
+
+# The canonical mapping used across all engine-level tests.
+_TYPE_TO_NAME = {
+    "SimulationBox": "simulationBox",
+    "ForceField": "forceField",
+    "Optimizer": "optimizer",
+}
+
+
+@pytest.fixture
+def configured_check() -> EnforceParamNameForType:
+    """An EnforceParamNameForType instance pre-configured with _TYPE_TO_NAME."""
+    check = EnforceParamNameForType()
+    check.configure({"type_to_name": _TYPE_TO_NAME})
+    return check
 
 
 class TestBaseTypeName:
@@ -49,42 +65,149 @@ class TestBaseTypeName:
         assert base_type_name(spelling) == expected
 
 
+class TestEnforceParamNameForTypeConfiguration:
+    """Tests for the configure() method."""
+
+    def test_unconfigured_check_ignores_all_types(self, tmp_path: Path) -> None:
+        """An unconfigured check (empty type_to_name) raises no diagnostics.
+
+        Parameters
+        ----------
+        tmp_path: Path
+            Temporary path for creating test files.
+
+        """
+        check = EnforceParamNameForType()
+        cpp_file = tmp_path / "example.cpp"
+        content = STRUCT_DEFS + "void foo(SimulationBox simBox) {}\n"
+        cpp_file.write_text(content)
+
+        diagnostics = run_ast_checks(cpp_file, content, ["-std=c++23"], checks=[check])
+
+        assert diagnostics == []
+
+    def test_configure_sets_type_to_name(self, tmp_path: Path) -> None:
+        """After configure(), the mapped type is enforced.
+
+        Parameters
+        ----------
+        tmp_path: Path
+            Temporary path for creating test files.
+
+        """
+        check = EnforceParamNameForType()
+        check.configure({"type_to_name": {"Foo": "foo"}})
+        cpp_file = tmp_path / "example.cpp"
+        content = "struct Foo {};\nvoid bar(Foo wrong) {}\n"
+        cpp_file.write_text(content)
+
+        diagnostics = run_ast_checks(cpp_file, content, ["-std=c++23"], checks=[check])
+
+        assert len(diagnostics) == 1
+        assert "wrong" in diagnostics[0].message
+        assert "foo" in diagnostics[0].message
+
+    def test_configure_replaces_previous_mapping(self) -> None:
+        """A second configure() call replaces the first mapping entirely.
+
+        Parameters
+        ----------
+        (none)
+
+        """
+        check = EnforceParamNameForType()
+        check.configure({"type_to_name": {"A": "a"}})
+        check.configure({"type_to_name": {"B": "b"}})
+
+        assert check.type_to_name == {"B": "b"}
+
+    def test_configure_invalid_type_to_name_raises(self) -> None:
+        """A non-dict value for type_to_name raises ConfigError.
+
+        Parameters
+        ----------
+        (none)
+
+        """
+        check = EnforceParamNameForType()
+        with pytest.raises(ConfigError):
+            check.configure({"type_to_name": ["not", "a", "dict"]})
+
+    def test_configure_non_str_value_raises(self) -> None:
+        """A dict with a non-string value raises ConfigError.
+
+        Parameters
+        ----------
+        (none)
+
+        """
+        check = EnforceParamNameForType()
+        with pytest.raises(ConfigError):
+            check.configure({"type_to_name": {"Foo": 42}})
+
+    def test_configure_empty_dict_clears_mapping(self) -> None:
+        """Configuring with an empty type_to_name dict clears the mapping.
+
+        Parameters
+        ----------
+        (none)
+
+        """
+        check = EnforceParamNameForType()
+        check.configure({"type_to_name": {"Foo": "foo"}})
+        check.configure({"type_to_name": {}})
+
+        assert check.type_to_name == {}
+
+
 class TestEnforceParamNameForType:
     """Tests for the EnforceParamNameForType check via the shared engine."""
 
-    def test_flags_wrong_name_for_mapped_type(self, tmp_path: Path) -> None:
+    def test_flags_wrong_name_for_mapped_type(
+        self, tmp_path: Path, configured_check: EnforceParamNameForType
+    ) -> None:
         """A mapped type with the wrong parameter name is flagged.
 
         Parameters
         ----------
         tmp_path: Path
             Temporary path for creating test files.
+        configured_check: EnforceParamNameForType
+            Pre-configured check instance.
 
         """
         cpp_file = tmp_path / "example.cpp"
         content = STRUCT_DEFS + "void foo(SimulationBox simBox) {}\n"
         cpp_file.write_text(content)
 
-        diagnostics = run_ast_checks(cpp_file, content, ["-std=c++23"])
+        diagnostics = run_ast_checks(
+            cpp_file, content, ["-std=c++23"], checks=[configured_check]
+        )
 
         assert len(diagnostics) == 1
         assert diagnostics[0].check_id == "paramNameForType"
         assert "simBox" in diagnostics[0].message
         assert "simulationBox" in diagnostics[0].message
 
-    def test_correct_name_passes_clean(self, tmp_path: Path) -> None:
+    def test_correct_name_passes_clean(
+        self, tmp_path: Path, configured_check: EnforceParamNameForType
+    ) -> None:
         """A mapped type using the required name raises no diagnostics.
 
         Parameters
         ----------
         tmp_path: Path
             Temporary path for creating test files.
+        configured_check: EnforceParamNameForType
+            Pre-configured check instance.
 
         """
         cpp_file = tmp_path / "clean.cpp"
         content = STRUCT_DEFS + "void foo(SimulationBox simulationBox) {}\n"
 
-        diagnostics = run_ast_checks(cpp_file, content, ["-std=c++23"])
+        diagnostics = run_ast_checks(
+            cpp_file, content, ["-std=c++23"], checks=[configured_check]
+        )
 
         assert diagnostics == []
 
@@ -97,7 +220,10 @@ class TestEnforceParamNameForType:
         ],
     )
     def test_flags_regardless_of_ref_or_pointer_decoration(
-        self, tmp_path: Path, decl: str
+        self,
+        tmp_path: Path,
+        decl: str,
+        configured_check: EnforceParamNameForType,
     ) -> None:
         """Reference/pointer/const decoration doesn't hide a naming violation.
 
@@ -108,53 +234,72 @@ class TestEnforceParamNameForType:
         decl: str
             A function declaration using a decorated SimulationBox parameter
             named "box" instead of "simulationBox".
+        configured_check: EnforceParamNameForType
+            Pre-configured check instance.
 
         """
         cpp_file = tmp_path / "example.cpp"
         content = STRUCT_DEFS + decl + "\n"
 
-        diagnostics = run_ast_checks(cpp_file, content, ["-std=c++23"])
+        diagnostics = run_ast_checks(
+            cpp_file, content, ["-std=c++23"], checks=[configured_check]
+        )
 
         assert len(diagnostics) == 1
         assert "box" in diagnostics[0].message
 
-    def test_unmapped_type_is_ignored(self, tmp_path: Path) -> None:
-        """Parameters of a type with no entry in TYPE_TO_NAME aren't flagged.
+    def test_unmapped_type_is_ignored(
+        self, tmp_path: Path, configured_check: EnforceParamNameForType
+    ) -> None:
+        """Parameters of a type with no entry in type_to_name aren't flagged.
 
         Parameters
         ----------
         tmp_path: Path
             Temporary path for creating test files.
+        configured_check: EnforceParamNameForType
+            Pre-configured check instance.
 
         """
         cpp_file = tmp_path / "example.cpp"
         content = "void foo(int whatever) {}\n"
 
-        diagnostics = run_ast_checks(cpp_file, content, ["-std=c++23"])
+        diagnostics = run_ast_checks(
+            cpp_file, content, ["-std=c++23"], checks=[configured_check]
+        )
 
         assert diagnostics == []
 
-    def test_unnamed_parameter_is_ignored(self, tmp_path: Path) -> None:
+    def test_unnamed_parameter_is_ignored(
+        self, tmp_path: Path, configured_check: EnforceParamNameForType
+    ) -> None:
         """An unnamed parameter (e.g. in a declaration) isn't flagged.
 
         Parameters
         ----------
         tmp_path: Path
             Temporary path for creating test files.
+        configured_check: EnforceParamNameForType
+            Pre-configured check instance.
 
         """
         cpp_file = tmp_path / "example.cpp"
         content = STRUCT_DEFS + "void foo(SimulationBox);\n"
 
-        diagnostics = run_ast_checks(cpp_file, content, ["-std=c++23"])
+        diagnostics = run_ast_checks(
+            cpp_file, content, ["-std=c++23"], checks=[configured_check]
+        )
 
         assert diagnostics == []
 
-    @pytest.mark.parametrize("type_name", list(TYPE_TO_NAME))
+    @pytest.mark.parametrize("type_name", list(_TYPE_TO_NAME))
     def test_each_mapped_type_is_enforced(
-        self, tmp_path: Path, type_name: str
+        self,
+        tmp_path: Path,
+        type_name: str,
+        configured_check: EnforceParamNameForType,
     ) -> None:
-        """Every entry in TYPE_TO_NAME is individually enforced.
+        """Every entry in the configured type_to_name is individually enforced.
 
         Parameters
         ----------
@@ -162,6 +307,8 @@ class TestEnforceParamNameForType:
             Temporary path for creating test files.
         type_name: str
             The mapped type name being tested.
+        configured_check: EnforceParamNameForType
+            Pre-configured check instance.
 
         """
         cpp_file = tmp_path / "example.cpp"
@@ -170,7 +317,9 @@ class TestEnforceParamNameForType:
             f"void foo({type_name} wrongName) {{}}\n"
         )
 
-        diagnostics = run_ast_checks(cpp_file, content, ["-std=c++23"])
+        diagnostics = run_ast_checks(
+            cpp_file, content, ["-std=c++23"], checks=[configured_check]
+        )
 
         assert len(diagnostics) == 1
-        assert TYPE_TO_NAME[type_name] in diagnostics[0].message
+        assert _TYPE_TO_NAME[type_name] in diagnostics[0].message
