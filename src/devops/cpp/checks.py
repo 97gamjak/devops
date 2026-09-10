@@ -160,8 +160,9 @@ def run_cpp_checks(
     file_rules = filter_file_rules(rules)
     line_rules = filter_line_rules(rules)
 
-    for filename in files:
-        cpp_check_logger.debug(f"Checking file: {filename}")
+    total = len(files)
+    for i, filename in enumerate(files, start=1):
+        cpp_check_logger.info(f"({i}/{total}) {filename}")
 
         # file rules
         file_results = run_file_rules(file_rules, filename)
