@@ -1,10 +1,10 @@
 """Module for parsing C++ configuration."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from devops.logger import config_logger
 
-from .base import get_bool, get_str, get_table
+from .base import get_bool, get_str, get_str_list, get_table
 
 
 @dataclass
@@ -29,6 +29,22 @@ class CppConfig:
     # If True, enforce that header guards match the file path.
     # This helps ensure consistency and prevents duplicate header guards.
     header_guards_according_to_filepath: bool = False
+
+    # Enable or disable libclang AST-based checks (see devops.cpp.ast).
+    # Requires the optional 'ast' extra (`pip install devops[ast]`).
+    ast_checks: bool = True
+
+    # Compiler flags passed to libclang when parsing files for AST checks
+    # (e.g. C++ standard, include paths).
+    ast_check_compile_args: list[str] = field(default_factory=lambda: ["-std=c++23"])
+
+    # If non-empty, only AST checks whose id is in this list run (allowlist).
+    # See devops.cpp.ast.registry.ALL_CHECKS for available ids.
+    ast_check_enabled_ids: list[str] = field(default_factory=list)
+
+    # AST checks whose id is in this list never run, regardless of
+    # ast_check_enabled_ids. See devops.cpp.ast.registry.ALL_CHECKS.
+    ast_check_disabled_ids: list[str] = field(default_factory=list)
 
     def to_toml_lines(self) -> list[str]:
         """Convert the CppConfig to TOML lines.
@@ -61,6 +77,17 @@ class CppConfig:
             "#header_guards_according_to_filepath = "
             f"{str(self.header_guards_according_to_filepath).lower()}\n"
         )
+
+        lines.append(f"#ast_checks = {str(self.ast_checks).lower()}\n")
+
+        args = ", ".join(f'"{arg}"' for arg in self.ast_check_compile_args)
+        lines.append(f"#ast_check_compile_args = [{args}]\n")
+
+        enabled = ", ".join(f'"{cid}"' for cid in self.ast_check_enabled_ids)
+        lines.append(f"#ast_check_enabled_ids = [{enabled}]\n")
+
+        disabled = ", ".join(f'"{cid}"' for cid in self.ast_check_disabled_ids)
+        lines.append(f"#ast_check_disabled_ids = [{disabled}]\n")
 
         return lines
 
@@ -98,12 +125,28 @@ def parse_cpp_config(raw_config: dict) -> CppConfig:
         default=CppConfig.header_guards_according_to_filepath,
     )
 
+    ast_checks = get_bool(table, "ast_checks", default=CppConfig.ast_checks)
+
+    ast_check_compile_args = get_str_list(
+        table,
+        "ast_check_compile_args",
+        default=["-std=c++23"],
+    )
+
+    ast_check_enabled_ids = get_str_list(table, "ast_check_enabled_ids")
+
+    ast_check_disabled_ids = get_str_list(table, "ast_check_disabled_ids")
+
     config = CppConfig(
         style_checks=style_checks,
         license_header_check=license_header_check,
         license_header=license_header,
         check_only_staged_files=check_only_staged_files,
         header_guards_according_to_filepath=header_guards_according_to_filepath,
+        ast_checks=ast_checks,
+        ast_check_compile_args=ast_check_compile_args,
+        ast_check_enabled_ids=ast_check_enabled_ids,
+        ast_check_disabled_ids=ast_check_disabled_ids,
     )
 
     config_logger.debug(f"Parsed C++ configuration: {config}")

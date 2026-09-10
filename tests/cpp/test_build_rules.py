@@ -38,10 +38,12 @@ class TestBuildCppRules:
 
     def test_build_cpp_rules_with_style_checks_disabled(self) -> None:
         """Test building rules with style checks disabled."""
-        config = CppConfig(style_checks=False, license_header_check=False)
+        config = CppConfig(
+            style_checks=False, license_header_check=False, ast_checks=False
+        )
         rules = build_cpp_rules(config)
 
-        # With both checks disabled, should return empty list
+        # With all checks disabled, should return empty list
         assert rules == []
 
     def test_build_cpp_rules_with_only_style_checks(self) -> None:
@@ -98,6 +100,7 @@ class TestBuildCppRules:
             style_checks=False,
             license_header_check=True,
             license_header=None,  # No header file provided
+            ast_checks=False,
         )
         rules = build_cpp_rules(config)
 
@@ -130,6 +133,7 @@ class TestBuildCppRules:
             style_checks=False,
             license_header_check=True,
             license_header=str(header_file),
+            ast_checks=False,
         )
         rules = build_cpp_rules(config)
 
