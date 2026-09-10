@@ -7,6 +7,7 @@ import typing
 import clang.cindex as clang
 
 from devops.cpp.ast.registry import ALL_CHECKS
+from devops.logger import cpp_check_logger
 
 if typing.TYPE_CHECKING:
     from pathlib import Path
@@ -48,11 +49,19 @@ def run_ast_checks(
 
     filename = str(path)
     index = clang.Index.create()
-    translation_unit = index.parse(
-        filename,
-        args=compile_args,
-        unsaved_files=[(filename, content)],
-    )
+    try:
+        translation_unit = index.parse(
+            filename,
+            args=compile_args,
+            unsaved_files=[(filename, content)],
+        )
+    except clang.TranslationUnitLoadError:
+        cpp_check_logger.warning(
+            f"AST checks: skipping '{filename}' — libclang could not parse it "
+            "(likely a template implementation file, e.g. .tpp, that cannot be "
+            "compiled as a standalone translation unit)."
+        )
+        return []
 
     diagnostics: list[Diagnostic] = []
 
