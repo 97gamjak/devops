@@ -135,19 +135,27 @@ def run_cpp_checks(
         True if all checks pass, False if any check fails.
 
     """
+    exclude = config.exclude_dirs or []
+
     if dirs is not None:
         cpp_check_logger.info(
             f"Running checks in directories: {[str(d) for d in dirs]}"
         )
-        files = get_files_in_dirs(dirs)
+        files = get_files_in_dirs(dirs, exclude_dirs=exclude)
     elif config.check_only_staged_files:
         cpp_check_logger.info("Running checks on staged files...")
         files = get_staged_files()
+    elif config.check_dirs:
+        dirs = [Path(d) for d in config.check_dirs]
+        cpp_check_logger.info(
+            f"Running checks in configured directories: {[str(d) for d in dirs]}"
+        )
+        files = get_files_in_dirs(dirs, exclude_dirs=exclude)
     else:
         cpp_check_logger.info("Running full checks...")
 
         dirs = get_dirs_in_dir()
-        files = get_files_in_dirs(dirs)
+        files = get_files_in_dirs(dirs, exclude_dirs=exclude)
 
         cpp_check_logger.debug(f"Checking directories: {[str(d) for d in dirs]}")
 

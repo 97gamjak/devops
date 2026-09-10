@@ -26,6 +26,15 @@ class CppConfig:
     # (e.g., in a pre-commit hook).
     check_only_staged_files: bool = False
 
+    # If non-empty, only these directories (relative to cwd) are scanned.
+    # Overrides the default behaviour of scanning all top-level directories.
+    # Ignored when check_only_staged_files is True.
+    check_dirs: list[str] = field(default_factory=list)
+
+    # Directory names to skip during recursive scanning.
+    # Applied regardless of whether check_dirs is set.
+    exclude_dirs: list[str] = field(default_factory=list)
+
     # If True, enforce that header guards match the file path.
     # This helps ensure consistency and prevents duplicate header guards.
     header_guards_according_to_filepath: bool = False
@@ -77,6 +86,12 @@ class CppConfig:
         lines.append(
             f"#check_only_staged_files = {str(self.check_only_staged_files).lower()}\n"
         )
+
+        check_dirs = ", ".join(f'"{d}"' for d in self.check_dirs)
+        lines.append(f"#check_dirs = [{check_dirs}]\n")
+
+        excl_dirs = ", ".join(f'"{d}"' for d in self.exclude_dirs)
+        lines.append(f"#exclude_dirs = [{excl_dirs}]\n")
 
         lines.append(
             "#header_guards_according_to_filepath = "
@@ -132,6 +147,10 @@ def parse_cpp_config(raw_config: dict) -> CppConfig:
         table, "check_only_staged_files", default=CppConfig.check_only_staged_files
     )
 
+    check_dirs = get_str_list(table, "check_dirs")
+
+    exclude_dirs = get_str_list(table, "exclude_dirs")
+
     header_guards_according_to_filepath = get_bool(
         table,
         "header_guards_according_to_filepath",
@@ -161,6 +180,8 @@ def parse_cpp_config(raw_config: dict) -> CppConfig:
         license_header_check=license_header_check,
         license_header=license_header,
         check_only_staged_files=check_only_staged_files,
+        check_dirs=check_dirs,
+        exclude_dirs=exclude_dirs,
         header_guards_according_to_filepath=header_guards_according_to_filepath,
         ast_checks=ast_checks,
         ast_check_compile_args=ast_check_compile_args,
