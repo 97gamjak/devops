@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+### Features
+
+#### CPP Rules
+
+- Add first libclang AST-based check (`paramNameForType`) that enforces canonical parameter names for configured types
+- Add per-check TOML configuration via `[cpp.ast_check_config.<check-id>]` sub-tables, allowing each AST check to declare its own settings (e.g. `type_to_name` for `paramNameForType`)
+- Add `check_dirs` config option to restrict C++ checks to specific directories
+- Add `exclude_dirs` config option to skip directories during recursive file scanning
+- Add `(i/total)` file progress logging during C++ checks
+
+### Bug Fixes
+
+#### CPP Rules
+
+- Fix `cpp_checks` CLI always scanning all directories regardless of `check_dirs` config
+
 <!-- insertion marker -->
 ## [0.1.1](https://github.com/repo/owner/releases/tag/0.1.1) - 2026-02-20
 
