@@ -65,9 +65,13 @@ jobs:
     # Only deploy from an actual release tag: setuptools_scm only produces a
     # clean version (e.g. "0.1.2") when building from the exact tagged
     # commit. Building from a branch push resolves to a dev version (e.g.
-    # "0.1.2.dev0+g...") because the release tag doesn't exist yet at
-    # merge time - it's created by a later step in create-tag.yml.
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    # "0.1.2.dev0+g...") because the release tag doesn't exist yet at merge
+    # time - it's created by a later step in create-tag.yml, which then
+    # dispatches this workflow with `--ref <tag>` (a tag *push* made with
+    # GITHUB_TOKEN wouldn't trigger this workflow at all - see create-tag.yml).
+    # workflow_dispatch is also allowed regardless of ref, so a missed/broken
+    # release can be redeployed manually without cutting a new version.
+    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
     needs: build
     runs-on: ubuntu-latest
     environment:
