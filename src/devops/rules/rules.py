@@ -154,6 +154,15 @@ class Rule:
         """
         return self.func(rule_input)
 
+    def finalize_run(self) -> None:
+        """Called once after all files have been processed.
+
+        Override in subclasses that need to perform post-run validation or
+        cleanup (e.g. warning about configured items that were never matched).
+        The default implementation does nothing.
+
+        """
+
 
 def filter_cpp_rules(rules: list[Rule]) -> list[Rule]:
     """Filter and return only C++ related rules.

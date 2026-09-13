@@ -188,4 +188,7 @@ def run_cpp_checks(
                 )
             return False
 
+    for rule in rules:
+        rule.finalize_run()
+
     return True

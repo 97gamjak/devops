@@ -76,6 +76,15 @@ class Check:
         del cursor, filename
         return []
 
+    def global_finalize(self) -> None:
+        """Called once after ALL files have been checked.
+
+        Override for post-run validation, such as warning about configured
+        type names that were never encountered in any file's AST. The default
+        implementation does nothing.
+
+        """
+
     def configure(self, config: dict) -> None:
         """Apply check-specific configuration from the user's TOML block.
 

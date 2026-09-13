@@ -96,3 +96,8 @@ class ASTChecksRule(Rule):
 
         description = "\n".join(d.format() for d in diagnostics)
         return ResultType(ResultTypeEnum.Error, description)
+
+    def finalize_run(self) -> None:
+        """Call global_finalize() on every active check after all files are done."""
+        for check in self.checks:
+            check.global_finalize()

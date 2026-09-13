@@ -159,6 +159,54 @@ class TestEnforceParamNameForTypeConfiguration:
 
         assert check.type_to_name == {}
 
+    def test_global_finalize_warns_for_unseen_type(
+        self, tmp_path: Path, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """global_finalize warns if a configured type was never seen.
+
+        Parameters
+        ----------
+        tmp_path: Path
+            Temporary path for creating test files.
+        caplog: pytest.LogCaptureFixture
+            Pytest log capture fixture.
+
+        """
+        check = EnforceParamNameForType()
+        check.configure({"type_to_name": {"ns::Ghost": "ghost"}})
+        cpp_file = tmp_path / "example.cpp"
+        content = "void foo(int x) {}\n"
+        cpp_file.write_text(content)
+
+        run_ast_checks(cpp_file, content, ["-std=c++23"], checks=[check])
+        check.global_finalize()
+
+        assert any("ns::Ghost" in r.message for r in caplog.records)
+
+    def test_global_finalize_silent_when_type_was_seen(
+        self, tmp_path: Path, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """global_finalize emits no warning when the configured type was seen.
+
+        Parameters
+        ----------
+        tmp_path: Path
+            Temporary path for creating test files.
+        caplog: pytest.LogCaptureFixture
+            Pytest log capture fixture.
+
+        """
+        check = EnforceParamNameForType()
+        check.configure({"type_to_name": {"Foo": "foo"}})
+        cpp_file = tmp_path / "example.cpp"
+        content = "struct Foo {};\nvoid bar(Foo foo) {}\n"
+        cpp_file.write_text(content)
+
+        run_ast_checks(cpp_file, content, ["-std=c++23"], checks=[check])
+        check.global_finalize()
+
+        assert not any("Foo" in r.message for r in caplog.records)
+
 
 class TestEnforceParamNameForType:
     """Tests for the EnforceParamNameForType check via the shared engine."""
@@ -323,3 +371,52 @@ class TestEnforceParamNameForType:
 
         assert len(diagnostics) == 1
         assert _TYPE_TO_NAME[type_name] in diagnostics[0].message
+
+    def test_flags_namespaced_type_with_qualified_key(
+        self, tmp_path: Path
+    ) -> None:
+        """A namespaced type is flagged when the TOML key uses the qualified name.
+
+        libclang spells namespaced types as "ns::Type", so the configured key
+        must match that fully-qualified spelling.
+
+        Parameters
+        ----------
+        tmp_path: Path
+            Temporary path for creating test files.
+
+        """
+        check = EnforceParamNameForType()
+        check.configure({"type_to_name": {"ns::Foo": "foo"}})
+        cpp_file = tmp_path / "example.cpp"
+        content = "namespace ns { struct Foo {}; }\nvoid bar(ns::Foo wrong) {}\n"
+        cpp_file.write_text(content)
+
+        diagnostics = run_ast_checks(cpp_file, content, ["-std=c++23"], checks=[check])
+
+        assert len(diagnostics) == 1
+        assert "wrong" in diagnostics[0].message
+        assert "foo" in diagnostics[0].message
+
+    def test_unqualified_key_misses_namespaced_type(
+        self, tmp_path: Path
+    ) -> None:
+        """An unqualified key does NOT match a namespaced type (by design).
+
+        Users must use the fully-qualified name in the TOML.
+
+        Parameters
+        ----------
+        tmp_path: Path
+            Temporary path for creating test files.
+
+        """
+        check = EnforceParamNameForType()
+        check.configure({"type_to_name": {"Foo": "foo"}})  # missing "ns::"
+        cpp_file = tmp_path / "example.cpp"
+        content = "namespace ns { struct Foo {}; }\nvoid bar(ns::Foo wrong) {}\n"
+        cpp_file.write_text(content)
+
+        diagnostics = run_ast_checks(cpp_file, content, ["-std=c++23"], checks=[check])
+
+        assert diagnostics == []
