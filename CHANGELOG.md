@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+<!-- insertion marker -->
+## [0.1.2](https://github.com/repo/owner/releases/tag/0.1.2) - 2026-09-13
+
 ### Features
 
 #### Documentation
@@ -17,7 +20,6 @@ All notable changes to this project will be documented in this file.
 
 - Add GitHub Actions workflow to build the documentation and deploy it to GitHub Pages on merges to `main`
 
-<!-- insertion marker -->
 ## [0.1.1](https://github.com/repo/owner/releases/tag/0.1.1) - 2026-02-20
 
 ### Features
@@ -109,6 +111,7 @@ All notable changes to this project will be documented in this file.
 - Add automatic release CI for PRs to main (either via title or via hotfix/ branch)
 - Add overnight CI runs for pytest and ruff CIs
 - Add test coverage to pytest CI
+
 
 
 
