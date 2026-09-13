@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+### Bug Fixes
+
+#### Documentation
+
+- Explicitly dispatch the `Docs` workflow from `create-tag.yml` instead of relying on the tag push to trigger it, since pushes made with `GITHUB_TOKEN` don't trigger other workflows (GitHub's anti-recursion protection) - the release tag push was silently never deploying the docs
+- Allow the `Docs` workflow to be redeployed manually via `workflow_dispatch` regardless of ref
+
 <!-- insertion marker -->
 ## [0.1.3](https://github.com/repo/owner/releases/tag/0.1.3) - 2026-09-13
 
