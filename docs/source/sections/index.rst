@@ -1,7 +1,8 @@
 User Guide
 ==========
 
-.. note::
+.. toctree::
+   :maxdepth: 2
 
-   This section is a placeholder. Explanatory guide pages (installation,
-   configuration, usage walkthroughs, ...) will be added here.
+   overview
+   configuration
