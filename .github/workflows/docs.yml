@@ -5,6 +5,8 @@ on:
     branches:
       - main
       - dev
+    tags:
+      - "*.*.*"
     paths:
       - "docs/**"
       - "src/**"
@@ -60,7 +62,12 @@ jobs:
           path: docs/build/html
 
   deploy:
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    # Only deploy from an actual release tag: setuptools_scm only produces a
+    # clean version (e.g. "0.1.2") when building from the exact tagged
+    # commit. Building from a branch push resolves to a dev version (e.g.
+    # "0.1.2.dev0+g...") because the release tag doesn't exist yet at
+    # merge time - it's created by a later step in create-tag.yml.
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
     needs: build
     runs-on: ubuntu-latest
     environment:
