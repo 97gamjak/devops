@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+### Features
+
+#### Documentation
+
+- Fill in the user guide with an "Overview" page (feature areas and full CLI command reference) and a "Configuration File" page documenting every `devops.toml`/`.devops.toml` section and key, discovery rules, and the changelog insertion-marker format
+
 <!-- insertion marker -->
 ## [0.1.4](https://github.com/repo/owner/releases/tag/0.1.4) - 2026-09-13
 
