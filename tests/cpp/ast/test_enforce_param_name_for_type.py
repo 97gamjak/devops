@@ -219,6 +219,59 @@ class TestEnforceParamNameForTypeConfiguration:
 
         assert not any("Foo" in r.message for r in caplog.records)
 
+    def test_global_finalize_returns_false_when_unseen_type_is_error(
+        self, tmp_path: Path, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """global_finalize returns False and logs an error when unseen_type_is_error=true.
+
+        Parameters
+        ----------
+        tmp_path: Path
+            Temporary path for creating test files.
+        caplog: pytest.LogCaptureFixture
+            Pytest log capture fixture.
+
+        """
+        check = EnforceParamNameForType()
+        check.configure(
+            {"type_to_name": {"ns::Ghost": "ghost"}, "unseen_type_is_error": True}
+        )
+        cpp_file = tmp_path / "example.cpp"
+        content = "void foo(int x) {}\n"
+        cpp_file.write_text(content)
+
+        run_ast_checks(cpp_file, content, ["-std=c++23"], checks=[check])
+        result = check.global_finalize()
+
+        assert result is False
+        assert any(
+            "ns::Ghost" in r.message and r.levelname == "ERROR" for r in caplog.records
+        )
+
+    def test_global_finalize_returns_true_when_all_types_seen(
+        self, tmp_path: Path
+    ) -> None:
+        """global_finalize returns True when all configured types were seen.
+
+        Parameters
+        ----------
+        tmp_path: Path
+            Temporary path for creating test files.
+
+        """
+        check = EnforceParamNameForType()
+        check.configure(
+            {"type_to_name": {"Foo": "foo"}, "unseen_type_is_error": True}
+        )
+        cpp_file = tmp_path / "example.cpp"
+        content = "struct Foo {};\nvoid bar(Foo foo) {}\n"
+        cpp_file.write_text(content)
+
+        run_ast_checks(cpp_file, content, ["-std=c++23"], checks=[check])
+        result = check.global_finalize()
+
+        assert result is True
+
 
 class TestEnforceParamNameForType:
     """Tests for the EnforceParamNameForType check via the shared engine."""

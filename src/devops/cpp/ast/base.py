@@ -76,14 +76,22 @@ class Check:
         del cursor, filename
         return []
 
-    def global_finalize(self) -> None:
+    def global_finalize(self) -> bool:
         """Called once after ALL files have been checked.
 
         Override for post-run validation, such as warning about configured
         type names that were never encountered in any file's AST. The default
-        implementation does nothing.
+        implementation does nothing and returns True (no errors).
+
+        Returns
+        -------
+        bool
+            True if no errors were found, False if the check should be
+            considered failed (e.g. a configured type was never seen and
+            ``unseen_type_is_error`` is enabled).
 
         """
+        return True
 
     def configure(self, config: dict) -> None:
         """Apply check-specific configuration from the user's TOML block.

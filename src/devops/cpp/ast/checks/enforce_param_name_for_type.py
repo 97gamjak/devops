@@ -59,6 +59,7 @@ class EnforceParamNameForType(Check):
         """Initialise with an empty type-to-name mapping."""
         self.type_to_name: dict[str, str] = {}
         self._seen_type_names: set[str] = set()
+        self.unseen_type_is_error: bool = False
 
     def configure(self, config: dict) -> None:
         """Load the type→name mapping from the check's TOML config block.
@@ -66,7 +67,8 @@ class EnforceParamNameForType(Check):
         Parameters
         ----------
         config: dict
-            Expected shape: ``{"type_to_name": {"TypeName": "paramName", ...}}``.
+            Expected shape: ``{"type_to_name": {"TypeName": "paramName", ...},
+            "unseen_type_is_error": false}``.
 
         Raises
         ------
@@ -93,22 +95,39 @@ class EnforceParamNameForType(Check):
             raise ConfigError(msg)
         self.type_to_name = dict(raw)
         self._seen_type_names = set()
+        self.unseen_type_is_error = bool(config.get("unseen_type_is_error", False))
 
-    def global_finalize(self) -> None:
-        """Warn about configured types that were never seen as parameter types.
+    def global_finalize(self) -> bool:
+        """Warn (or error) about configured types never seen as parameter types.
 
         If a configured type name was not encountered in any `PARM_DECL` node
         across all checked files, it likely means the name in the TOML is
         wrong (e.g. missing namespace prefix).
 
+        Returns
+        -------
+        bool
+            False if any unseen types were found and ``unseen_type_is_error``
+            is enabled, True otherwise.
+
         """
+        passed = True
         for type_name in self.type_to_name:
             if type_name not in self._seen_type_names:
-                cpp_check_logger.warning(
-                    f"paramNameForType: configured type '{type_name}' was never "
-                    "seen as a parameter type across all checked files — is the "
-                    "qualified name correct?"
-                )
+                if self.unseen_type_is_error:
+                    cpp_check_logger.error(
+                        f"paramNameForType: configured type '{type_name}' was never "
+                        "seen as a parameter type across all checked files — is the "
+                        "qualified name correct?"
+                    )
+                    passed = False
+                else:
+                    cpp_check_logger.warning(
+                        f"paramNameForType: configured type '{type_name}' was never "
+                        "seen as a parameter type across all checked files — is the "
+                        "qualified name correct?"
+                    )
+        return passed
 
     def visit(self, cursor: clang.Cursor, filename: str) -> list[Diagnostic]:
         """Flag the cursor if it's a mapped-type parameter with the wrong name.

@@ -200,6 +200,7 @@ def run_cpp_checks(
                 break
     finally:
         for rule in rules:
-            rule.finalize_run()
+            if not rule.finalize_run():
+                passed = False
 
     return passed
