@@ -160,6 +160,10 @@ class EnforceParamNameForType(Check):
             is enabled, True otherwise.
 
         """
+        cpp_check_logger.debug(
+            f"paramNameForType: global_finalize — configured keys: {list(self.type_to_name)}, "
+            f"seen types: {sorted(self._seen_type_names)}"
+        )
         passed = True
         for type_name in self.type_to_name:
             if type_name not in self._seen_type_names:
