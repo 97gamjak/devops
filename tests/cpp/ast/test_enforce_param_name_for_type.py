@@ -121,6 +121,18 @@ class TestEnforceParamNameForTypeConfiguration:
 
         assert check.type_to_name == {"B": "b"}
 
+    def test_configure_missing_type_to_name_raises(self) -> None:
+        """A config block without type_to_name raises ConfigError.
+
+        Parameters
+        ----------
+        (none)
+
+        """
+        check = EnforceParamNameForType()
+        with pytest.raises(ConfigError, match="type_to_name"):
+            check.configure({})
+
     def test_configure_invalid_type_to_name_raises(self) -> None:
         """A non-dict value for type_to_name raises ConfigError.
 
@@ -415,6 +427,38 @@ class TestEnforceParamNameForType:
         check.configure({"type_to_name": {"Foo": "foo"}})  # missing "ns::"
         cpp_file = tmp_path / "example.cpp"
         content = "namespace ns { struct Foo {}; }\nvoid bar(ns::Foo wrong) {}\n"
+        cpp_file.write_text(content)
+
+        diagnostics = run_ast_checks(cpp_file, content, ["-std=c++23"], checks=[check])
+
+        assert diagnostics == []
+
+    def test_unqualified_key_does_not_match_type_used_inside_its_own_namespace(
+        self, tmp_path: Path
+    ) -> None:
+        """Unqualified key doesn't match when type is used inside its own namespace.
+
+        When ``ns::Foo`` is used as ``Foo`` inside ``namespace ns { ... }``,
+        libclang's canonical spelling is still ``ns::Foo``, so a key ``"Foo"``
+        must not match it.
+
+        Parameters
+        ----------
+        tmp_path: Path
+            Temporary path for creating test files.
+
+        """
+        check = EnforceParamNameForType()
+        check.configure({"type_to_name": {"Foo": "foo"}})  # missing "ns::"
+        cpp_file = tmp_path / "example.cpp"
+        # Foo is used without qualifier inside namespace ns — libclang canonical
+        # spelling is still "ns::Foo", so unqualified key must not match.
+        content = (
+            "namespace ns {\n"
+            "struct Foo {};\n"
+            "void bar(Foo wrong) {}\n"
+            "}\n"
+        )
         cpp_file.write_text(content)
 
         diagnostics = run_ast_checks(cpp_file, content, ["-std=c++23"], checks=[check])

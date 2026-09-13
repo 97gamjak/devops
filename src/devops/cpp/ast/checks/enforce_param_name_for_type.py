@@ -71,10 +71,18 @@ class EnforceParamNameForType(Check):
         Raises
         ------
         ConfigError
-            If ``type_to_name`` is present but is not a ``dict[str, str]``.
+            If ``type_to_name`` is missing or is not a ``dict[str, str]``.
 
         """
-        raw = config.get("type_to_name", {})
+        if "type_to_name" not in config:
+            msg = (
+                "paramNameForType: 'type_to_name' is required in "
+                "[cpp.ast_check_config.paramNameForType] but was not found — "
+                "check your TOML formatting (the key must appear before any "
+                "subsequent [section] header)"
+            )
+            raise ConfigError(msg)
+        raw = config["type_to_name"]
         if not isinstance(raw, dict) or not all(
             isinstance(k, str) and isinstance(v, str) for k, v in raw.items()
         ):
@@ -128,7 +136,7 @@ class EnforceParamNameForType(Check):
             # enforce.
             return []
 
-        type_name = base_type_name(cursor.type.spelling)
+        type_name = base_type_name(cursor.type.get_canonical().spelling)
         self._seen_type_names.add(type_name)
         expected = self.type_to_name.get(type_name)
 
@@ -137,7 +145,7 @@ class EnforceParamNameForType(Check):
             cpp_check_logger.debug(
                 f"paramNameForType: saw PARM_DECL '{name}' of type '{type_name}' at "
                 f"{filename}:{loc.line}:{loc.column} "
-                f"(raw spelling: '{cursor.type.spelling}')"
+                f"(canonical: '{cursor.type.get_canonical().spelling}')"
                 f" [configured, expected '{expected}']"
             )
 
