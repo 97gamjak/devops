@@ -1,5 +1,6 @@
 """C++ checks module."""
 
+import glob
 from pathlib import Path
 
 from devops import __GLOBAL_CONFIG__
@@ -146,7 +147,14 @@ def run_cpp_checks(
         cpp_check_logger.info("Running checks on staged files...")
         files = get_staged_files()
     elif config.check_dirs:
-        dirs = [Path(d) for d in config.check_dirs]
+        dirs = []
+        for pattern in config.check_dirs:
+            matches = [Path(m) for m in glob.glob(pattern, recursive=True) if Path(m).is_dir()]
+            if not matches:
+                cpp_check_logger.warning(
+                    f"check_dirs: pattern '{pattern}' matched no directories"
+                )
+            dirs.extend(matches)
         cpp_check_logger.info(
             f"Running checks in configured directories: {[str(d) for d in dirs]}"
         )
