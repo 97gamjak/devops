@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+### Bug Fixes
+
+#### Documentation
+
+- Only deploy documentation to GitHub Pages on release tag pushes, so the published version reflects the clean release version (e.g. `0.1.2`) instead of a dev version (e.g. `0.1.2.dev0+g...`)
+- Add `docs` status badge to the README
+
 <!-- insertion marker -->
 ## [0.1.2](https://github.com/repo/owner/releases/tag/0.1.2) - 2026-09-13
 
