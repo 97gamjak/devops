@@ -10,6 +10,7 @@ from devops.config.base import ConfigError
 from devops.cpp.ast.checks.enforce_param_name_for_type import (
     EnforceParamNameForType,
     base_type_name,
+    declaration_type_key,
 )
 from devops.cpp.ast.engine import run_ast_checks
 
@@ -521,3 +522,35 @@ class TestEnforceParamNameForType:
         diagnostics = run_ast_checks(cpp_file, content, ["-std=c++23"], checks=[check])
 
         assert diagnostics == []
+
+    def test_qualified_key_matches_type_used_via_using_namespace(
+        self, tmp_path: Path
+    ) -> None:
+        """Qualified key matches a type brought in by 'using namespace'.
+
+        When a .cpp file has ``using namespace ns;`` and uses ``Foo`` without
+        a qualifier, the qualified key ``"ns::Foo"`` must still match because
+        ``declaration_type_key`` walks the declaration hierarchy rather than
+        parsing the spelling string.
+
+        Parameters
+        ----------
+        tmp_path: Path
+            Temporary path for creating test files.
+
+        """
+        check = EnforceParamNameForType()
+        check.configure({"type_to_name": {"ns::Foo": "foo"}})
+        cpp_file = tmp_path / "example.cpp"
+        content = (
+            "namespace ns { struct Foo {}; }\n"
+            "using namespace ns;\n"
+            "void bar(Foo wrong) {}\n"
+        )
+        cpp_file.write_text(content)
+
+        diagnostics = run_ast_checks(cpp_file, content, ["-std=c++23"], checks=[check])
+
+        assert len(diagnostics) == 1
+        assert "wrong" in diagnostics[0].message
+        assert "foo" in diagnostics[0].message

@@ -24,6 +24,14 @@ from devops.logger import cpp_check_logger
 _QUALIFIER_RE = re.compile(r"\b(const|volatile|class|struct|enum|union)\b")
 _DECORATION_RE = re.compile(r"[&*]")
 
+_REF_OR_PTR_KINDS = frozenset(
+    (
+        clang.TypeKind.LVALUEREFERENCE,
+        clang.TypeKind.RVALUEREFERENCE,
+        clang.TypeKind.POINTER,
+    )
+)
+
 
 def base_type_name(type_spelling: str) -> str:
     """Strip cv-qualifiers and pointer/reference decoration from a spelling.
@@ -43,6 +51,47 @@ def base_type_name(type_spelling: str) -> str:
     name = _QUALIFIER_RE.sub("", type_spelling)
     name = _DECORATION_RE.sub("", name)
     return " ".join(name.split())
+
+
+def declaration_type_key(cursor_type: clang.Type) -> str:
+    """Return the fully-qualified base type name for a parameter type.
+
+    Peels reference/pointer layers, then walks the declaration's semantic
+    parent chain to build the canonical qualified name (e.g.
+    ``"molsys::SimulationBox"``).  This approach is immune to ``using
+    namespace`` directives and to libclang's varying ``class``/``struct``
+    spelling prefixes in canonical type strings.
+
+    Falls back to ``base_type_name`` on the raw spelling for primitive
+    types that have no declaration cursor (``int``, ``float``, etc.).
+
+    Parameters
+    ----------
+    cursor_type: clang.Type
+        The type of the ``PARM_DECL`` cursor.
+
+    Returns
+    -------
+    str
+        The fully-qualified base type name.
+
+    """
+    ty = cursor_type
+    while ty.kind in _REF_OR_PTR_KINDS:
+        ty = ty.get_pointee()
+
+    decl = ty.get_canonical().get_declaration()
+    if decl.kind == clang.CursorKind.NO_DECL_FOUND:
+        # Primitive type — fall back to string stripping on the raw spelling.
+        return base_type_name(cursor_type.spelling)
+
+    parts: list[str] = []
+    c = decl
+    while c and c.kind != clang.CursorKind.TRANSLATION_UNIT:
+        if c.spelling:
+            parts.append(c.spelling)
+        c = c.semantic_parent
+    return "::".join(reversed(parts))
 
 
 class EnforceParamNameForType(Check):
@@ -155,7 +204,7 @@ class EnforceParamNameForType(Check):
             # enforce.
             return []
 
-        type_name = base_type_name(cursor.type.get_canonical().spelling)
+        type_name = declaration_type_key(cursor.type)
         self._seen_type_names.add(type_name)
         expected = self.type_to_name.get(type_name)
 
@@ -164,7 +213,6 @@ class EnforceParamNameForType(Check):
             cpp_check_logger.debug(
                 f"paramNameForType: saw PARM_DECL '{name}' of type '{type_name}' at "
                 f"{filename}:{loc.line}:{loc.column} "
-                f"(canonical: '{cursor.type.get_canonical().spelling}')"
                 f" [configured, expected '{expected}']"
             )
 
