@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+### Features
+
+#### Documentation
+
+- Add Sphinx documentation site (`sphinx-rtd-theme`) with an automatically generated API reference from docstrings and an automatically displayed package version
+- Add placeholder user guide section for future explanatory documentation pages
+
+### Deployment
+
+#### CI/CD
+
+- Add GitHub Actions workflow to build the documentation and deploy it to GitHub Pages on merges to `main`
+
 <!-- insertion marker -->
 ## [0.1.1](https://github.com/repo/owner/releases/tag/0.1.1) - 2026-02-20
 
