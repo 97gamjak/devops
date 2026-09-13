@@ -177,26 +177,29 @@ def run_cpp_checks(
     line_rules = filter_line_rules(rules)
 
     total = len(files)
-    for i, filename in enumerate(files, start=1):
-        cpp_check_logger.info(f"({i}/{total}) {filename}")
+    passed = True
+    try:
+        for i, filename in enumerate(files, start=1):
+            cpp_check_logger.info(f"({i}/{total}) {filename}")
 
-        # file rules
-        file_results = run_file_rules(file_rules, filename)
+            # file rules
+            file_results = run_file_rules(file_rules, filename)
 
-        # line rules
-        file_results += run_line_checks(line_rules, filename)
+            # line rules
+            file_results += run_line_checks(line_rules, filename)
 
-        if any(result.value != ResultTypeEnum.Ok for result in file_results):
-            filtered_results = [
-                res for res in file_results if res.value != ResultTypeEnum.Ok
-            ]
-            for res in filtered_results:
-                cpp_check_logger.error(
-                    f"CPP check error: result in {filename}: {res.description}"
-                )
-            return False
+            if any(result.value != ResultTypeEnum.Ok for result in file_results):
+                filtered_results = [
+                    res for res in file_results if res.value != ResultTypeEnum.Ok
+                ]
+                for res in filtered_results:
+                    cpp_check_logger.error(
+                        f"CPP check error: result in {filename}: {res.description}"
+                    )
+                passed = False
+                break
+    finally:
+        for rule in rules:
+            rule.finalize_run()
 
-    for rule in rules:
-        rule.finalize_run()
-
-    return True
+    return passed

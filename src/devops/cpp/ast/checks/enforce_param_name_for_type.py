@@ -131,15 +131,17 @@ class EnforceParamNameForType(Check):
         type_name = base_type_name(cursor.type.spelling)
         self._seen_type_names.add(type_name)
         expected = self.type_to_name.get(type_name)
-        if expected is None:
-            return []
 
         loc = cursor.location
         cpp_check_logger.debug(
-            f"paramNameForType: '{type_name}' parameter '{name}' at "
+            f"paramNameForType: saw PARM_DECL '{name}' of type '{type_name}' at "
             f"{filename}:{loc.line}:{loc.column} "
             f"(raw spelling: '{cursor.type.spelling}')"
+            + (f" [configured, expected '{expected}']" if expected else " [not configured]")
         )
+
+        if expected is None:
+            return []
 
         if name == expected:
             return []
