@@ -21,7 +21,7 @@ from devops.config.base import ConfigError
 from devops.cpp.ast.base import Check, Diagnostic
 from devops.logger import cpp_check_logger
 
-_QUALIFIER_RE = re.compile(r"\b(const|volatile)\b")
+_QUALIFIER_RE = re.compile(r"\b(const|volatile|class|struct|enum|union)\b")
 _DECORATION_RE = re.compile(r"[&*]")
 
 

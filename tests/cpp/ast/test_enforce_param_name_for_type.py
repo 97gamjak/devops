@@ -47,6 +47,10 @@ class TestBaseTypeName:
             ("SimulationBox *", "SimulationBox"),
             ("const SimulationBox *", "SimulationBox"),
             ("SimulationBox &&", "SimulationBox"),
+            # libclang canonical spellings include class/struct keyword
+            ("class molsys::SimulationBox &", "molsys::SimulationBox"),
+            ("const class molsys::SimulationBox &", "molsys::SimulationBox"),
+            ("struct ns::Foo *", "ns::Foo"),
         ],
     )
     def test_strips_qualifiers_and_decoration(
