@@ -9,6 +9,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  actions: write
 
 jobs:
   create-tag:
@@ -105,6 +106,18 @@ jobs:
 
           git tag "$version"
           git push origin "$version"
+
+      - name: Trigger docs deployment
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          version="${{ steps.extract_version.outputs.version }}"
+          # A tag pushed with GITHUB_TOKEN does not trigger other workflows
+          # (GitHub's anti-recursion protection), so the docs.yml "on.push.tags"
+          # trigger never fires for releases created here. Dispatch it
+          # explicitly instead, pinned to the release tag so the published
+          # docs resolve the clean release version via setuptools_scm.
+          gh workflow run docs.yml --ref "$version"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
