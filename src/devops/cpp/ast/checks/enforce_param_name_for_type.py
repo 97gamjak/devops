@@ -80,7 +80,10 @@ def declaration_type_key(cursor_type: clang.Type) -> str:
     while ty.kind in _REF_OR_PTR_KINDS:
         ty = ty.get_pointee()
 
-    decl = ty.get_canonical().get_declaration()
+    # Use get_declaration() directly (not via get_canonical()) so that typedef/
+    # alias chains that go through unexpected namespaces (e.g. std-internal
+    # aliases) don't pollute the qualified name we build.
+    decl = ty.get_declaration()
     if decl.kind == clang.CursorKind.NO_DECL_FOUND:
         # Primitive type — fall back to string stripping on the raw spelling.
         return base_type_name(cursor_type.spelling)
