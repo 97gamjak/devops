@@ -92,17 +92,9 @@ def declaration_type_key(cursor_type: clang.Type) -> str:
     c = decl
     while c and c.kind != clang.CursorKind.TRANSLATION_UNIT:
         if c.spelling:
-            parts.append(f"{c.spelling}({c.kind.name}@{c.location.file and c.location.file.name}:{c.location.line})")
+            parts.append(c.spelling)
         c = c.semantic_parent
-    from devops.logger import cpp_check_logger as _log
-    _log.debug(f"declaration_type_key parent chain: {parts}")
-    parts2: list[str] = []
-    c = decl
-    while c and c.kind != clang.CursorKind.TRANSLATION_UNIT:
-        if c.spelling:
-            parts2.append(c.spelling)
-        c = c.semantic_parent
-    return "::".join(reversed(parts2))
+    return "::".join(reversed(parts))
 
 
 class EnforceParamNameForType(Check):
@@ -153,7 +145,7 @@ class EnforceParamNameForType(Check):
                 "string → string mappings"
             )
             raise ConfigError(msg)
-        self.type_to_name = dict(raw)
+        self.type_to_name = {k.removeprefix("::"): v for k, v in raw.items()}
         self._seen_type_names = set()
         self.unseen_type_is_error = bool(config.get("unseen_type_is_error", False))
 
