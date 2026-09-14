@@ -92,9 +92,17 @@ def declaration_type_key(cursor_type: clang.Type) -> str:
     c = decl
     while c and c.kind != clang.CursorKind.TRANSLATION_UNIT:
         if c.spelling:
-            parts.append(c.spelling)
+            parts.append(f"{c.spelling}({c.kind.name}@{c.location.file and c.location.file.name}:{c.location.line})")
         c = c.semantic_parent
-    return "::".join(reversed(parts))
+    from devops.logger import cpp_check_logger as _log
+    _log.debug(f"declaration_type_key parent chain: {parts}")
+    parts2: list[str] = []
+    c = decl
+    while c and c.kind != clang.CursorKind.TRANSLATION_UNIT:
+        if c.spelling:
+            parts2.append(c.spelling)
+        c = c.semantic_parent
+    return "::".join(reversed(parts2))
 
 
 class EnforceParamNameForType(Check):
