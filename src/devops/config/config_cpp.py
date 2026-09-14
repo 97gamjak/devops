@@ -44,8 +44,15 @@ class CppConfig:
     ast_checks: bool = True
 
     # Compiler flags passed to libclang when parsing files for AST checks
-    # (e.g. C++ standard, include paths).
+    # (e.g. C++ standard, include paths). Used as fallback when
+    # ast_check_compile_commands_db is not set or a file is not in the database.
     ast_check_compile_args: list[str] = field(default_factory=lambda: ["-std=c++23"])
+
+    # Path to the directory containing compile_commands.json (e.g. "build").
+    # When set, per-file compile flags are read from the database instead of
+    # ast_check_compile_args. Falls back to ast_check_compile_args for files
+    # not listed in the database.
+    ast_check_compile_commands_db: str | None = None
 
     # If non-empty, only AST checks whose id is in this list run (allowlist).
     # See devops.cpp.ast.registry.ALL_CHECKS for available ids.
@@ -102,6 +109,9 @@ class CppConfig:
 
         args = ", ".join(f'"{arg}"' for arg in self.ast_check_compile_args)
         lines.append(f"#ast_check_compile_args = [{args}]\n")
+
+        db = f'"{self.ast_check_compile_commands_db}"' if self.ast_check_compile_commands_db else '"build"'
+        lines.append(f"#ast_check_compile_commands_db = {db}\n")
 
         enabled = ", ".join(f'"{cid}"' for cid in self.ast_check_enabled_ids)
         lines.append(f"#ast_check_enabled_ids = [{enabled}]\n")
@@ -165,6 +175,8 @@ def parse_cpp_config(raw_config: dict) -> CppConfig:
         default=["-std=c++23"],
     )
 
+    ast_check_compile_commands_db = get_str(table, "ast_check_compile_commands_db")
+
     ast_check_enabled_ids = get_str_list(table, "ast_check_enabled_ids")
 
     ast_check_disabled_ids = get_str_list(table, "ast_check_disabled_ids")
@@ -185,6 +197,7 @@ def parse_cpp_config(raw_config: dict) -> CppConfig:
         header_guards_according_to_filepath=header_guards_according_to_filepath,
         ast_checks=ast_checks,
         ast_check_compile_args=ast_check_compile_args,
+        ast_check_compile_commands_db=ast_check_compile_commands_db,
         ast_check_enabled_ids=ast_check_enabled_ids,
         ast_check_disabled_ids=ast_check_disabled_ids,
         ast_check_config=ast_check_config,

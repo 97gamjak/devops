@@ -4,14 +4,52 @@ from __future__ import annotations
 
 import typing
 
+import clang.cindex as clang
+
 from devops.cpp.ast.engine import run_ast_checks
 from devops.cpp.ast.registry import ALL_CHECKS, configure_checks, select_checks
+from devops.logger import cpp_check_logger
 from devops.rules import ResultType, ResultTypeEnum, Rule, RuleInputType, RuleType
 
 if typing.TYPE_CHECKING:
+    from pathlib import Path
+
     from devops.rules import FileRuleInput
 
 DEFAULT_COMPILE_ARGS = ["-std=c++23"]
+
+# Flags that are not useful to libclang and whose following argument (if any)
+# should also be dropped.
+_SKIP_WITH_ARG = frozenset(("-o", "-MF", "-MT", "-MQ"))
+# Flags that are not useful but take no following argument.
+_SKIP_ALONE = frozenset(("-c",))
+
+
+def _args_from_compile_commands(
+    db: clang.CompilationDatabase, path: Path
+) -> list[str] | None:
+    """Return filtered compile args for *path* from *db*, or None if not found."""
+    cmds = db.getCompileCommands(str(path.resolve()))
+    if not cmds:
+        return None
+
+    raw = list(cmds[0].arguments)  # first element is the compiler executable
+    result: list[str] = []
+    skip_next = False
+    for arg in raw[1:]:  # skip compiler
+        if skip_next:
+            skip_next = False
+            continue
+        if arg in _SKIP_WITH_ARG:
+            skip_next = True
+            continue
+        if arg in _SKIP_ALONE:
+            continue
+        # Skip the source file itself
+        if not arg.startswith("-") and arg.endswith((".cpp", ".cxx", ".cc", ".c")):
+            continue
+        result.append(arg)
+    return result
 
 
 class ASTChecksRule(Rule):
@@ -26,6 +64,7 @@ class ASTChecksRule(Rule):
     def __init__(
         self,
         compile_args: list[str] | None = None,
+        compile_commands_db: str | None = None,
         enabled_check_ids: list[str] | None = None,
         disabled_check_ids: list[str] | None = None,
         check_config: dict[str, dict] | None = None,
@@ -35,8 +74,14 @@ class ASTChecksRule(Rule):
         Parameters
         ----------
         compile_args: list[str] | None
-            Compiler flags passed to libclang when parsing each file.
-            Defaults to `DEFAULT_COMPILE_ARGS`.
+            Fallback compiler flags passed to libclang when parsing each file.
+            Used when ``compile_commands_db`` is not set or the file is not
+            found in the database. Defaults to `DEFAULT_COMPILE_ARGS`.
+        compile_commands_db: str | None
+            Path to the directory containing ``compile_commands.json``
+            (e.g. ``"build"``).  When set, per-file compile flags are looked
+            up from the database, falling back to ``compile_args`` if the
+            file is not listed.
         enabled_check_ids: list[str] | None
             If non-empty, only checks whose `.id` is in this list run
             (see `devops.cpp.ast.registry.select_checks`).
@@ -49,6 +94,18 @@ class ASTChecksRule(Rule):
 
         """
         self.compile_args = compile_args or DEFAULT_COMPILE_ARGS
+        self._compile_db: clang.CompilationDatabase | None = None
+        if compile_commands_db is not None:
+            try:
+                self._compile_db = clang.CompilationDatabase.fromDirectory(
+                    compile_commands_db
+                )
+            except clang.CompilationDatabaseError:
+                cpp_check_logger.warning(
+                    f"AST checks: could not load compile_commands.json from "
+                    f"'{compile_commands_db}' — falling back to compile_args."
+                )
+
         self.checks = configure_checks(
             select_checks(
                 ALL_CHECKS,
@@ -84,10 +141,23 @@ class ASTChecksRule(Rule):
         if file_rule_input.path is None:
             return ResultType(ResultTypeEnum.Ok)
 
+        compile_args = self.compile_args
+        if self._compile_db is not None:
+            per_file = _args_from_compile_commands(
+                self._compile_db, file_rule_input.path
+            )
+            if per_file is not None:
+                compile_args = per_file
+            else:
+                cpp_check_logger.debug(
+                    f"AST checks: '{file_rule_input.path}' not in compile_commands.json"
+                    " — using fallback compile_args."
+                )
+
         diagnostics = run_ast_checks(
             file_rule_input.path,
             file_rule_input.file_content,
-            self.compile_args,
+            compile_args,
             checks=self.checks,
         )
 
