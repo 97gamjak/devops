@@ -219,6 +219,7 @@ class EnforceParamNameForType(Check):
         self._seen_type_names.add(type_name)
         # Match by exact key or by suffix (e.g. "molsys::SimulationBox" matches
         # "std::molsys::SimulationBox" when the namespace is wrapped in another).
+        matched_key = type_name
         expected = self.type_to_name.get(type_name)
         if expected is None:
             for key, value in self.type_to_name.items():
@@ -226,6 +227,7 @@ class EnforceParamNameForType(Check):
                 # "std::molsys::Foo"). Unqualified keys must be exact matches only.
                 if "::" in key and type_name.endswith(f"::{key}"):
                     expected = value
+                    matched_key = key
                     break
 
         loc = cursor.location
@@ -249,7 +251,7 @@ class EnforceParamNameForType(Check):
                 line=loc.line,
                 column=loc.column,
                 message=(
-                    f"parameter of type '{type_name}' named '{name}' "
+                    f"parameter of type '{matched_key}' named '{name}' "
                     f"should be named '{expected}'"
                 ),
                 check_id=self.id,
