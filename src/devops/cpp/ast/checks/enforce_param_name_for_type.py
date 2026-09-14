@@ -169,7 +169,11 @@ class EnforceParamNameForType(Check):
         )
         passed = True
         for type_name in self.type_to_name:
-            if type_name not in self._seen_type_names:
+            seen = type_name in self._seen_type_names or (
+                "::" in type_name
+                and any(t.endswith(f"::{type_name}") for t in self._seen_type_names)
+            )
+            if not seen:
                 if self.unseen_type_is_error:
                     cpp_check_logger.error(
                         f"paramNameForType: configured type '{type_name}' was never "
@@ -213,7 +217,16 @@ class EnforceParamNameForType(Check):
 
         type_name = declaration_type_key(cursor.type)
         self._seen_type_names.add(type_name)
+        # Match by exact key or by suffix (e.g. "molsys::SimulationBox" matches
+        # "std::molsys::SimulationBox" when the namespace is wrapped in another).
         expected = self.type_to_name.get(type_name)
+        if expected is None:
+            for key, value in self.type_to_name.items():
+                # Suffix match only for qualified keys (e.g. "molsys::Foo" matches
+                # "std::molsys::Foo"). Unqualified keys must be exact matches only.
+                if "::" in key and type_name.endswith(f"::{key}"):
+                    expected = value
+                    break
 
         loc = cursor.location
         cpp_check_logger.debug(
