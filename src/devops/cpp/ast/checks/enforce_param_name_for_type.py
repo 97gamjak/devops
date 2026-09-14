@@ -109,7 +109,7 @@ class EnforceParamNameForType(Check):
 
     def __init__(self) -> None:
         """Initialise with an empty type-to-name mapping."""
-        self.type_to_name: dict[str, str] = {}
+        self.type_to_name: dict[str, list[str]] = {}
         self._seen_type_names: set[str] = set()
         self.unseen_type_is_error: bool = False
 
@@ -121,11 +121,13 @@ class EnforceParamNameForType(Check):
         config: dict
             Expected shape: ``{"type_to_name": {"TypeName": "paramName", ...},
             "unseen_type_is_error": false}``.
+            Values may be a single string or a list of strings to allow
+            multiple valid parameter names for the same type.
 
         Raises
         ------
         ConfigError
-            If ``type_to_name`` is missing or is not a ``dict[str, str]``.
+            If ``type_to_name`` is missing or has an invalid shape.
 
         """
         if "type_to_name" not in config:
@@ -137,15 +139,24 @@ class EnforceParamNameForType(Check):
             )
             raise ConfigError(msg)
         raw = config["type_to_name"]
+
+        def _valid_value(v: object) -> bool:
+            if isinstance(v, str):
+                return True
+            return isinstance(v, list) and all(isinstance(s, str) for s in v)
+
         if not isinstance(raw, dict) or not all(
-            isinstance(k, str) and isinstance(v, str) for k, v in raw.items()
+            isinstance(k, str) and _valid_value(v) for k, v in raw.items()
         ):
             msg = (
                 "paramNameForType: 'type_to_name' must be a table of "
-                "string → string mappings"
+                "string → string (or string → list[string]) mappings"
             )
             raise ConfigError(msg)
-        self.type_to_name = {k.removeprefix("::"): v for k, v in raw.items()}
+        self.type_to_name = {
+            k.removeprefix("::"): ([v] if isinstance(v, str) else list(v))
+            for k, v in raw.items()
+        }
         self._seen_type_names = set()
         self.unseen_type_is_error = bool(config.get("unseen_type_is_error", False))
 
@@ -235,16 +246,17 @@ class EnforceParamNameForType(Check):
             f"paramNameForType: saw PARM_DECL '{name}' of type '{type_name}' at "
             f"{filename}:{loc.line}:{loc.column} "
             f"(raw spelling: '{cursor.type.spelling}', kind: {cursor.type.kind})"
-            + (f" [configured, expected '{expected}']" if expected else " [not configured]")
+            + (f" [configured, expected one of {expected}]" if expected else " [not configured]")  # noqa: E501
         )
 
         if expected is None:
             return []
 
-        if name == expected:
+        if name in expected:
             return []
 
         loc = cursor.location
+        allowed = " or ".join(f"'{n}'" for n in expected)
         return [
             Diagnostic(
                 file=filename,
@@ -252,7 +264,7 @@ class EnforceParamNameForType(Check):
                 column=loc.column,
                 message=(
                     f"parameter of type '{matched_key}' named '{name}' "
-                    f"should be named '{expected}'"
+                    f"should be named {allowed}"
                 ),
                 check_id=self.id,
             )
