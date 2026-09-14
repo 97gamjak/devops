@@ -38,7 +38,7 @@ class Diagnostic:
         """
         return (
             f"{self.file}:{self.line}:{self.column}: {self.severity}: "
-            f"\n{self.message} [{self.check_id}]"
+            f"{self.message} [{self.check_id}]"
         )
 
 

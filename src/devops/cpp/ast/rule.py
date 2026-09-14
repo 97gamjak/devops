@@ -164,7 +164,7 @@ class ASTChecksRule(Rule):
         if not diagnostics:
             return ResultType(ResultTypeEnum.Ok)
 
-        description = "\n".join(d.format() for d in diagnostics)
+        description = "\n" + "\n".join(d.format() for d in diagnostics)
         return ResultType(ResultTypeEnum.Error, description)
 
     def finalize_run(self) -> bool:
