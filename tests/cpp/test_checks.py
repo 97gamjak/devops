@@ -339,3 +339,71 @@ class TestRunCppChecks:
             if record.levelname == "ERROR" and "Error on line1" in record.message
         ]
         assert len(error_logs) == 1
+
+    def test_check_dirs_glob_expands_wildcard(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """check_dirs wildcard patterns are expanded to matching directories.
+
+        Parameters
+        ----------
+        tmp_path: Path
+            Temporary path for creating test files.
+        monkeypatch: pytest.MonkeyPatch
+            Pytest fixture for monkey patching.
+
+        """
+        monkeypatch.chdir(tmp_path)
+
+        # Create two matching module directories each with a .cpp file
+        for name in ("module_a", "module_b"):
+            d = tmp_path / "src" / name
+            d.mkdir(parents=True)
+            (d / "foo.cpp").write_text("int x = 0;\n")
+
+        # A directory that should NOT be matched
+        other = tmp_path / "other"
+        other.mkdir()
+        (other / "bar.cpp").write_text("int y = 0;\n")
+
+        visited: list[str] = []
+
+        def recording_rule(file_rule_input) -> ResultType:
+            if file_rule_input.path is not None:
+                visited.append(file_rule_input.path.name)
+            return ResultType(ResultTypeEnum.Ok)
+
+        rule = Rule(
+            name="recorder",
+            func=recording_rule,
+            rule_type=RuleType.CPP_STYLE,
+            rule_input_type=RuleInputType.FILE,
+        )
+
+        config = CppConfig(check_dirs=["src/module_*"])
+        run_cpp_checks([rule], config)
+
+        assert "foo.cpp" in visited
+        assert "bar.cpp" not in visited
+
+    def test_check_dirs_glob_warns_on_no_match(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, caplog: LogCaptureFixture
+    ) -> None:
+        """A check_dirs pattern that matches no directory emits a warning.
+
+        Parameters
+        ----------
+        tmp_path: Path
+            Temporary path for creating test files.
+        monkeypatch: pytest.MonkeyPatch
+            Pytest fixture for monkey patching.
+        caplog: LogCaptureFixture
+            Pytest fixture for capturing log messages.
+
+        """
+        monkeypatch.chdir(tmp_path)
+
+        config = CppConfig(check_dirs=["does_not_exist_*"])
+        run_cpp_checks([], config)
+
+        assert any("does_not_exist_*" in r.message for r in caplog.records)

@@ -1,5 +1,6 @@
 """C++ checks module."""
 
+import glob
 from pathlib import Path
 
 from devops import __GLOBAL_CONFIG__
@@ -135,19 +136,34 @@ def run_cpp_checks(
         True if all checks pass, False if any check fails.
 
     """
+    exclude = config.exclude_dirs or []
+
     if dirs is not None:
         cpp_check_logger.info(
             f"Running checks in directories: {[str(d) for d in dirs]}"
         )
-        files = get_files_in_dirs(dirs)
+        files = get_files_in_dirs(dirs, exclude_dirs=exclude)
     elif config.check_only_staged_files:
         cpp_check_logger.info("Running checks on staged files...")
         files = get_staged_files()
+    elif config.check_dirs:
+        dirs = []
+        for pattern in config.check_dirs:
+            matches = [Path(m) for m in glob.glob(pattern, recursive=True) if Path(m).is_dir()]
+            if not matches:
+                cpp_check_logger.warning(
+                    f"check_dirs: pattern '{pattern}' matched no directories"
+                )
+            dirs.extend(matches)
+        cpp_check_logger.info(
+            f"Running checks in configured directories: {[str(d) for d in dirs]}"
+        )
+        files = get_files_in_dirs(dirs, exclude_dirs=exclude)
     else:
         cpp_check_logger.info("Running full checks...")
 
         dirs = get_dirs_in_dir()
-        files = get_files_in_dirs(dirs)
+        files = get_files_in_dirs(dirs, exclude_dirs=exclude)
 
         cpp_check_logger.debug(f"Checking directories: {[str(d) for d in dirs]}")
 
@@ -160,23 +176,31 @@ def run_cpp_checks(
     file_rules = filter_file_rules(rules)
     line_rules = filter_line_rules(rules)
 
-    for filename in files:
-        cpp_check_logger.debug(f"Checking file: {filename}")
+    total = len(files)
+    passed = True
+    try:
+        for i, filename in enumerate(files, start=1):
+            cpp_check_logger.info(f"({i}/{total}) {filename}")
 
-        # file rules
-        file_results = run_file_rules(file_rules, filename)
+            # file rules
+            file_results = run_file_rules(file_rules, filename)
 
-        # line rules
-        file_results += run_line_checks(line_rules, filename)
+            # line rules
+            file_results += run_line_checks(line_rules, filename)
 
-        if any(result.value != ResultTypeEnum.Ok for result in file_results):
-            filtered_results = [
-                res for res in file_results if res.value != ResultTypeEnum.Ok
-            ]
-            for res in filtered_results:
-                cpp_check_logger.error(
-                    f"CPP check error: result in {filename}: {res.description}"
-                )
-            return False
+            if any(result.value != ResultTypeEnum.Ok for result in file_results):
+                filtered_results = [
+                    res for res in file_results if res.value != ResultTypeEnum.Ok
+                ]
+                for res in filtered_results:
+                    cpp_check_logger.error(
+                        f"CPP check error: result in {filename}: {res.description}"
+                    )
+                passed = False
+                break
+    finally:
+        for rule in rules:
+            if not rule.finalize_run():
+                passed = False
 
-    return True
+    return passed
