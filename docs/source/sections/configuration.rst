@@ -172,11 +172,53 @@ Controls the checks run by :ref:`cpp_checks <cli-cpp_checks>`.
      - ``false``
      - Restrict checks to files currently staged in Git (for pre-commit
        hook usage).
+   * - ``check_dirs``
+     - list of strings
+     - ``[]``
+     - If non-empty, only files under these directories (relative to the
+       current working directory, glob patterns supported) are checked.
+       Ignored when ``check_only_staged_files`` is ``true``.
+   * - ``exclude_dirs``
+     - list of strings
+     - ``[]``
+     - Directory names to skip during recursive scanning, regardless of
+       whether ``check_dirs`` is set (e.g. ``["build", ".git"]``).
    * - ``header_guards_according_to_filepath``
      - boolean
      - ``false``
      - Additionally require the header guard macro name to match a name
        derived from the file's path, not just be present.
+   * - ``ast_checks``
+     - boolean
+     - ``true``
+     - Enable libclang AST-based checks (see below). Requires the optional
+       ``ast`` extra: ``pip install devops[ast]``.
+   * - ``ast_check_compile_args``
+     - list of strings
+     - ``["-std=c++23"]``
+     - Compiler flags passed to libclang when parsing files for AST checks
+       (e.g. C++ standard, include paths). Used as a fallback when
+       ``ast_check_compile_commands_db`` is not set or a file is not in
+       the database.
+   * - ``ast_check_compile_commands_db``
+     - string or unset
+     - unset
+     - Path to the directory containing ``compile_commands.json`` (e.g.
+       ``"build"`` or ``".build"``). When set, per-file compile flags are
+       read from the database; falls back to ``ast_check_compile_args``
+       for unlisted files. Strongly recommended for projects built with
+       CMake — without it, header includes may be missing and some files
+       may fail to parse.
+   * - ``ast_check_enabled_ids``
+     - list of strings
+     - ``[]``
+     - If non-empty, only AST checks whose ``id`` is in this list run
+       (allowlist). See available check ids below.
+   * - ``ast_check_disabled_ids``
+     - list of strings
+     - ``[]``
+     - AST checks whose ``id`` is in this list are always skipped,
+       regardless of ``ast_check_enabled_ids``.
 
 .. code-block:: toml
 
@@ -185,7 +227,61 @@ Controls the checks run by :ref:`cpp_checks <cli-cpp_checks>`.
    license_header_check = true
    license_header = "LICENSE_HEADER.txt"
    check_only_staged_files = false
+   check_dirs = ["src", "include", "tests"]
+   exclude_dirs = ["build", ".build"]
    header_guards_according_to_filepath = true
+   ast_checks = true
+   ast_check_compile_commands_db = ".build"
+
+``[cpp.ast_check_config.<check-id>]``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Per-check configuration lives in sub-tables of ``[cpp.ast_check_config]``,
+one sub-table per check id. Each check defines its own keys; unknown keys are
+silently ignored.
+
+.. rubric:: ``paramNameForType``
+
+Enforces that parameters of specific types use a canonical name. Useful for
+keeping a consistent naming convention across a large codebase (e.g. every
+``SimulationBox`` parameter should be called ``simulationBox``).
+
+.. list-table::
+   :header-rows: 1
+   :widths: 20 15 15 50
+
+   * - Key
+     - Type
+     - Default
+     - Description
+   * - ``type_to_name``
+     - table (required)
+     - —
+     - Maps fully-qualified type names to the required parameter name (or
+       a list of accepted names). Keys are matched after stripping
+       cv-qualifiers, references, and pointers, so ``"const Foo &"`` and
+       ``"Foo *"`` both resolve to ``"Foo"``.  A leading ``::`` on a key
+       is also stripped automatically.  Qualified keys (containing ``:``)
+       use suffix matching, so ``"molsys::Foo"`` also matches
+       ``"std::molsys::Foo"`` (a known libclang/GCC quirk).
+   * - ``unseen_type_is_error``
+     - boolean
+     - ``false``
+     - If ``true``, a configured type that was never encountered as a
+       parameter type across all checked files causes the run to fail
+       (instead of just logging a warning). Useful for catching typos in
+       the ``type_to_name`` keys.
+
+.. code-block:: toml
+
+   [cpp.ast_check_config.paramNameForType]
+   # Single accepted name:
+   type_to_name = { "molsys::SimulationBox" = "simulationBox" }
+
+   # Multiple accepted names:
+   # type_to_name = { "molsys::SimulationBox" = ["simulationBox", "box"] }
+
+   unseen_type_is_error = true
 
 ``[file]``
 ^^^^^^^^^^
@@ -245,6 +341,13 @@ Full example
    license_header_check = true
    license_header = "LICENSE_HEADER.txt"
    header_guards_according_to_filepath = true
+   check_dirs = ["src", "include", "tests"]
+   ast_checks = true
+   ast_check_compile_commands_db = ".build"
+
+   [cpp.ast_check_config.paramNameForType]
+   type_to_name = { "molsys::SimulationBox" = "simulationBox" }
+   unseen_type_is_error = true
 
    [file]
    encoding = "utf-8"

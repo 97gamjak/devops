@@ -8,8 +8,11 @@ All notable changes to this project will be documented in this file.
 
 #### CPP Rules
 
-- Add first libclang AST-based check (`paramNameForType`) that enforces canonical parameter names for configured types
-- Add per-check TOML configuration via `[cpp.ast_check_config.<check-id>]` sub-tables, allowing each AST check to declare its own settings (e.g. `type_to_name` for `paramNameForType`)
+- Add first libclang AST-based check (`paramNameForType`) that enforces canonical parameter names for configured types; supports fully-qualified type names (e.g. `"molsys::SimulationBox"`), leading `::` stripping, and suffix matching for types that acquire an extra namespace prefix via libclang/GCC system-header quirks
+- Allow multiple accepted parameter names per type in `paramNameForType` by setting the value to a list (e.g. `["simulationBox", "box"]`)
+- Add `unseen_type_is_error` option to `paramNameForType`: when `true`, a configured type never seen as a parameter type across all checked files fails the run instead of just warning
+- Add `ast_check_compile_commands_db` config option to read per-file compile flags from a `compile_commands.json` database; strip CMake precompiled-header flags (`-Xclang -include-pch`) that cause libclang parse failures when the `.gch` file is absent for a given cmake target
+- Add per-check TOML configuration via `[cpp.ast_check_config.<check-id>]` sub-tables, allowing each AST check to declare its own settings
 - Add `check_dirs` config option to restrict C++ checks to specific directories
 - Add `exclude_dirs` config option to skip directories during recursive file scanning
 - Add `(i/total)` file progress logging during C++ checks
