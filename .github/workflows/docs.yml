@@ -1,0 +1,83 @@
+name: Docs
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+    tags:
+      - "*.*.*"
+    paths:
+      - "docs/**"
+      - "src/**"
+      - pyproject.toml
+      - .github/workflows/docs.yml
+  pull_request:
+    branches:
+      - main
+      - dev
+    paths:
+      - "docs/**"
+      - "src/**"
+      - pyproject.toml
+      - .github/workflows/docs.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # required so setuptools_scm can derive the version from tags
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .[docs]
+
+      - name: Build Sphinx documentation
+        run: sphinx-build -b html -W docs/source docs/build/html
+
+      - name: Upload Pages artifact
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/build/html
+
+  deploy:
+    # Only deploy from an actual release tag: setuptools_scm only produces a
+    # clean version (e.g. "0.1.2") when building from the exact tagged
+    # commit. Building from a branch push resolves to a dev version (e.g.
+    # "0.1.2.dev0+g...") because the release tag doesn't exist yet at merge
+    # time - it's created by a later step in create-tag.yml, which then
+    # dispatches this workflow with `--ref <tag>` (a tag *push* made with
+    # GITHUB_TOKEN wouldn't trigger this workflow at all - see create-tag.yml).
+    # workflow_dispatch is also allowed regardless of ref, so a missed/broken
+    # release can be redeployed manually without cutting a new version.
+    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -12,6 +12,7 @@ dependencies = ["typer>=0.20.0"]
 
 [project.optional-dependencies]
 test = ["pytest>=9.0.1", "pytest-cov", "coverage", "docstr-coverage"]
+docs = ["sphinx>=8.1", "sphinx-rtd-theme>=3.0", "myst-parser>=4.0"]
 ast = ["libclang>=18.1.1"]
 
 [project.scripts]

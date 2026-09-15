@@ -9,3 +9,5 @@ tests/test.ipynb
 **_.*.py
 .coverage
 **/__version__.py
+docs/build/
+docs/source/api/generated/
