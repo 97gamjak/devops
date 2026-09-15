@@ -35,22 +35,32 @@ def _args_from_compile_commands(
 
     raw = list(cmds[0].arguments)  # first element is the compiler executable
     result: list[str] = []
-    skip_next = False
-    for arg in raw[1:]:  # skip compiler
-        if skip_next:
-            skip_next = False
-            continue
+    it = iter(raw[1:])  # skip compiler executable
+    for arg in it:
         if arg in _SKIP_WITH_ARG:
-            skip_next = True
+            next(it, None)  # drop the following argument too
             continue
         if arg in _SKIP_ALONE:
             continue
         # Skip the source file itself
         if not arg.startswith("-") and arg.endswith((".cpp", ".cxx", ".cc", ".c")):
             continue
+        # Handle -Xclang <frontend-arg> pairs.  Drop -include-pch entirely
+        # (the .gch file may not exist for every cmake target and causes a
+        # hard parse failure).  All other -Xclang pairs are kept as-is.
+        if arg == "-Xclang":
+            xclang_arg = next(it, None)
+            if xclang_arg == "-include-pch":
+                next(it, None)  # skip following -Xclang
+                next(it, None)  # skip the .gch file path
+                continue
+            if xclang_arg is not None:
+                result.append(arg)
+                result.append(xclang_arg)
+            continue
         result.append(arg)
-    # Clang/libclang compatibility: silently ignore GCC-only flags that would
-    # otherwise cause libclang to reject the translation unit entirely.
+    # Clang/libclang compatibility: silently ignore GCC-only flags that
+    # would otherwise cause libclang to reject the translation unit.
     result += ["-Wno-unknown-warning-option", "-Wno-unused-command-line-argument"]
     return result
 
