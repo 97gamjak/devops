@@ -49,6 +49,9 @@ def _args_from_compile_commands(
         if not arg.startswith("-") and arg.endswith((".cpp", ".cxx", ".cc", ".c")):
             continue
         result.append(arg)
+    # Clang/libclang compatibility: silently ignore GCC-only flags that would
+    # otherwise cause libclang to reject the translation unit entirely.
+    result += ["-Wno-unknown-warning-option", "-Wno-unused-command-line-argument"]
     return result
 
 

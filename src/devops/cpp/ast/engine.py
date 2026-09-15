@@ -54,12 +54,15 @@ def run_ast_checks(
             filename,
             args=compile_args,
             unsaved_files=[(filename, content)],
+            options=(
+                clang.TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD
+                | clang.TranslationUnit.PARSE_SKIP_FUNCTION_BODIES
+            ),
         )
     except clang.TranslationUnitLoadError:
-        cpp_check_logger.warning(
+        cpp_check_logger.info(
             f"AST checks: skipping '{filename}' — libclang could not parse it "
-            "(likely a template implementation file, e.g. .tpp, that cannot be "
-            "compiled as a standalone translation unit)."
+            "(the file may use GCC extensions or built-ins that libclang does not support)."
         )
         return []
 
