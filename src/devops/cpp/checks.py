@@ -5,6 +5,13 @@ from pathlib import Path
 
 from devops import __GLOBAL_CONFIG__
 from devops.config import CppConfig
+from devops.cpp.state import (
+    any_failed,
+    filter_incremental,
+    load_state,
+    save_state,
+    update_entry,
+)
 from devops.files import (
     FileType,
     determine_file_type,
@@ -113,11 +120,19 @@ def run_cpp_checks(
     rules: list[Rule],
     config: CppConfig = __GLOBAL_CONFIG__.cpp,
     dirs: list[Path] | None = None,
-    files: list[Path] | None = None,
+    state_file: Path | None = None,
 ) -> bool:
     """Run C++ checks based on the provided rules.
 
-    Returns immediately after encountering the first file with errors.
+    In the default (non-incremental) mode the function returns immediately
+    after encountering the first file with errors.
+
+    When ``state_file`` is given the run is *incremental*: results are
+    persisted to ``state_file`` after every checked file, and only files
+    that are new, previously failed, or modified since the last run are
+    re-checked.  All files are checked in a single pass (no early exit) so
+    the state file is always up-to-date.  The return value is ``False``
+    whenever any entry in the accumulated state is failed.
 
     Parameters
     ----------
@@ -127,9 +142,10 @@ def run_cpp_checks(
         The global C++ configuration.
     dirs: list[Path] | None
         If given, only files under these directories are checked.
-    files: list[Path] | None
-        If given, check exactly these files and skip all directory scanning.
-        Takes precedence over ``dirs`` and all config-based scanning options.
+    state_file: Path | None
+        Path to the JSON state file used for incremental runs.  When
+        ``None`` (the default) no state is read or written and the classic
+        fail-fast behavior is used.
 
     Raises
     ------
@@ -144,11 +160,7 @@ def run_cpp_checks(
     """
     exclude = config.exclude_dirs or []
 
-    if files is not None:
-        cpp_check_logger.info(
-            f"Running checks on {len(files)} explicit file(s)."
-        )
-    elif dirs is not None:
+    if dirs is not None:
         cpp_check_logger.info(
             f"Running checks in directories: {[str(d) for d in dirs]}"
         )
@@ -183,6 +195,22 @@ def run_cpp_checks(
         cpp_check_logger.warning("No files to check.")
         return True
 
+    # Incremental: load state and skip files that already passed unchanged.
+    state: dict[str, dict] = {}
+    if state_file is not None:
+        state = load_state(state_file)
+        all_files = files
+        files = filter_incremental(files, state)
+        skipped = len(all_files) - len(files)
+        if skipped:
+            cpp_check_logger.info(
+                f"Incremental: skipping {skipped} unchanged passing file(s)."
+            )
+
+    if not files:
+        cpp_check_logger.info("Incremental: all files already passed — nothing to check.")
+        return not any_failed(state)
+
     file_rules = filter_file_rules(rules)
     line_rules = filter_line_rules(rules)
 
@@ -198,7 +226,9 @@ def run_cpp_checks(
             # line rules
             file_results += run_line_checks(line_rules, filename)
 
-            if any(result.value != ResultTypeEnum.Ok for result in file_results):
+            file_passed = all(result.value == ResultTypeEnum.Ok for result in file_results)
+
+            if not file_passed:
                 filtered_results = [
                     res for res in file_results if res.value != ResultTypeEnum.Ok
                 ]
@@ -207,8 +237,17 @@ def run_cpp_checks(
                         f"CPP check error: result in {filename}: {res.description}"
                     )
                 passed = False
-                break
+                if state_file is not None:
+                    update_entry(state, filename, False)
+                else:
+                    break
+            elif state_file is not None:
+                update_entry(state, filename, True)
     finally:
+        if state_file is not None:
+            save_state(state_file, state)
+            if any_failed(state):
+                passed = False
         for rule in rules:
             if not rule.finalize_run():
                 passed = False

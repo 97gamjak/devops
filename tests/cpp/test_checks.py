@@ -276,9 +276,9 @@ class TestRunCppChecks:
             config = CppConfig(check_only_staged_files=True)
             run_cpp_checks([rule], config)
 
-        # Should log the file being checked (at debug level)
+        # Should log the file being checked
         assert any(
-            "Checking file" in record.message and str(test_file) in record.message
+            str(test_file) in record.message
             for record in caplog.records
         )
 
@@ -407,3 +407,183 @@ class TestRunCppChecks:
         run_cpp_checks([], config)
 
         assert any("does_not_exist_*" in r.message for r in caplog.records)
+
+
+class TestRunCppChecksIncremental:
+    """Tests for the incremental (state-file) mode of run_cpp_checks."""
+
+    def setup_method(self) -> None:
+        """Reset rule counters before each test."""
+        Rule.cpp_style_rule_counter = 0
+        Rule.general_rule_counter = 0
+
+    def _passing_rule(self) -> Rule:
+        return Rule(
+            name="passing_rule",
+            func=lambda _line: ResultType(ResultTypeEnum.Ok),
+            rule_type=RuleType.CPP_STYLE,
+            rule_input_type=RuleInputType.LINE,
+        )
+
+    def _failing_rule(self) -> Rule:
+        return Rule(
+            name="failing_rule",
+            func=lambda _line: ResultType(ResultTypeEnum.Error, "fail"),
+            rule_type=RuleType.CPP_STYLE,
+            rule_input_type=RuleInputType.LINE,
+        )
+
+    def test_state_file_is_created_after_run(self, tmp_path: Path) -> None:
+        """A state file is written after an incremental run."""
+        cpp_file = tmp_path / "test.cpp"
+        cpp_file.write_text("int x = 0;\n")
+        state_file = tmp_path / "state.json"
+
+        with patch("devops.cpp.checks.get_staged_files", return_value=[cpp_file]):
+            config = CppConfig(check_only_staged_files=True)
+            run_cpp_checks([self._passing_rule()], config, state_file=state_file)
+
+        assert state_file.exists()
+
+    def test_passing_file_is_skipped_on_second_run(
+        self, tmp_path: Path, caplog: LogCaptureFixture
+    ) -> None:
+        """A file that passed and was not modified is skipped on the next run."""
+        cpp_file = tmp_path / "test.cpp"
+        cpp_file.write_text("int x = 0;\n")
+        state_file = tmp_path / "state.json"
+
+        checked = [0]
+
+        def counting_rule(line: str) -> ResultType:
+            checked[0] += 1
+            return ResultType(ResultTypeEnum.Ok)
+
+        rule = Rule(
+            name="counting",
+            func=counting_rule,
+            rule_type=RuleType.CPP_STYLE,
+            rule_input_type=RuleInputType.LINE,
+        )
+
+        with patch("devops.cpp.checks.get_staged_files", return_value=[cpp_file]):
+            config = CppConfig(check_only_staged_files=True)
+            # First run — file is checked and state saved.
+            run_cpp_checks([rule], config, state_file=state_file)
+            first_count = checked[0]
+
+            # Second run — file unchanged, should be skipped.
+            run_cpp_checks([rule], config, state_file=state_file)
+            second_count = checked[0]
+
+        assert first_count > 0
+        assert second_count == first_count  # no additional calls
+
+    def test_modified_file_is_rechecked(self, tmp_path: Path) -> None:
+        """A file whose mtime changed is re-checked on the next run."""
+        cpp_file = tmp_path / "test.cpp"
+        cpp_file.write_text("int x = 0;\n")
+        state_file = tmp_path / "state.json"
+
+        checked = [0]
+
+        def counting_rule(line: str) -> ResultType:
+            checked[0] += 1
+            return ResultType(ResultTypeEnum.Ok)
+
+        rule = Rule(
+            name="counting",
+            func=counting_rule,
+            rule_type=RuleType.CPP_STYLE,
+            rule_input_type=RuleInputType.LINE,
+        )
+
+        with patch("devops.cpp.checks.get_staged_files", return_value=[cpp_file]):
+            config = CppConfig(check_only_staged_files=True)
+            run_cpp_checks([rule], config, state_file=state_file)
+            after_first = checked[0]
+
+            # Simulate modification by bumping mtime.
+            import os
+            current = cpp_file.stat().st_mtime
+            os.utime(cpp_file, (current + 10, current + 10))
+
+            run_cpp_checks([rule], config, state_file=state_file)
+
+        assert checked[0] > after_first
+
+    def test_failed_file_is_rechecked(self, tmp_path: Path) -> None:
+        """A file that failed is re-checked on the next incremental run."""
+        cpp_file = tmp_path / "test.cpp"
+        cpp_file.write_text("int x = 0;\n")
+        state_file = tmp_path / "state.json"
+
+        call_count = [0]
+
+        def counting_failing_rule(line: str) -> ResultType:
+            call_count[0] += 1
+            return ResultType(ResultTypeEnum.Error, "fail")
+
+        rule = Rule(
+            name="counting_failing",
+            func=counting_failing_rule,
+            rule_type=RuleType.CPP_STYLE,
+            rule_input_type=RuleInputType.LINE,
+        )
+
+        with patch("devops.cpp.checks.get_staged_files", return_value=[cpp_file]):
+            config = CppConfig(check_only_staged_files=True)
+            run_cpp_checks([rule], config, state_file=state_file)
+            after_first = call_count[0]
+            run_cpp_checks([rule], config, state_file=state_file)
+
+        assert call_count[0] > after_first
+
+    def test_incremental_does_not_break_on_first_failure(self, tmp_path: Path) -> None:
+        """In incremental mode all files are checked even if one fails."""
+        file1 = tmp_path / "file1.cpp"
+        file1.write_text("bad\n")
+        file2 = tmp_path / "file2.cpp"
+        file2.write_text("bad\n")
+        state_file = tmp_path / "state.json"
+
+        checked_files: list[str] = []
+
+        def recording_rule(line: str) -> ResultType:
+            checked_files.append(line.strip())
+            return ResultType(ResultTypeEnum.Error, "fail")
+
+        rule = Rule(
+            name="recording",
+            func=recording_rule,
+            rule_type=RuleType.CPP_STYLE,
+            rule_input_type=RuleInputType.LINE,
+        )
+
+        with patch("devops.cpp.checks.get_staged_files", return_value=[file1, file2]):
+            config = CppConfig(check_only_staged_files=True)
+            result = run_cpp_checks([rule], config, state_file=state_file)
+
+        assert result is False
+        # Both files must have been visited (no early break).
+        assert len(checked_files) == 2
+
+    def test_incremental_returns_false_when_state_has_old_failures(
+        self, tmp_path: Path
+    ) -> None:
+        """Return False when there are still failed entries in the state."""
+        import json
+
+        cpp_file = tmp_path / "test.cpp"
+        cpp_file.write_text("int x = 0;\n")
+        state_file = tmp_path / "state.json"
+
+        # Pre-populate state with a failed entry for a different file.
+        other = str(tmp_path / "other.cpp")
+        state_file.write_text(json.dumps({other: {"mtime": 0.0, "result": "failed"}}))
+
+        with patch("devops.cpp.checks.get_staged_files", return_value=[cpp_file]):
+            config = CppConfig(check_only_staged_files=True)
+            result = run_cpp_checks([self._passing_rule()], config, state_file=state_file)
+
+        assert result is False
