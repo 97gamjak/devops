@@ -7,8 +7,8 @@ Configure the type→name mapping via the project TOML file:
 
 Cv-qualifiers (const/volatile) and pointer/reference decoration are
 stripped from the parameter's type before lookup, so
-"const SimulationBox &", "SimulationBox *" and "SimulationBox" all
-resolve to the same key and all require the same parameter name.
+``"const SimulationBox &"``, ``"SimulationBox *"`` and ``"SimulationBox"``
+all resolve to the same key and all require the same parameter name.
 """
 
 from __future__ import annotations
