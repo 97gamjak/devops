@@ -8,7 +8,6 @@ import typer
 
 from devops import __GLOBAL_CONFIG__
 from devops.cpp import build_cpp_rules, run_cpp_checks
-from devops.files import filter_cpp_files, get_dirs_in_dir, get_files_in_dirs
 from devops.utils import mstd_print
 
 app = typer.Typer(help="C++ code quality checks.")
@@ -37,13 +36,10 @@ def cpp_checks(
         license_header=license_header,
     )
 
-    dirs = get_dirs_in_dir() if dirs is None else [Path(d) for d in dirs]
-
-    files = get_files_in_dirs(dirs)
-    files = filter_cpp_files(files)
+    cli_dirs = [Path(d) for d in dirs] if dirs is not None else None
 
     rules = build_cpp_rules(config)
-    passed = run_cpp_checks(rules, config, dirs=dirs)
+    passed = run_cpp_checks(rules, config, dirs=cli_dirs)
 
     if not passed:
         mstd_print("C++ checks failed.")

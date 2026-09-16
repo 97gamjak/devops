@@ -10,4 +10,5 @@ tests/test.ipynb
 .coverage
 **/__version__.py
 docs/build/
+docs/_build/
 docs/source/api/generated/

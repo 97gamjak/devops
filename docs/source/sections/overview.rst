@@ -25,6 +25,16 @@ and runs them against a project's C++ sources:
   ``static inline constexpr`` that are written out of the expected order.
 - **License headers** — verifies that source and header files start with the
   contents of a configured license header file (see below).
+- **AST-based checks** (optional, requires ``pip install devops[ast]``) — uses
+  libclang to parse each file and run semantic checks that text-based rules
+  cannot express:
+
+  - ``paramNameForType`` — enforces that parameters of configured types use a
+    canonical name (e.g. every ``SimulationBox`` parameter must be called
+    ``simulationBox``). The type-to-name mapping is configured in
+    ``[cpp.ast_check_config.paramNameForType]``. Supports fully-qualified type
+    names, multiple accepted names per type, and per-file compile flags from a
+    ``compile_commands.json`` database.
 
 Run it with :ref:`cpp_checks <cli-cpp_checks>`.
 
