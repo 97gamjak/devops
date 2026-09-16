@@ -15,7 +15,9 @@ app = typer.Typer(help="C++ code quality checks.")
 
 @app.command()
 def cpp_checks(
-    license_header: str | None = None, dirs: list[str] | None = None
+    license_header: str | None = None,
+    dirs: list[str] | None = None,
+    files: list[str] | None = None,
 ) -> None:
     """Run C++ code quality checks.
 
@@ -26,6 +28,10 @@ def cpp_checks(
     dirs: list[str] | None
         List of directories to check.
         If None, uses all directories in the current directory.
+    files: list[str] | None
+        List of specific files to check. When given, directory scanning is
+        skipped entirely. Useful for re-running checks on a known set of
+        files (e.g. only those that failed in a previous run).
 
     """
     if license_header is None:
@@ -37,9 +43,10 @@ def cpp_checks(
     )
 
     cli_dirs = [Path(d) for d in dirs] if dirs is not None else None
+    cli_files = [Path(f) for f in files] if files is not None else None
 
     rules = build_cpp_rules(config)
-    passed = run_cpp_checks(rules, config, dirs=cli_dirs)
+    passed = run_cpp_checks(rules, config, dirs=cli_dirs, files=cli_files)
 
     if not passed:
         mstd_print("C++ checks failed.")

@@ -113,6 +113,7 @@ def run_cpp_checks(
     rules: list[Rule],
     config: CppConfig = __GLOBAL_CONFIG__.cpp,
     dirs: list[Path] | None = None,
+    files: list[Path] | None = None,
 ) -> bool:
     """Run C++ checks based on the provided rules.
 
@@ -124,6 +125,11 @@ def run_cpp_checks(
         The list of rules to apply.
     config: CppConfig
         The global C++ configuration.
+    dirs: list[Path] | None
+        If given, only files under these directories are checked.
+    files: list[Path] | None
+        If given, check exactly these files and skip all directory scanning.
+        Takes precedence over ``dirs`` and all config-based scanning options.
 
     Raises
     ------
@@ -138,7 +144,11 @@ def run_cpp_checks(
     """
     exclude = config.exclude_dirs or []
 
-    if dirs is not None:
+    if files is not None:
+        cpp_check_logger.info(
+            f"Running checks on {len(files)} explicit file(s)."
+        )
+    elif dirs is not None:
         cpp_check_logger.info(
             f"Running checks in directories: {[str(d) for d in dirs]}"
         )
