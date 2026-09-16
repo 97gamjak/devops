@@ -62,6 +62,9 @@ autodoc_default_options = {
 }
 autodoc_typehints = "description"
 autodoc_member_order = "bysource"
+# Mock the optional libclang C-extension so Sphinx can import the ast modules
+# when building docs without the 'ast' extra installed.
+autodoc_mock_imports = ["clang"]
 
 # -- Napoleon (NumPy-style docstrings, matching the project's convention) -----
 
