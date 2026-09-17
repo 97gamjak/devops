@@ -67,6 +67,20 @@ class CppConfig:
     # method.  Declared in TOML as sub-tables of cpp.ast_check_config.
     ast_check_config: dict[str, dict] = field(default_factory=dict)
 
+    # Path to the JSON file used to persist incremental check state.
+    # When set (non-None, non-empty), cpp_checks runs in incremental mode
+    # automatically: only new, previously-failed, or modified files are
+    # re-checked on each run.  The CLI --incremental flag can also enable
+    # this; when both are set, --state-file takes precedence.
+    incremental_state_file: str | None = None
+
+    # When True (the default), cpp_checks stops at the first file that
+    # fails and reports an error.  Set to False to check all files
+    # regardless of failures — useful in incremental mode to get a full
+    # picture of the codebase in a single pass.  Can also be disabled via
+    # the CLI --no-fail-fast flag.
+    fail_fast: bool = True
+
     def to_toml_lines(self) -> list[str]:
         """Convert the CppConfig to TOML lines.
 
@@ -126,6 +140,11 @@ class CppConfig:
             '#type_to_name = { SimulationBox = "simulationBox", '
             'ForceField = "forceField" }\n'
         )
+
+        isf = f'"{self.incremental_state_file}"' if self.incremental_state_file else '"build/.cpp_check_state.json"'
+        lines.append(f"#incremental_state_file = {isf}\n")
+
+        lines.append(f"#fail_fast = {str(self.fail_fast).lower()}\n")
 
         return lines
 
@@ -187,6 +206,10 @@ def parse_cpp_config(raw_config: dict) -> CppConfig:
         for check_id in raw_check_config
     }
 
+    incremental_state_file = get_str(table, "incremental_state_file") or None
+
+    fail_fast = get_bool(table, "fail_fast", default=CppConfig.fail_fast)
+
     config = CppConfig(
         style_checks=style_checks,
         license_header_check=license_header_check,
@@ -201,6 +224,8 @@ def parse_cpp_config(raw_config: dict) -> CppConfig:
         ast_check_enabled_ids=ast_check_enabled_ids,
         ast_check_disabled_ids=ast_check_disabled_ids,
         ast_check_config=ast_check_config,
+        incremental_state_file=incremental_state_file,
+        fail_fast=fail_fast,
     )
 
     config_logger.debug(f"Parsed C++ configuration: {config}")

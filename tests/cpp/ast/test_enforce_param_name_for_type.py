@@ -124,7 +124,7 @@ class TestEnforceParamNameForTypeConfiguration:
         check.configure({"type_to_name": {"A": "a"}})
         check.configure({"type_to_name": {"B": "b"}})
 
-        assert check.type_to_name == {"B": "b"}
+        assert check.type_to_name == {"B": ["b"]}
 
     def test_configure_missing_type_to_name_raises(self) -> None:
         """A config block without type_to_name raises ConfigError.

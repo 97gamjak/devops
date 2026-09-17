@@ -16,6 +16,8 @@ All notable changes to this project will be documented in this file.
 - Add `check_dirs` config option to restrict C++ checks to specific directories
 - Add `exclude_dirs` config option to skip directories during recursive file scanning
 - Add `(i/total)` file progress logging during C++ checks
+- Add incremental check mode: set `incremental_state_file = "build/.cpp_check_state.json"` in `[cpp]` (or pass `--incremental` / `--state-file` on the CLI) to persist per-file pass/fail state and skip already-passing, unmodified files on subsequent runs; fail-fast behaviour is preserved by default
+- Add `fail_fast` config option (default `true`) and `--no-fail-fast` CLI flag: when disabled, all files are checked even after a failure and their results are all recorded — particularly useful combined with incremental mode to get a full picture of the codebase in one pass
 
 #### Documentation
 
