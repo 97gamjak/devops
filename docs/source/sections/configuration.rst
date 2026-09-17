@@ -231,6 +231,15 @@ Controls the checks run by :ref:`cpp_checks <cli-cpp_checks>`.
        flag can enable the same mode without touching the config; when
        ``--state-file`` is also given it takes precedence over this
        setting. See :ref:`incremental checks <incremental-checks>`.
+   * - ``fail_fast``
+     - boolean
+     - ``true``
+     - When ``true`` (the default), ``cpp_checks`` stops at the first file
+       that fails and reports an error. Set to ``false`` to check all files
+       regardless of failures — useful in incremental mode (together with
+       ``incremental_state_file``) to get a complete picture of the
+       codebase in a single pass. Can also be overridden at runtime with
+       the ``--no-fail-fast`` CLI flag.
 
 .. code-block:: toml
 
@@ -245,6 +254,7 @@ Controls the checks run by :ref:`cpp_checks <cli-cpp_checks>`.
    ast_checks = true
    ast_check_compile_commands_db = ".build"
    incremental_state_file = "build/.cpp_check_state.json"
+   fail_fast = false
 
 ``[cpp.ast_check_config.<check-id>]``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

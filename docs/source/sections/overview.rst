@@ -52,8 +52,9 @@ passed:
 - On the next run, files that passed and whose ``mtime`` is unchanged are
   skipped entirely.
 - Files that failed, were modified, or are new are always re-checked.
-- In incremental mode all files are checked in a single pass (no early exit),
-  so the state file is always fully up-to-date at the end of each run.
+- By default ``cpp_checks`` still stops at the first failure (**fail-fast**),
+  even in incremental mode. Set ``fail_fast = false`` in ``[cpp]`` (or pass
+  ``--no-fail-fast``) to check every file in one pass and record all results.
 
 **Enable via TOML** (recommended for CI / permanent projects):
 
@@ -61,6 +62,8 @@ passed:
 
    [cpp]
    incremental_state_file = "build/.cpp_check_state.json"
+   # Optional: disable fail-fast to record results for all files in one pass
+   # fail_fast = false
 
 Add the state file to ``.gitignore`` — it is machine-local and should not be
 committed.
@@ -71,6 +74,7 @@ committed.
 
    cpp_checks --incremental
    cpp_checks --incremental --state-file build/.cpp_check_state.json
+   cpp_checks --incremental --no-fail-fast   # check all files, save full state
 
 ``--state-file`` implies ``--incremental`` and takes precedence over the TOML
 setting. When ``--incremental`` is used without ``--state-file``, the TOML
