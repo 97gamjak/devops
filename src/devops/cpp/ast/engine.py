@@ -12,7 +12,10 @@ from devops.logger import cpp_check_logger
 if typing.TYPE_CHECKING:
     from pathlib import Path
 
-    from devops.cpp.ast.base import Check, Diagnostic
+from devops.cpp.ast.base import Diagnostic
+
+if typing.TYPE_CHECKING:
+    from devops.cpp.ast.base import Check
 
 
 def run_ast_checks(
@@ -60,11 +63,19 @@ def run_ast_checks(
             ),
         )
     except clang.TranslationUnitLoadError:
-        cpp_check_logger.info(
-            f"AST checks: skipping '{filename}' — libclang could not parse it "
-            "(the file may use GCC extensions or built-ins that libclang does not support)."
-        )
-        return []
+        return [
+            Diagnostic(
+                file=filename,
+                line=0,
+                column=0,
+                message=(
+                    "libclang could not parse this file — it may use GCC extensions "
+                    "or built-ins that libclang does not support"
+                ),
+                check_id="astParseError",
+                severity="error",
+            )
+        ]
 
     diagnostics: list[Diagnostic] = []
 
