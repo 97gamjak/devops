@@ -124,15 +124,15 @@ def run_cpp_checks(
 ) -> bool:
     """Run C++ checks based on the provided rules.
 
-    In the default (non-incremental) mode the function returns immediately
-    after encountering the first file with errors.
+    By default the function returns immediately after encountering the first
+    file with errors (fail-fast).  Set ``config.fail_fast = False`` (or pass
+    ``--no-fail-fast`` on the CLI) to check all files regardless.
 
     When ``state_file`` is given the run is *incremental*: results are
     persisted to ``state_file`` after every checked file, and only files
     that are new, previously failed, or modified since the last run are
-    re-checked.  All files are checked in a single pass (no early exit) so
-    the state file is always up-to-date.  The return value is ``False``
-    whenever any entry in the accumulated state is failed.
+    re-checked.  The return value is ``False`` whenever any entry in the
+    accumulated state is failed.
 
     Parameters
     ----------
@@ -239,7 +239,7 @@ def run_cpp_checks(
                 passed = False
                 if state_file is not None:
                     update_entry(state, filename, False)
-                else:
+                if config.fail_fast:
                     break
             elif state_file is not None:
                 update_entry(state, filename, True)

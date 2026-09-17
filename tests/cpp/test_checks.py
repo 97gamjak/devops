@@ -539,18 +539,18 @@ class TestRunCppChecksIncremental:
 
         assert call_count[0] > after_first
 
-    def test_incremental_does_not_break_on_first_failure(self, tmp_path: Path) -> None:
-        """In incremental mode all files are checked even if one fails."""
+    def test_incremental_still_fails_fast_by_default(self, tmp_path: Path) -> None:
+        """Incremental mode still stops at the first failure by default."""
         file1 = tmp_path / "file1.cpp"
         file1.write_text("bad\n")
         file2 = tmp_path / "file2.cpp"
         file2.write_text("bad\n")
         state_file = tmp_path / "state.json"
 
-        checked_files: list[str] = []
+        visited: list[str] = []
 
         def recording_rule(line: str) -> ResultType:
-            checked_files.append(line.strip())
+            visited.append(line.strip())
             return ResultType(ResultTypeEnum.Error, "fail")
 
         rule = Rule(
@@ -561,12 +561,68 @@ class TestRunCppChecksIncremental:
         )
 
         with patch("devops.cpp.checks.get_staged_files", return_value=[file1, file2]):
-            config = CppConfig(check_only_staged_files=True)
+            config = CppConfig(check_only_staged_files=True)  # fail_fast=True by default
+            result = run_cpp_checks([rule], config, state_file=state_file)
+
+        assert result is False
+        # Only the first file was visited (fail-fast).
+        assert len(visited) == 1
+
+    def test_incremental_no_fail_fast_checks_all_files(self, tmp_path: Path) -> None:
+        """With fail_fast=False all files are checked even when some fail."""
+        file1 = tmp_path / "file1.cpp"
+        file1.write_text("bad\n")
+        file2 = tmp_path / "file2.cpp"
+        file2.write_text("bad\n")
+        state_file = tmp_path / "state.json"
+
+        visited: list[str] = []
+
+        def recording_rule(line: str) -> ResultType:
+            visited.append(line.strip())
+            return ResultType(ResultTypeEnum.Error, "fail")
+
+        rule = Rule(
+            name="recording",
+            func=recording_rule,
+            rule_type=RuleType.CPP_STYLE,
+            rule_input_type=RuleInputType.LINE,
+        )
+
+        with patch("devops.cpp.checks.get_staged_files", return_value=[file1, file2]):
+            config = CppConfig(check_only_staged_files=True, fail_fast=False)
             result = run_cpp_checks([rule], config, state_file=state_file)
 
         assert result is False
         # Both files must have been visited (no early break).
-        assert len(checked_files) == 2
+        assert len(visited) == 2
+
+    def test_no_fail_fast_without_incremental_checks_all_files(self, tmp_path: Path) -> None:
+        """fail_fast=False also works without a state file."""
+        file1 = tmp_path / "file1.cpp"
+        file1.write_text("bad\n")
+        file2 = tmp_path / "file2.cpp"
+        file2.write_text("bad\n")
+
+        visited: list[str] = []
+
+        def recording_rule(line: str) -> ResultType:
+            visited.append(line.strip())
+            return ResultType(ResultTypeEnum.Error, "fail")
+
+        rule = Rule(
+            name="recording",
+            func=recording_rule,
+            rule_type=RuleType.CPP_STYLE,
+            rule_input_type=RuleInputType.LINE,
+        )
+
+        with patch("devops.cpp.checks.get_staged_files", return_value=[file1, file2]):
+            config = CppConfig(check_only_staged_files=True, fail_fast=False)
+            result = run_cpp_checks([rule], config)
+
+        assert result is False
+        assert len(visited) == 2
 
     def test_incremental_returns_false_when_state_has_old_failures(
         self, tmp_path: Path

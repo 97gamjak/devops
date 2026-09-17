@@ -38,6 +38,16 @@ def cpp_checks(
             f"default path (``{DEFAULT_STATE_FILE}``)."
         ),
     ),
+    no_fail_fast: bool = typer.Option(
+        False,
+        "--no-fail-fast",
+        help=(
+            "Check all files even after a failure, instead of stopping at the "
+            "first file with errors.  Overrides ``fail_fast`` in the [cpp] TOML "
+            "section.  Particularly useful together with --incremental to get a "
+            "full picture of the codebase in one pass."
+        ),
+    ),
 ) -> None:
     """Run C++ code quality checks.
 
@@ -55,6 +65,9 @@ def cpp_checks(
     state_file: str | None
         Explicit path to the JSON state file.  Implies incremental mode.
         When omitted, falls back to the TOML setting or the default path.
+    no_fail_fast: bool
+        When True, all files are checked even if some fail.  Overrides
+        ``fail_fast`` in the [cpp] TOML section.
 
     """
     if license_header is None:
@@ -63,6 +76,7 @@ def cpp_checks(
     config = replace(
         __GLOBAL_CONFIG__.cpp,
         license_header=license_header,
+        **({"fail_fast": False} if no_fail_fast else {}),
     )
 
     cli_dirs = [Path(d) for d in dirs] if dirs is not None else None
