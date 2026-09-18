@@ -58,18 +58,26 @@ def run_ast_checks(
         clang.TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD
         | clang.TranslationUnit.PARSE_SKIP_FUNCTION_BODIES
     )
-    if is_header:
-        # CXTranslationUnit_Incomplete: tells libclang this is a header that
-        # may not have all definitions present — prevents a catastrophic parse
-        # failure (TranslationUnitLoadError) when scanning headers standalone.
-        parse_options |= clang.TranslationUnit.PARSE_INCOMPLETE
 
     index = clang.Index.create()
+    if is_header:
+        # Parse a virtual .cpp wrapper that #includes the header so that
+        # libclang gets a proper translation-unit context.  Parsing a header
+        # directly often causes TranslationUnitLoadError because libclang
+        # expects a complete translation unit as its entry point.
+        wrapper_name = "__devops_ast_header_check__.cpp"
+        wrapper_content = f'#include "{filename}"\n'
+        unsaved = [(filename, content), (wrapper_name, wrapper_content)]
+        parse_name = wrapper_name
+    else:
+        unsaved = [(filename, content)]
+        parse_name = filename
+
     try:
         translation_unit = index.parse(
-            filename,
+            parse_name,
             args=compile_args,
-            unsaved_files=[(filename, content)],
+            unsaved_files=unsaved,
             options=parse_options,
         )
     except clang.TranslationUnitLoadError:
