@@ -3,15 +3,12 @@
 from __future__ import annotations
 
 import typing
+from pathlib import Path
 
 import clang.cindex as clang
 
 from devops.cpp.ast.registry import ALL_CHECKS
 from devops.logger import cpp_check_logger
-
-if typing.TYPE_CHECKING:
-    from pathlib import Path
-
 from devops.cpp.ast.base import Diagnostic
 
 if typing.TYPE_CHECKING:
@@ -50,7 +47,11 @@ def run_ast_checks(
     """
     checks = ALL_CHECKS if checks is None else checks
 
+    # Use the display/diagnostic path as-is; resolve to absolute for libclang
+    # so that unsaved-file lookup and AST node locations are consistent.
     filename = str(path)
+    filename_abs = str(path.resolve())
+
     _HEADER_SUFFIXES = {".h", ".hpp", ".hxx", ".hh"}
     is_header = path.suffix.lower() in _HEADER_SUFFIXES
 
@@ -65,13 +66,17 @@ def run_ast_checks(
         # libclang gets a proper translation-unit context.  Parsing a header
         # directly often causes TranslationUnitLoadError because libclang
         # expects a complete translation unit as its entry point.
-        wrapper_name = "__devops_ast_header_check__.cpp"
-        wrapper_content = f'#include "{filename}"\n'
-        unsaved = [(filename, content), (wrapper_name, wrapper_content)]
+        # Use absolute paths so libclang's internal path resolution can match
+        # our unsaved-file entries (it normalises to absolute before lookup).
+        wrapper_name = str(Path.cwd() / "__devops_ast_header_check__.cpp")
+        wrapper_content = f'#include "{filename_abs}"\n'
+        unsaved = [(filename_abs, content), (wrapper_name, wrapper_content)]
         parse_name = wrapper_name
+        filter_name = filename_abs
     else:
         unsaved = [(filename, content)]
         parse_name = filename
+        filter_name = filename
 
     try:
         translation_unit = index.parse(
@@ -99,7 +104,7 @@ def run_ast_checks(
 
     for cursor in translation_unit.cursor.walk_preorder():
         loc = cursor.location
-        if not loc.file or loc.file.name != filename:
+        if not loc.file or loc.file.name != filter_name:
             continue
         for check in checks:
             diagnostics.extend(check.visit(cursor, filename))
