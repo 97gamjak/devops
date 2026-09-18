@@ -51,16 +51,26 @@ def run_ast_checks(
     checks = ALL_CHECKS if checks is None else checks
 
     filename = str(path)
+    _HEADER_SUFFIXES = {".h", ".hpp", ".hxx", ".hh"}
+    is_header = path.suffix.lower() in _HEADER_SUFFIXES
+
+    parse_options = (
+        clang.TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD
+        | clang.TranslationUnit.PARSE_SKIP_FUNCTION_BODIES
+    )
+    if is_header:
+        # CXTranslationUnit_Incomplete: tells libclang this is a header that
+        # may not have all definitions present — prevents a catastrophic parse
+        # failure (TranslationUnitLoadError) when scanning headers standalone.
+        parse_options |= clang.TranslationUnit.PARSE_INCOMPLETE
+
     index = clang.Index.create()
     try:
         translation_unit = index.parse(
             filename,
             args=compile_args,
             unsaved_files=[(filename, content)],
-            options=(
-                clang.TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD
-                | clang.TranslationUnit.PARSE_SKIP_FUNCTION_BODIES
-            ),
+            options=parse_options,
         )
     except clang.TranslationUnitLoadError:
         return [
