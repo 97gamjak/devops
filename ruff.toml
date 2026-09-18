@@ -17,6 +17,11 @@ pylint.max-args = 6
     "S101",    # allow use of assert in tests
     "PLR2004", # allow use of magic numbers in tests
 ]
+"src/devops/scripts/*" = [
+    "FBT001", # boolean-typed positional arg — unavoidable in typer CLI functions
+    "FBT002", # boolean default value — unavoidable in typer CLI functions
+    "FBT003", # boolean positional value in call — typer.Option(False, ...) is idiomatic
+]
 
 [lint.pydocstyle]
 convention = "numpy"

@@ -7,12 +7,13 @@ from pathlib import Path
 
 import clang.cindex as clang
 
-from devops.cpp.ast.registry import ALL_CHECKS
-from devops.logger import cpp_check_logger
 from devops.cpp.ast.base import Diagnostic
+from devops.cpp.ast.registry import ALL_CHECKS
 
 if typing.TYPE_CHECKING:
     from devops.cpp.ast.base import Check
+
+_HEADER_SUFFIXES = {".h", ".hpp", ".hxx", ".hh"}
 
 
 def run_ast_checks(
@@ -52,7 +53,6 @@ def run_ast_checks(
     filename = str(path)
     filename_abs = str(path.resolve())
 
-    _HEADER_SUFFIXES = {".h", ".hpp", ".hxx", ".hh"}
     is_header = path.suffix.lower() in _HEADER_SUFFIXES
 
     parse_options = (
