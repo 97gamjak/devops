@@ -22,7 +22,15 @@ DEFAULT_COMPILE_ARGS = ["-std=c++23"]
 # should also be dropped.
 _SKIP_WITH_ARG = frozenset(("-o", "-MF", "-MT", "-MQ"))
 # Flags that are not useful but take no following argument.
-_SKIP_ALONE = frozenset(("-c",))
+_SKIP_ALONE = frozenset((
+    "-c",
+    # Turn-error-into-error flags: too strict for static analysis where we
+    # only care about AST structure, not compilation correctness.
+    "-Werror",
+    "-pedantic-errors",
+))
+# Source / header file extensions to skip when they appear as positional args.
+_SOURCE_EXTENSIONS = (".cpp", ".cxx", ".cc", ".c", ".hpp", ".hxx", ".hh", ".h")
 
 
 def _args_from_compile_commands(
@@ -37,13 +45,16 @@ def _args_from_compile_commands(
     result: list[str] = []
     it = iter(raw[1:])  # skip compiler executable
     for arg in it:
+        # '--' marks the end of flags; everything after is an input file path.
+        if arg == "--":
+            break
         if arg in _SKIP_WITH_ARG:
             next(it, None)  # drop the following argument too
             continue
         if arg in _SKIP_ALONE:
             continue
-        # Skip the source file itself
-        if not arg.startswith("-") and arg.endswith((".cpp", ".cxx", ".cc", ".c")):
+        # Skip source / header files passed as positional arguments.
+        if not arg.startswith("-") and arg.endswith(_SOURCE_EXTENSIONS):
             continue
         # Handle -Xclang <frontend-arg> pairs.  Drop -include-pch entirely
         # (the .gch file may not exist for every cmake target and causes a

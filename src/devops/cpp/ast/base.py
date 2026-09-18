@@ -77,7 +77,7 @@ class Check:
         return []
 
     def global_finalize(self) -> bool:
-        """Called once after ALL files have been checked.
+        """Call once after ALL files have been checked.
 
         Override for post-run validation, such as warning about configured
         type names that were never encountered in any file's AST. The default
