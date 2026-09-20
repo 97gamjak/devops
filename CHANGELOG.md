@@ -4,6 +4,32 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+### Features
+
+#### CPP Rules
+
+- Add first libclang AST-based check (`paramNameForType`) that enforces canonical parameter names for configured types; supports fully-qualified type names (e.g. `"molsys::SimulationBox"`), leading `::` stripping, and suffix matching for types that acquire an extra namespace prefix via libclang/GCC system-header quirks
+- Allow multiple accepted parameter names per type in `paramNameForType` by setting the value to a list (e.g. `["simulationBox", "box"]`)
+- Add `unseen_type_is_error` option to `paramNameForType`: when `true`, a configured type never seen as a parameter type across all checked files fails the run instead of just warning
+- Add `ast_check_compile_commands_db` config option to read per-file compile flags from a `compile_commands.json` database; strip CMake precompiled-header flags (`-Xclang -include-pch`) that cause libclang parse failures when the `.gch` file is absent for a given cmake target
+- Add per-check TOML configuration via `[cpp.ast_check_config.<check-id>]` sub-tables, allowing each AST check to declare its own settings
+- Add `check_dirs` config option to restrict C++ checks to specific directories
+- Add `exclude_dirs` config option to skip directories during recursive file scanning
+- Add `(i/total)` file progress logging during C++ checks
+- Add incremental check mode: set `incremental_state_file = "build/.cpp_check_state.json"` in `[cpp]` (or pass `--incremental` / `--state-file` on the CLI) to persist per-file pass/fail state and skip already-passing, unmodified files on subsequent runs; fail-fast behaviour is preserved by default
+- Add `fail_fast` config option (default `true`) and `--no-fail-fast` CLI flag: when disabled, all files are checked even after a failure and their results are all recorded — particularly useful combined with incremental mode to get a full picture of the codebase in one pass
+
+#### Documentation
+
+- Fill in the user guide with an "Overview" page (feature areas and full CLI command reference) and a "Configuration File" page documenting every `devops.toml`/`.devops.toml` section and key, discovery rules, and the changelog insertion-marker format
+
+### Bug Fixes
+
+#### CPP Rules
+
+- Fix `cpp_checks` CLI always scanning all directories regardless of `check_dirs` config
+- Fix AST parse failures being silently ignored: files that libclang cannot parse now produce a real check error (`[astParseError]`) and fail the run instead of being treated as passing
+
 <!-- insertion marker -->
 ## [0.1.4](https://github.com/repo/owner/releases/tag/0.1.4) - 2026-09-13
 

@@ -11,3 +11,8 @@ __all__ = [
     "filter_buggy_cpp",
     "run_cpp_checks",
 ]
+
+# `devops.cpp.ast` (AST-based checks, e.g. ASTChecksRule/Check/registry) is
+# intentionally not imported here: it requires the optional 'libclang'
+# dependency, and `build_cpp_rules` already imports it lazily behind a
+# try/except. Import `devops.cpp.ast` directly if you need it.

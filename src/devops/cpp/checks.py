@@ -4,6 +4,13 @@ from pathlib import Path
 
 from devops import __GLOBAL_CONFIG__
 from devops.config import CppConfig
+from devops.cpp.state import (
+    any_failed,
+    filter_incremental,
+    load_state,
+    save_state,
+    update_entry,
+)
 from devops.files import (
     FileType,
     determine_file_type,
@@ -108,14 +115,90 @@ def run_file_rules(rules: list[Rule], file: Path) -> list[ResultType]:
     return results
 
 
+def _collect_cpp_files(config: CppConfig, dirs: list[Path] | None) -> list[Path]:
+    """Collect candidate C++ files according to config and CLI dirs."""
+    exclude = config.exclude_dirs or []
+
+    if dirs is not None:
+        cpp_check_logger.info(
+            f"Running checks in directories: {[str(d) for d in dirs]}"
+        )
+        return get_files_in_dirs(dirs, exclude_dirs=exclude)
+
+    if config.check_only_staged_files:
+        cpp_check_logger.info("Running checks on staged files...")
+        return get_staged_files()
+
+    if config.check_dirs:
+        resolved: list[Path] = []
+        for pattern in config.check_dirs:
+            matches = [m for m in Path().glob(pattern) if m.is_dir()]
+            if not matches:
+                cpp_check_logger.warning(
+                    f"check_dirs: pattern '{pattern}' matched no directories"
+                )
+            resolved.extend(matches)
+        cpp_check_logger.info(
+            f"Running checks in configured directories: {[str(d) for d in resolved]}"
+        )
+        return get_files_in_dirs(resolved, exclude_dirs=exclude)
+
+    cpp_check_logger.info("Running full checks...")
+    all_dirs = get_dirs_in_dir()
+    cpp_check_logger.debug(f"Checking directories: {[str(d) for d in all_dirs]}")
+    return get_files_in_dirs(all_dirs, exclude_dirs=exclude)
+
+
+def _check_single_file(
+    file_rules: list[Rule],
+    line_rules: list[Rule],
+    filename: Path,
+) -> bool:
+    """Run all rules on one file, log failures, return True if all passed."""
+    file_results = run_file_rules(file_rules, filename)
+    file_results += run_line_checks(line_rules, filename)
+    file_passed = all(result.value == ResultTypeEnum.Ok for result in file_results)
+    if not file_passed:
+        for res in file_results:
+            if res.value != ResultTypeEnum.Ok:
+                cpp_check_logger.error(
+                    f"CPP check error: result in {filename}: {res.description}"
+                )
+    return file_passed
+
+
+def _finalize_run(
+    state_file: Path | None,
+    state: dict[str, dict],
+    rules: list[Rule],
+    *,
+    passed: bool,
+) -> bool:
+    """Persist state and call global finalizers; returns overall pass/fail."""
+    if state_file is not None:
+        save_state(state_file, state)
+        if any_failed(state):
+            passed = False
+    return passed and all(rule.finalize_run() for rule in rules)
+
+
 def run_cpp_checks(
     rules: list[Rule],
     config: CppConfig = __GLOBAL_CONFIG__.cpp,
     dirs: list[Path] | None = None,
+    state_file: Path | None = None,
 ) -> bool:
     """Run C++ checks based on the provided rules.
 
-    Returns immediately after encountering the first file with errors.
+    By default the function returns immediately after encountering the first
+    file with errors (fail-fast).  Set ``config.fail_fast = False`` (or pass
+    ``--no-fail-fast`` on the CLI) to check all files regardless.
+
+    When ``state_file`` is given the run is *incremental*: results are
+    persisted to ``state_file`` after every checked file, and only files
+    that are new, previously failed, or modified since the last run are
+    re-checked.  The return value is ``False`` whenever any entry in the
+    accumulated state is failed.
 
     Parameters
     ----------
@@ -123,6 +206,12 @@ def run_cpp_checks(
         The list of rules to apply.
     config: CppConfig
         The global C++ configuration.
+    dirs: list[Path] | None
+        If given, only files under these directories are checked.
+    state_file: Path | None
+        Path to the JSON state file used for incremental runs.  When
+        ``None`` (the default) no state is read or written and the classic
+        fail-fast behavior is used.
 
     Raises
     ------
@@ -135,48 +224,48 @@ def run_cpp_checks(
         True if all checks pass, False if any check fails.
 
     """
-    if dirs is not None:
-        cpp_check_logger.info(
-            f"Running checks in directories: {[str(d) for d in dirs]}"
-        )
-        files = get_files_in_dirs(dirs)
-    elif config.check_only_staged_files:
-        cpp_check_logger.info("Running checks on staged files...")
-        files = get_staged_files()
-    else:
-        cpp_check_logger.info("Running full checks...")
-
-        dirs = get_dirs_in_dir()
-        files = get_files_in_dirs(dirs)
-
-        cpp_check_logger.debug(f"Checking directories: {[str(d) for d in dirs]}")
-
-    files = [file for file in files if FileType.is_cpp_type(determine_file_type(file))]
+    raw_files = _collect_cpp_files(config, dirs)
+    files = [f for f in raw_files if FileType.is_cpp_type(determine_file_type(f))]
 
     if not files:
         cpp_check_logger.warning("No files to check.")
         return True
 
+    state: dict[str, dict] = {}
+    if state_file is not None:
+        state = load_state(state_file)
+        to_check = filter_incremental(files, state)
+        skipped = len(files) - len(to_check)
+        if skipped:
+            cpp_check_logger.info(
+                f"Incremental: skipping {skipped} unchanged passing file(s)."
+            )
+        files = to_check
+
+    if not files:
+        cpp_check_logger.info(
+            "Incremental: all files already passed — nothing to check."
+        )
+        return not any_failed(state)
+
     file_rules = filter_file_rules(rules)
     line_rules = filter_line_rules(rules)
+    total = len(files)
+    passed = True
 
-    for filename in files:
-        cpp_check_logger.debug(f"Checking file: {filename}")
+    try:
+        for i, filename in enumerate(files, start=1):
+            cpp_check_logger.info(f"({i}/{total}) {filename}")
+            file_passed = _check_single_file(file_rules, line_rules, filename)
+            if not file_passed:
+                passed = False
+                if state_file is not None:
+                    update_entry(state, filename, passed=False)
+                if config.fail_fast:
+                    break
+            elif state_file is not None:
+                update_entry(state, filename, passed=True)
+    finally:
+        passed = _finalize_run(state_file, state, rules, passed=passed)
 
-        # file rules
-        file_results = run_file_rules(file_rules, filename)
-
-        # line rules
-        file_results += run_line_checks(line_rules, filename)
-
-        if any(result.value != ResultTypeEnum.Ok for result in file_results):
-            filtered_results = [
-                res for res in file_results if res.value != ResultTypeEnum.Ok
-            ]
-            for res in filtered_results:
-                cpp_check_logger.error(
-                    f"CPP check error: result in {filename}: {res.description}"
-                )
-            return False
-
-    return True
+    return passed
