@@ -83,7 +83,8 @@ def cpp_checks(
 
     # Resolve incremental state file path.
     # Priority: --state-file CLI > incremental_state_file TOML > DEFAULT_STATE_FILE.
-    # Incremental mode is active when --incremental, --state-file, or TOML setting is used.
+    # Incremental mode is active when --incremental, --state-file,
+    # or TOML setting is used.
     if state_file is not None:
         state_path: Path | None = Path(state_file)
     elif incremental or config.incremental_state_file:

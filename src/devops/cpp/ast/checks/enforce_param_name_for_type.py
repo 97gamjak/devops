@@ -175,8 +175,9 @@ class EnforceParamNameForType(Check):
 
         """
         cpp_check_logger.debug(
-            f"paramNameForType: global_finalize — configured keys: {list(self.type_to_name)}, "
-            f"seen types: {sorted(self._seen_type_names)}"
+            "paramNameForType: global_finalize"
+            f" — configured keys: {list(self.type_to_name)},"
+            f" seen types: {sorted(self._seen_type_names)}"
         )
         passed = True
         for type_name in self.type_to_name:
@@ -246,7 +247,11 @@ class EnforceParamNameForType(Check):
             f"paramNameForType: saw PARM_DECL '{name}' of type '{type_name}' at "
             f"{filename}:{loc.line}:{loc.column} "
             f"(raw spelling: '{cursor.type.spelling}', kind: {cursor.type.kind})"
-            + (f" [configured, expected one of {expected}]" if expected else " [not configured]")  # noqa: E501
+            + (
+                f" [configured, expected one of {expected}]"
+                if expected
+                else " [not configured]"
+            )
         )
 
         if expected is None:

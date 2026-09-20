@@ -114,9 +114,11 @@ class GitTag:
         tag = tag.removeprefix(prefix)
         parts = tag.split(".")
 
-        # TODO(97gamjak): implement support for different version schemes
+        # TODO(97gamjak): implement support for different version schemes; remove
+        # this fixed-count check when other schemes are supported.
         # https://97gamjak.atlassian.net/browse/DEV-49
-        if len(parts) != 3:  # noqa: PLR2004 this will be removed and cleaned up with further naming schemes
+        expected_part_count = 3
+        if len(parts) != expected_part_count:
             msg = f"Invalid tag format: {original_tag}"
             raise GitTagError(msg)
 

@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import json
 import logging
+import os
 import typing
 from unittest.mock import patch
 
@@ -277,10 +279,7 @@ class TestRunCppChecks:
             run_cpp_checks([rule], config)
 
         # Should log the file being checked
-        assert any(
-            str(test_file) in record.message
-            for record in caplog.records
-        )
+        assert any(str(test_file) in record.message for record in caplog.records)
 
     def test_run_cpp_checks_with_empty_rules_list(self, tmp_path: Path) -> None:
         """Test run_cpp_checks with empty rules list.
@@ -368,7 +367,7 @@ class TestRunCppChecks:
 
         visited: list[str] = []
 
-        def recording_rule(file_rule_input) -> ResultType:
+        def recording_rule(file_rule_input: Rule) -> ResultType:
             if file_rule_input.path is not None:
                 visited.append(file_rule_input.path.name)
             return ResultType(ResultTypeEnum.Ok)
@@ -445,9 +444,7 @@ class TestRunCppChecksIncremental:
 
         assert state_file.exists()
 
-    def test_passing_file_is_skipped_on_second_run(
-        self, tmp_path: Path, caplog: LogCaptureFixture
-    ) -> None:
+    def test_passing_file_is_skipped_on_second_run(self, tmp_path: Path) -> None:
         """A file that passed and was not modified is skipped on the next run."""
         cpp_file = tmp_path / "test.cpp"
         cpp_file.write_text("int x = 0;\n")
@@ -455,7 +452,7 @@ class TestRunCppChecksIncremental:
 
         checked = [0]
 
-        def counting_rule(line: str) -> ResultType:
+        def counting_rule(_: str) -> ResultType:
             checked[0] += 1
             return ResultType(ResultTypeEnum.Ok)
 
@@ -487,7 +484,7 @@ class TestRunCppChecksIncremental:
 
         checked = [0]
 
-        def counting_rule(line: str) -> ResultType:
+        def counting_rule(_: str) -> ResultType:
             checked[0] += 1
             return ResultType(ResultTypeEnum.Ok)
 
@@ -504,7 +501,6 @@ class TestRunCppChecksIncremental:
             after_first = checked[0]
 
             # Simulate modification by bumping mtime.
-            import os
             current = cpp_file.stat().st_mtime
             os.utime(cpp_file, (current + 10, current + 10))
 
@@ -520,7 +516,7 @@ class TestRunCppChecksIncremental:
 
         call_count = [0]
 
-        def counting_failing_rule(line: str) -> ResultType:
+        def counting_failing_rule(_: str) -> ResultType:
             call_count[0] += 1
             return ResultType(ResultTypeEnum.Error, "fail")
 
@@ -561,7 +557,9 @@ class TestRunCppChecksIncremental:
         )
 
         with patch("devops.cpp.checks.get_staged_files", return_value=[file1, file2]):
-            config = CppConfig(check_only_staged_files=True)  # fail_fast=True by default
+            config = CppConfig(
+                check_only_staged_files=True
+            )  # fail_fast=True by default
             result = run_cpp_checks([rule], config, state_file=state_file)
 
         assert result is False
@@ -597,7 +595,9 @@ class TestRunCppChecksIncremental:
         # Both files must have been visited (no early break).
         assert len(visited) == 2
 
-    def test_no_fail_fast_without_incremental_checks_all_files(self, tmp_path: Path) -> None:
+    def test_no_fail_fast_without_incremental_checks_all_files(
+        self, tmp_path: Path
+    ) -> None:
         """fail_fast=False also works without a state file."""
         file1 = tmp_path / "file1.cpp"
         file1.write_text("bad\n")
@@ -628,8 +628,6 @@ class TestRunCppChecksIncremental:
         self, tmp_path: Path
     ) -> None:
         """Return False when there are still failed entries in the state."""
-        import json
-
         cpp_file = tmp_path / "test.cpp"
         cpp_file.write_text("int x = 0;\n")
         state_file = tmp_path / "state.json"
@@ -640,6 +638,8 @@ class TestRunCppChecksIncremental:
 
         with patch("devops.cpp.checks.get_staged_files", return_value=[cpp_file]):
             config = CppConfig(check_only_staged_files=True)
-            result = run_cpp_checks([self._passing_rule()], config, state_file=state_file)
+            result = run_cpp_checks(
+                [self._passing_rule()], config, state_file=state_file
+            )
 
         assert result is False

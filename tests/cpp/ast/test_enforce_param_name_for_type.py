@@ -10,7 +10,6 @@ from devops.config.base import ConfigError
 from devops.cpp.ast.checks.enforce_param_name_for_type import (
     EnforceParamNameForType,
     base_type_name,
-    declaration_type_key,
 )
 from devops.cpp.ast.engine import run_ast_checks
 
@@ -31,7 +30,7 @@ _TYPE_TO_NAME = {
 
 @pytest.fixture
 def configured_check() -> EnforceParamNameForType:
-    """An EnforceParamNameForType instance pre-configured with _TYPE_TO_NAME."""
+    """Check EnforceParamNameForType instance pre-configured with _TYPE_TO_NAME."""
     check = EnforceParamNameForType()
     check.configure({"type_to_name": _TYPE_TO_NAME})
     return check
@@ -227,7 +226,7 @@ class TestEnforceParamNameForTypeConfiguration:
     def test_global_finalize_returns_false_when_unseen_type_is_error(
         self, tmp_path: Path, caplog: pytest.LogCaptureFixture
     ) -> None:
-        """global_finalize returns False and logs an error when unseen_type_is_error=true.
+        """Return False and logs an error when unseen_type_is_error=true.
 
         Parameters
         ----------
@@ -265,9 +264,7 @@ class TestEnforceParamNameForTypeConfiguration:
 
         """
         check = EnforceParamNameForType()
-        check.configure(
-            {"type_to_name": {"Foo": "foo"}, "unseen_type_is_error": True}
-        )
+        check.configure({"type_to_name": {"Foo": "foo"}, "unseen_type_is_error": True})
         cpp_file = tmp_path / "example.cpp"
         content = "struct Foo {};\nvoid bar(Foo foo) {}\n"
         cpp_file.write_text(content)
@@ -430,10 +427,7 @@ class TestEnforceParamNameForType:
 
         """
         cpp_file = tmp_path / "example.cpp"
-        content = (
-            f"struct {type_name} {{}};\n"
-            f"void foo({type_name} wrongName) {{}}\n"
-        )
+        content = f"struct {type_name} {{}};\nvoid foo({type_name} wrongName) {{}}\n"
 
         diagnostics = run_ast_checks(
             cpp_file, content, ["-std=c++23"], checks=[configured_check]
@@ -442,9 +436,7 @@ class TestEnforceParamNameForType:
         assert len(diagnostics) == 1
         assert _TYPE_TO_NAME[type_name] in diagnostics[0].message
 
-    def test_flags_namespaced_type_with_qualified_key(
-        self, tmp_path: Path
-    ) -> None:
+    def test_flags_namespaced_type_with_qualified_key(self, tmp_path: Path) -> None:
         """A namespaced type is flagged when the TOML key uses the qualified name.
 
         libclang spells namespaced types as "ns::Type", so the configured key
@@ -468,9 +460,7 @@ class TestEnforceParamNameForType:
         assert "wrong" in diagnostics[0].message
         assert "foo" in diagnostics[0].message
 
-    def test_unqualified_key_misses_namespaced_type(
-        self, tmp_path: Path
-    ) -> None:
+    def test_unqualified_key_misses_namespaced_type(self, tmp_path: Path) -> None:
         """An unqualified key does NOT match a namespaced type (by design).
 
         Users must use the fully-qualified name in the TOML.
@@ -511,12 +501,7 @@ class TestEnforceParamNameForType:
         cpp_file = tmp_path / "example.cpp"
         # Foo is used without qualifier inside namespace ns — libclang canonical
         # spelling is still "ns::Foo", so unqualified key must not match.
-        content = (
-            "namespace ns {\n"
-            "struct Foo {};\n"
-            "void bar(Foo wrong) {}\n"
-            "}\n"
-        )
+        content = "namespace ns {\nstruct Foo {};\nvoid bar(Foo wrong) {}\n}\n"
         cpp_file.write_text(content)
 
         diagnostics = run_ast_checks(cpp_file, content, ["-std=c++23"], checks=[check])

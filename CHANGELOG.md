@@ -28,6 +28,7 @@ All notable changes to this project will be documented in this file.
 #### CPP Rules
 
 - Fix `cpp_checks` CLI always scanning all directories regardless of `check_dirs` config
+- Fix AST parse failures being silently ignored: files that libclang cannot parse now produce a real check error (`[astParseError]`) and fail the run instead of being treated as passing
 
 <!-- insertion marker -->
 ## [0.1.4](https://github.com/repo/owner/releases/tag/0.1.4) - 2026-09-13

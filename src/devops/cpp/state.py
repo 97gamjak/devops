@@ -99,7 +99,7 @@ def filter_incremental(files: list[Path], state: dict[str, dict]) -> list[Path]:
     return [f for f in files if needs_check(f, state)]
 
 
-def update_entry(state: dict[str, dict], path: Path, passed: bool) -> None:
+def update_entry(state: dict[str, dict], path: Path, *, passed: bool) -> None:
     """Record the result for a single file in the state dict.
 
     Parameters

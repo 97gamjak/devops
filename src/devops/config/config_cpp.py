@@ -124,7 +124,11 @@ class CppConfig:
         args = ", ".join(f'"{arg}"' for arg in self.ast_check_compile_args)
         lines.append(f"#ast_check_compile_args = [{args}]\n")
 
-        db = f'"{self.ast_check_compile_commands_db}"' if self.ast_check_compile_commands_db else '"build"'
+        db = (
+            f'"{self.ast_check_compile_commands_db}"'
+            if self.ast_check_compile_commands_db
+            else '"build"'
+        )
         lines.append(f"#ast_check_compile_commands_db = {db}\n")
 
         enabled = ", ".join(f'"{cid}"' for cid in self.ast_check_enabled_ids)
@@ -141,7 +145,11 @@ class CppConfig:
             'ForceField = "forceField" }\n'
         )
 
-        isf = f'"{self.incremental_state_file}"' if self.incremental_state_file else '"build/.cpp_check_state.json"'
+        isf = (
+            f'"{self.incremental_state_file}"'
+            if self.incremental_state_file
+            else '"build/.cpp_check_state.json"'
+        )
         lines.append(f"#incremental_state_file = {isf}\n")
 
         lines.append(f"#fail_fast = {str(self.fail_fast).lower()}\n")
@@ -202,8 +210,7 @@ def parse_cpp_config(raw_config: dict) -> CppConfig:
 
     raw_check_config = get_table(table, "ast_check_config")
     ast_check_config = {
-        check_id: get_table(raw_check_config, check_id)
-        for check_id in raw_check_config
+        check_id: get_table(raw_check_config, check_id) for check_id in raw_check_config
     }
 
     incremental_state_file = get_str(table, "incremental_state_file") or None
