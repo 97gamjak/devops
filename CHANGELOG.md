@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+<!-- insertion marker -->
+## [0.2.0](https://github.com/repo/owner/releases/tag/0.2.0) - 2026-09-20
+
 ### Features
 
 #### CPP Rules
@@ -30,7 +33,6 @@ All notable changes to this project will be documented in this file.
 - Fix `cpp_checks` CLI always scanning all directories regardless of `check_dirs` config
 - Fix AST parse failures being silently ignored: files that libclang cannot parse now produce a real check error (`[astParseError]`) and fail the run instead of being treated as passing
 
-<!-- insertion marker -->
 ## [0.1.4](https://github.com/repo/owner/releases/tag/0.1.4) - 2026-09-13
 
 ### Bug Fixes
@@ -155,6 +157,7 @@ All notable changes to this project will be documented in this file.
 - Add automatic release CI for PRs to main (either via title or via hotfix/ branch)
 - Add overnight CI runs for pytest and ruff CIs
 - Add test coverage to pytest CI
+
 
 
 
