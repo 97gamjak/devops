@@ -13,7 +13,7 @@ from devops.cpp.ast.registry import ALL_CHECKS
 if typing.TYPE_CHECKING:
     from devops.cpp.ast.base import Check
 
-_HEADER_SUFFIXES = {".h", ".hpp", ".hxx", ".hh"}
+_HEADER_SUFFIXES = {".h", ".hpp", ".hxx", ".hh", ".tpp"}
 
 
 def run_ast_checks(
