@@ -9,6 +9,7 @@ ignore = [
     "FIX002", # missing TODO - already solved by other rules which force linking author and github issue
     "S607",   # relative paths are not allowed by this rule in subprocess commands
     "ANN401", # allow Any type annotations for now
+    "CPY001", # no copyright notice
 ]
 pylint.max-args = 6
 
