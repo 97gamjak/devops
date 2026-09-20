@@ -4,13 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+<!-- insertion marker -->
+## [0.2.1](https://github.com/repo/owner/releases/tag/0.2.1) - 2026-09-20
+
 ### Bug Fixes
 
 #### CPP Rules
 
 - Add `.tpp` files to header file extensions
 
-<!-- insertion marker -->
 ## [0.2.0](https://github.com/repo/owner/releases/tag/0.2.0) - 2026-09-20
 
 ### Features
@@ -163,6 +165,7 @@ All notable changes to this project will be documented in this file.
 - Add automatic release CI for PRs to main (either via title or via hotfix/ branch)
 - Add overnight CI runs for pytest and ruff CIs
 - Add test coverage to pytest CI
+
 
 
 
