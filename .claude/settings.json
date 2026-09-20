@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(.venv/bin/python -m pytest tests/cpp/ast/test_no_global_using.py -q)",
+      "Bash(PYTHONPATH=src .venv/bin/python -m pytest tests/cpp -q)",
+      "Bash(.venv/bin/python /tmp/claude-1000/-home-jag-projects-devops/fc5ba4b7-c62d-4130-9457-6629ad4bf4f7/scratchpad/probe2.py)",
+      "Bash(.venv/bin/pip list *)",
+      "Bash(.venv/bin/python /tmp/claude-1000/-home-jag-projects-devops/fc5ba4b7-c62d-4130-9457-6629ad4bf4f7/scratchpad/probe3.py)",
+      "Bash(PYTHONPATH=src .venv/bin/python -m pytest tests -q)"
+    ]
+  }
+}

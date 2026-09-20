@@ -3,19 +3,31 @@
 Any ``using namespace X;`` or ``using X::Y;`` that appears directly inside a
 translation unit or a named/anonymous namespace is reported as an error.
 Identical constructs inside a function, lambda, or class body are silently
-allowed because their effect is confined to that scope.
+allowed because their effect is confined to that scope. ``using enum X;`` is
+handled by the separate `noGlobalUsingEnum` check.
 
 To disable this check for a project set::
 
     [cpp]
     ast_check_disabled_ids = ["noGlobalUsing"]
+
+To restrict the check to (or exempt) specific names, use the per-check table.
+Names are matched exactly against the qualified name as written in the source
+(``std``, ``std::literals``, ``std::string``); a leading ``::`` is ignored::
+
+    [cpp.ast_check_config.noGlobalUsing]
+    # Only flag these names (allowlist; empty/unset means "flag everything") ...
+    enabled_names = ["std"]
+    # ... and never flag these (applied on top of enabled_names).
+    disabled_names = ["std::literals", "std::chrono_literals"]
 """
 
 from __future__ import annotations
 
 import clang.cindex as clang
 
-from devops.cpp.ast.base import Check, Diagnostic
+from devops.cpp.ast.base import Diagnostic
+from devops.cpp.ast.checks.name_filtered import NameFilteredCheck
 
 # Parent cursor kinds that indicate a using-statement is at global/namespace scope.
 _GLOBAL_PARENT_KINDS = frozenset(
@@ -34,7 +46,7 @@ _USING_KINDS = frozenset(
 )
 
 
-class NoGlobalUsing(Check):
+class NoGlobalUsing(NameFilteredCheck):
     """Flag using-namespace directives and using declarations at global/namespace scope.
 
     Only using-statements whose immediate semantic parent is a translation
@@ -70,25 +82,25 @@ class NoGlobalUsing(Check):
 
         loc = cursor.location
 
+        # The qualified name as written is the concatenation of the child
+        # references: NAMESPACE_REFs for each qualifier, plus (for a using
+        # declaration) a final ref for the declared entity. cursor.spelling
+        # is empty for USING_DIRECTIVE, so it cannot be used there.
+        name = (
+            "::".join(c.spelling for c in cursor.get_children() if c.spelling)
+            or cursor.spelling
+        )
+
+        if not self._is_selected(name):
+            return []
+
         if cursor.kind == clang.CursorKind.USING_DIRECTIVE:
-            # cursor.spelling is always empty for USING_DIRECTIVE; the namespace
-            # name lives in the first NAMESPACE_REF child instead.
-            ns_ref = next(
-                (
-                    c
-                    for c in cursor.get_children()
-                    if c.kind == clang.CursorKind.NAMESPACE_REF
-                ),
-                None,
-            )
-            name = ns_ref.spelling if ns_ref is not None else "<unknown>"
+            name = name or "<unknown>"
             msg = (
                 f"do not use 'using namespace {name}' at namespace/global scope"
                 " — confine it to a function body"
             )
         else:
-            # USING_DECLARATION: cursor.spelling gives the declared name.
-            name = cursor.spelling
             msg = (
                 f"do not use 'using {name}' declaration at namespace/global scope"
                 " — confine it to a function body"

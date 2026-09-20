@@ -12,6 +12,8 @@ All notable changes to this project will be documented in this file.
 - Allow multiple accepted parameter names per type in `paramNameForType` by setting the value to a list (e.g. `["simulationBox", "box"]`)
 - Add `unseen_type_is_error` option to `paramNameForType`: when `true`, a configured type never seen as a parameter type across all checked files fails the run instead of just warning
 - Add `ast_check_compile_commands_db` config option to read per-file compile flags from a `compile_commands.json` database; strip CMake precompiled-header flags (`-Xclang -include-pch`) that cause libclang parse failures when the `.gch` file is absent for a given cmake target
+- Add `noGlobalUsingEnum` AST check flagging `using enum X;` at namespace/global scope (not detectable by `noGlobalUsing`, since libclang's Python bindings expose it as a bare `ENUM_DECL`); accepts the same `enabled_names` / `disabled_names` options
+- Add `enabled_names` / `disabled_names` options to the `noGlobalUsing` AST check (`[cpp.ast_check_config.noGlobalUsing]`) to report only, or exempt, specific namespaces/declarations, matched by qualified name (e.g. `"std::literals"`)
 - Add per-check TOML configuration via `[cpp.ast_check_config.<check-id>]` sub-tables, allowing each AST check to declare its own settings
 - Add `check_dirs` config option to restrict C++ checks to specific directories
 - Add `exclude_dirs` config option to skip directories during recursive file scanning
@@ -25,6 +27,7 @@ All notable changes to this project will be documented in this file.
 
 #### CPP Rules
 
+- Fix `noGlobalUsing` reporting only the first namespace component for nested names (`using namespace a::b;` was reported as `a`, `using a::T;` as `T`); it now reports the full qualified name
 - Fix `cpp_checks` CLI always scanning all directories regardless of `check_dirs` config
 
 <!-- insertion marker -->

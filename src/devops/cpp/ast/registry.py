@@ -11,18 +11,20 @@ import typing
 
 from devops.cpp.ast.checks.enforce_param_name_for_type import EnforceParamNameForType
 from devops.cpp.ast.checks.no_global_using import NoGlobalUsing
+from devops.cpp.ast.checks.no_global_using_enum import NoGlobalUsingEnum
 from devops.logger import cpp_check_logger
 
 if typing.TYPE_CHECKING:
     from devops.cpp.ast.base import Check
 
-# NOTE: register future checks (e.g. a migrated no_global_using_enum) here
-# by importing the Check subclass above and adding an instance below.
+# NOTE: register future checks here by importing the Check subclass above
+# and adding an instance below.
 # Each check's `.id` is the identifier used in CppConfig.ast_check_enabled_ids
 # / ast_check_disabled_ids to turn it on or off from the input file.
 ALL_CHECKS: list[Check] = [
     EnforceParamNameForType(),
     NoGlobalUsing(),
+    NoGlobalUsingEnum(),
 ]
 
 
