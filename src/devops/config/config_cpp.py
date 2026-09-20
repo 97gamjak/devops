@@ -210,8 +210,7 @@ def parse_cpp_config(raw_config: dict) -> CppConfig:
 
     raw_check_config = get_table(table, "ast_check_config")
     ast_check_config = {
-        check_id: get_table(raw_check_config, check_id)
-        for check_id in raw_check_config
+        check_id: get_table(raw_check_config, check_id) for check_id in raw_check_config
     }
 
     incremental_state_file = get_str(table, "incremental_state_file") or None

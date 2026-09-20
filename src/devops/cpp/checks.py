@@ -132,9 +132,7 @@ def _collect_cpp_files(config: CppConfig, dirs: list[Path] | None) -> list[Path]
     if config.check_dirs:
         resolved: list[Path] = []
         for pattern in config.check_dirs:
-            matches = [
-                m for m in Path().glob(pattern) if m.is_dir()
-            ]
+            matches = [m for m in Path().glob(pattern) if m.is_dir()]
             if not matches:
                 cpp_check_logger.warning(
                     f"check_dirs: pattern '{pattern}' matched no directories"

@@ -22,13 +22,15 @@ DEFAULT_COMPILE_ARGS = ["-std=c++23"]
 # should also be dropped.
 _SKIP_WITH_ARG = frozenset(("-o", "-MF", "-MT", "-MQ"))
 # Flags that are not useful but take no following argument.
-_SKIP_ALONE = frozenset((
-    "-c",
-    # Turn-error-into-error flags: too strict for static analysis where we
-    # only care about AST structure, not compilation correctness.
-    "-Werror",
-    "-pedantic-errors",
-))
+_SKIP_ALONE = frozenset(
+    (
+        "-c",
+        # Turn-error-into-error flags: too strict for static analysis where we
+        # only care about AST structure, not compilation correctness.
+        "-Werror",
+        "-pedantic-errors",
+    )
+)
 # Source / header file extensions to skip when they appear as positional args.
 _SOURCE_EXTENSIONS = (".cpp", ".cxx", ".cc", ".c", ".hpp", ".hxx", ".hh", ".h")
 
