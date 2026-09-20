@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+### Bug Fixes
+
+#### CPP Rules
+
+- Add `.tpp` files to header file extensions
+
 <!-- insertion marker -->
 ## [0.2.0](https://github.com/repo/owner/releases/tag/0.2.0) - 2026-09-20
 
