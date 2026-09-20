@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+<!-- insertion marker -->
+## [0.3.0](https://github.com/repo/owner/releases/tag/0.3.0) - 2026-09-20
+
+### Features
+
+#### CPP Rules
+
+- add cli arg `--base-ref` to only check git changed files
+
+## [0.2.1](https://github.com/repo/owner/releases/tag/0.2.1) - 2026-09-20
+
+### Bug Fixes
+
+#### CPP Rules
+
+- Add `.tpp` files to header file extensions
+
+## [0.2.0](https://github.com/repo/owner/releases/tag/0.2.0) - 2026-09-20
+
 ### Features
 
 #### CPP Rules
@@ -18,6 +37,8 @@ All notable changes to this project will be documented in this file.
 - Add `check_dirs` config option to restrict C++ checks to specific directories
 - Add `exclude_dirs` config option to skip directories during recursive file scanning
 - Add `(i/total)` file progress logging during C++ checks
+- Add incremental check mode: set `incremental_state_file = "build/.cpp_check_state.json"` in `[cpp]` (or pass `--incremental` / `--state-file` on the CLI) to persist per-file pass/fail state and skip already-passing, unmodified files on subsequent runs; fail-fast behaviour is preserved by default
+- Add `fail_fast` config option (default `true`) and `--no-fail-fast` CLI flag: when disabled, all files are checked even after a failure and their results are all recorded — particularly useful combined with incremental mode to get a full picture of the codebase in one pass
 
 #### Documentation
 
@@ -29,8 +50,8 @@ All notable changes to this project will be documented in this file.
 
 - Fix `noGlobalUsing` reporting only the first namespace component for nested names (`using namespace a::b;` was reported as `a`, `using a::T;` as `T`); it now reports the full qualified name
 - Fix `cpp_checks` CLI always scanning all directories regardless of `check_dirs` config
+- Fix AST parse failures being silently ignored: files that libclang cannot parse now produce a real check error (`[astParseError]`) and fail the run instead of being treated as passing
 
-<!-- insertion marker -->
 ## [0.1.4](https://github.com/repo/owner/releases/tag/0.1.4) - 2026-09-13
 
 ### Bug Fixes
@@ -155,6 +176,9 @@ All notable changes to this project will be documented in this file.
 - Add automatic release CI for PRs to main (either via title or via hotfix/ branch)
 - Add overnight CI runs for pytest and ruff CIs
 - Add test coverage to pytest CI
+
+
+
 
 
 

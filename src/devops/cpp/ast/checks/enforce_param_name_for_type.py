@@ -247,7 +247,11 @@ class EnforceParamNameForType(Check):
             f"paramNameForType: saw PARM_DECL '{name}' of type '{type_name}' at "
             f"{filename}:{loc.line}:{loc.column} "
             f"(raw spelling: '{cursor.type.spelling}', kind: {cursor.type.kind})"
-            + (f" [configured, expected one of {expected}]" if expected else " [not configured]")  # noqa: E501
+            + (
+                f" [configured, expected one of {expected}]"
+                if expected
+                else " [not configured]"
+            )
         )
 
         if expected is None:

@@ -172,12 +172,15 @@ Controls the checks run by :ref:`cpp_checks <cli-cpp_checks>`.
      - ``false``
      - Restrict checks to files currently staged in Git (for pre-commit
        hook usage).
+       The ``--base-ref`` CLI option overrides this setting. See
+       :ref:`changed-files checks <changed-files-checks>`.
    * - ``check_dirs``
      - list of strings
      - ``[]``
      - If non-empty, only files under these directories (relative to the
        current working directory, glob patterns supported) are checked.
-       Ignored when ``check_only_staged_files`` is ``true``.
+       Ignored when ``check_only_staged_files`` is ``true`` or when
+       ``--base-ref`` is given.
    * - ``exclude_dirs``
      - list of strings
      - ``[]``
@@ -220,6 +223,27 @@ Controls the checks run by :ref:`cpp_checks <cli-cpp_checks>`.
      - ``[]``
      - AST checks whose ``id`` is in this list are always skipped,
        regardless of ``ast_check_enabled_ids``.
+   * - ``incremental_state_file``
+     - string or unset
+     - unset
+     - Path to a JSON file used to persist per-file check results between
+       runs. When set, ``cpp_checks`` runs in *incremental* mode
+       automatically: only files that are new, previously failed, or
+       modified since the last run are re-checked. Already-passing,
+       unchanged files are skipped. The file is created on the first run
+       and updated after every subsequent run. The ``--incremental`` CLI
+       flag can enable the same mode without touching the config; when
+       ``--state-file`` is also given it takes precedence over this
+       setting. See :ref:`incremental checks <incremental-checks>`.
+   * - ``fail_fast``
+     - boolean
+     - ``true``
+     - When ``true`` (the default), ``cpp_checks`` stops at the first file
+       that fails and reports an error. Set to ``false`` to check all files
+       regardless of failures — useful in incremental mode (together with
+       ``incremental_state_file``) to get a complete picture of the
+       codebase in a single pass. Can also be overridden at runtime with
+       the ``--no-fail-fast`` CLI flag.
 
 .. code-block:: toml
 
@@ -233,6 +257,8 @@ Controls the checks run by :ref:`cpp_checks <cli-cpp_checks>`.
    header_guards_according_to_filepath = true
    ast_checks = true
    ast_check_compile_commands_db = ".build"
+   incremental_state_file = "build/.cpp_check_state.json"
+   fail_fast = false
 
 ``[cpp.ast_check_config.<check-id>]``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -394,3 +394,34 @@ class TestRunFileRules:
         run_file_rules([rule], test_file)
         assert len(received_content) == 1
         assert received_content[0] == expected_content
+
+
+class TestCppChecksCli:
+    """Tests for the ``--base-ref`` CLI option."""
+
+    def test_base_ref_forwarded(self) -> None:
+        """--base-ref is passed through to run_cpp_checks."""
+        from unittest.mock import patch  # noqa: PLC0415
+
+        from typer.testing import CliRunner  # noqa: PLC0415
+
+        from devops.scripts.cpp_checks import app  # noqa: PLC0415
+
+        with patch(
+            "devops.scripts.cpp_checks.run_cpp_checks", return_value=True
+        ) as run:
+            result = CliRunner().invoke(app, ["--base-ref", "origin/dev"])
+
+        assert result.exit_code == 0
+        assert run.call_args.kwargs["base_ref"] == "origin/dev"
+
+    def test_invalid_base_ref_exits_1(self) -> None:
+        """An unresolvable ref gives a clean error and exit code 1."""
+        from typer.testing import CliRunner  # noqa: PLC0415
+
+        from devops.scripts.cpp_checks import app  # noqa: PLC0415
+
+        result = CliRunner().invoke(app, ["--base-ref", "no-such-ref-xyz"])
+
+        assert result.exit_code == 1
+        assert "no-such-ref-xyz" in result.output

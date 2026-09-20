@@ -38,6 +38,75 @@ and runs them against a project's C++ sources:
 
 Run it with :ref:`cpp_checks <cli-cpp_checks>`.
 
+.. _incremental-checks:
+
+Incremental checks
+^^^^^^^^^^^^^^^^^^
+
+For large codebases, running every check on every file on every commit can be
+slow. Incremental mode skips files that have not changed since they last
+passed:
+
+- After each run, per-file results (pass/fail) and file modification times are
+  persisted to a JSON state file.
+- On the next run, files that passed and whose ``mtime`` is unchanged are
+  skipped entirely.
+- Files that failed, were modified, or are new are always re-checked.
+- By default ``cpp_checks`` still stops at the first failure (**fail-fast**),
+  even in incremental mode. Set ``fail_fast = false`` in ``[cpp]`` (or pass
+  ``--no-fail-fast``) to check every file in one pass and record all results.
+
+**Enable via TOML** (recommended for CI / permanent projects):
+
+.. code-block:: toml
+
+   [cpp]
+   incremental_state_file = "build/.cpp_check_state.json"
+   # Optional: disable fail-fast to record results for all files in one pass
+   # fail_fast = false
+
+Add the state file to ``.gitignore`` — it is machine-local and should not be
+committed.
+
+**Enable via CLI** (one-off or scripting):
+
+.. code-block:: console
+
+   cpp_checks --incremental
+   cpp_checks --incremental --state-file build/.cpp_check_state.json
+   cpp_checks --incremental --no-fail-fast   # check all files, save full state
+
+``--state-file`` implies ``--incremental`` and takes precedence over the TOML
+setting. When ``--incremental`` is used without ``--state-file``, the TOML
+path is used if configured; otherwise the default path
+(``.devops_cpp_state.json`` in the current directory) is used.
+
+.. _changed-files-checks:
+
+Checking only changed files
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+To check just the files a branch or commit range touched (typically in a pull
+request pipeline), pass a git commit hash or branch name with ``--base-ref``:
+
+.. code-block:: console
+
+   cpp_checks --base-ref origin/dev      # files changed on this branch vs dev
+   cpp_checks --base-ref 8412f24         # files changed since a commit
+
+The comparison is made against the *merge-base* of the given reference and
+``HEAD``, so commits that landed on the base branch after you branched off are
+not reported. Tracked files with uncommitted (staged or unstaged) changes are
+included; deleted files and untracked files are not.
+
+``--base-ref`` overrides ``check_only_staged_files`` and ``check_dirs`` from the
+``[cpp]`` TOML section. ``exclude_dirs`` is still honored, and directories
+passed explicitly on the command line further restrict the changed files. It
+can be combined with ``--incremental`` and ``--no-fail-fast``. An unknown
+reference makes ``cpp_checks`` exit with an error. In CI, make sure the base
+reference is available locally (e.g. ``fetch-depth: 0`` for
+``actions/checkout``).
+
 License header management
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 

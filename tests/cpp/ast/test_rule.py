@@ -49,7 +49,11 @@ class TestASTChecksRule:
         content = "struct SimulationBox {};\nvoid foo(SimulationBox simBox) {}\n"
         cpp_file.write_text(content)
 
-        rule = ASTChecksRule()
+        rule = ASTChecksRule(
+            check_config={
+                "paramNameForType": {"type_to_name": {"SimulationBox": "simulationBox"}}
+            }
+        )
         result = rule.apply(FileRuleInput(file_content=content, path=cpp_file))
 
         assert result.value == ResultTypeEnum.Error

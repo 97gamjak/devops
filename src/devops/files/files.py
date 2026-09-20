@@ -14,6 +14,23 @@ if typing.TYPE_CHECKING:
     from collections.abc import Iterable
 
 
+class GitRefError(Exception):
+    """Exception raised when a git reference cannot be resolved or diffed."""
+
+    def __init__(self, ref: str, message: str) -> None:
+        """Initialize the exception with the offending reference.
+
+        Parameters
+        ----------
+        ref: str
+            The git commit hash or branch name that failed.
+        message: str
+            Description of what went wrong.
+        """
+        self.ref = ref
+        super().__init__(f"Invalid git reference '{ref}': {message}")
+
+
 class DevOpsFileNotFoundError(Exception):
     """Exception raised when a specified file is not found."""
 
@@ -186,6 +203,65 @@ def get_staged_files() -> list[Path]:
 
     files = result.stdout.strip().split("\n")
     return [Path(file) for file in files if file]
+
+
+def _run_git(ref: str, *args: str) -> str:
+    """Run a git command and return its stripped stdout.
+
+    Raises
+    ------
+    GitRefError
+        If git is unavailable or the command fails.
+
+    """
+    try:
+        result = subprocess.run(  # noqa: S603 - no shell, args are git subcommands
+            ["git", *args],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+    except FileNotFoundError as e:
+        msg = "git executable not found"
+        raise GitRefError(ref, msg) from e
+    except subprocess.CalledProcessError as e:
+        raise GitRefError(ref, e.stderr.strip() or "git command failed") from e
+
+    return result.stdout.strip()
+
+
+def get_changed_files(ref: str) -> list[Path]:
+    """Get the files changed relative to a git commit or branch.
+
+    The comparison base is the merge-base of ``ref`` and ``HEAD``, so passing a
+    base branch yields the files changed on the current branch (like a pull
+    request diff) and passing a commit hash yields everything changed since
+    that commit.  Uncommitted (staged and unstaged) modifications of tracked
+    files are included.  Deleted files are omitted.
+
+    Parameters
+    ----------
+    ref: str
+        A git commit hash or branch name to compare against.
+
+    Returns
+    -------
+    list[Path]:
+        Changed file paths, relative to the current working directory.
+
+    Raises
+    ------
+    GitRefError
+        If ``ref`` cannot be resolved to a commit or the git command fails.
+
+    """
+    commit = _run_git(
+        ref, "rev-parse", "--verify", "--end-of-options", f"{ref}^{{commit}}"
+    )
+    base = _run_git(ref, "merge-base", commit, "HEAD")
+    output = _run_git(ref, "diff", "--name-only", "--relative", "--diff-filter=d", base)
+
+    return [Path(file) for file in output.splitlines() if file]
 
 
 def file_exist(
