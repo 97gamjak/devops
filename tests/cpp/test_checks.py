@@ -12,6 +12,7 @@ import pytest
 
 from devops.config.config_cpp import CppConfig
 from devops.cpp.checks import run_cpp_checks
+from devops.files import GitRefError
 from devops.rules import ResultType, ResultTypeEnum, Rule, RuleInputType, RuleType
 
 if typing.TYPE_CHECKING:
@@ -643,3 +644,78 @@ class TestRunCppChecksIncremental:
             )
 
         assert result is False
+
+
+class TestRunCppChecksBaseRef:
+    """Tests for the base_ref file selection in run_cpp_checks."""
+
+    def setup_method(self) -> None:
+        """Reset rule counters before each test."""
+        Rule.cpp_style_rule_counter = 0
+        Rule.general_rule_counter = 0
+
+    @staticmethod
+    def _recording_rule(seen: list[str]) -> Rule:
+        return Rule(
+            name="record",
+            func=lambda line: (seen.append(line), ResultType(ResultTypeEnum.Ok))[1],
+            rule_type=RuleType.CPP_STYLE,
+            rule_input_type=RuleInputType.LINE,
+        )
+
+    def test_base_ref_overrides_staged_and_check_dirs(self, tmp_path: Path) -> None:
+        """base_ref wins over check_only_staged_files and check_dirs."""
+        changed = tmp_path / "changed.cpp"
+        changed.write_text("int a;\n")
+        seen: list[str] = []
+        config = CppConfig(check_only_staged_files=True, check_dirs=["nowhere"])
+
+        with (
+            patch("devops.cpp.checks.get_changed_files", return_value=[changed]) as gcf,
+            patch("devops.cpp.checks.get_staged_files") as staged,
+        ):
+            assert run_cpp_checks([self._recording_rule(seen)], config, base_ref="main")
+
+        gcf.assert_called_once_with("main")
+        staged.assert_not_called()
+        assert seen == ["int a;\n"]
+
+    def test_base_ref_skips_non_cpp_and_excluded(self, tmp_path: Path) -> None:
+        """Non-C++ files and files under exclude_dirs are dropped."""
+        (tmp_path / "build").mkdir()
+        excluded = tmp_path / "build" / "gen.cpp"
+        excluded.write_text("int e;\n")
+        txt = tmp_path / "notes.txt"
+        txt.write_text("hi\n")
+        seen: list[str] = []
+        config = CppConfig(exclude_dirs=["build"])
+
+        with patch("devops.cpp.checks.get_changed_files", return_value=[excluded, txt]):
+            assert run_cpp_checks([self._recording_rule(seen)], config, base_ref="x")
+
+        assert seen == []
+
+    def test_base_ref_restricted_by_dirs(self, tmp_path: Path) -> None:
+        """Explicit dirs narrow down the changed files."""
+        (tmp_path / "a").mkdir()
+        (tmp_path / "b").mkdir()
+        in_a = tmp_path / "a" / "one.cpp"
+        in_b = tmp_path / "b" / "two.cpp"
+        in_a.write_text("int one;\n")
+        in_b.write_text("int two;\n")
+        seen: list[str] = []
+
+        with patch("devops.cpp.checks.get_changed_files", return_value=[in_a, in_b]):
+            run_cpp_checks(
+                [self._recording_rule(seen)],
+                CppConfig(),
+                dirs=[tmp_path / "a"],
+                base_ref="x",
+            )
+
+        assert seen == ["int one;\n"]
+
+    def test_invalid_base_ref_propagates(self) -> None:
+        """An unresolvable ref surfaces as GitRefError."""
+        with pytest.raises(GitRefError):
+            run_cpp_checks([], CppConfig(), base_ref="does-not-exist-ref")
