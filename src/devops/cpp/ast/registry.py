@@ -10,6 +10,7 @@ import copy
 import typing
 
 from devops.cpp.ast.checks.enforce_param_name_for_type import EnforceParamNameForType
+from devops.cpp.ast.checks.no_global_using import NoGlobalUsing
 from devops.logger import cpp_check_logger
 
 if typing.TYPE_CHECKING:
@@ -21,6 +22,7 @@ if typing.TYPE_CHECKING:
 # / ast_check_disabled_ids to turn it on or off from the input file.
 ALL_CHECKS: list[Check] = [
     EnforceParamNameForType(),
+    NoGlobalUsing(),
 ]
 
 

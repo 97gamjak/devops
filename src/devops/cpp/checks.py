@@ -1,6 +1,5 @@
 """C++ checks module."""
 
-import glob
 from pathlib import Path
 
 from devops import __GLOBAL_CONFIG__
@@ -109,6 +108,38 @@ def run_file_rules(rules: list[Rule], file: Path) -> list[ResultType]:
     return results
 
 
+def _collect_files(
+    config: CppConfig, dirs: list[Path] | None, exclude: list[str]
+) -> list[Path]:
+    """Collect the set of files to check based on config and optional dir override."""
+    if dirs is not None:
+        cpp_check_logger.info(
+            f"Running checks in directories: {[str(d) for d in dirs]}"
+        )
+        return get_files_in_dirs(dirs, exclude_dirs=exclude)
+    if config.check_only_staged_files:
+        cpp_check_logger.info("Running checks on staged files...")
+        return get_staged_files()
+    if config.check_dirs:
+        resolved: list[Path] = []
+        for pattern in config.check_dirs:
+            matches = [m for m in Path().glob(pattern) if m.is_dir()]
+            if not matches:
+                cpp_check_logger.warning(
+                    f"check_dirs: pattern '{pattern}' matched no directories"
+                )
+            resolved.extend(matches)
+        cpp_check_logger.info(
+            f"Running checks in configured directories: {[str(d) for d in resolved]}"
+        )
+        return get_files_in_dirs(resolved, exclude_dirs=exclude)
+    cpp_check_logger.info("Running full checks...")
+    all_dirs = get_dirs_in_dir()
+    files = get_files_in_dirs(all_dirs, exclude_dirs=exclude)
+    cpp_check_logger.debug(f"Checking directories: {[str(d) for d in all_dirs]}")
+    return files
+
+
 def run_cpp_checks(
     rules: list[Rule],
     config: CppConfig = __GLOBAL_CONFIG__.cpp,
@@ -137,35 +168,7 @@ def run_cpp_checks(
 
     """
     exclude = config.exclude_dirs or []
-
-    if dirs is not None:
-        cpp_check_logger.info(
-            f"Running checks in directories: {[str(d) for d in dirs]}"
-        )
-        files = get_files_in_dirs(dirs, exclude_dirs=exclude)
-    elif config.check_only_staged_files:
-        cpp_check_logger.info("Running checks on staged files...")
-        files = get_staged_files()
-    elif config.check_dirs:
-        dirs = []
-        for pattern in config.check_dirs:
-            matches = [Path(m) for m in glob.glob(pattern, recursive=True) if Path(m).is_dir()]
-            if not matches:
-                cpp_check_logger.warning(
-                    f"check_dirs: pattern '{pattern}' matched no directories"
-                )
-            dirs.extend(matches)
-        cpp_check_logger.info(
-            f"Running checks in configured directories: {[str(d) for d in dirs]}"
-        )
-        files = get_files_in_dirs(dirs, exclude_dirs=exclude)
-    else:
-        cpp_check_logger.info("Running full checks...")
-
-        dirs = get_dirs_in_dir()
-        files = get_files_in_dirs(dirs, exclude_dirs=exclude)
-
-        cpp_check_logger.debug(f"Checking directories: {[str(d) for d in dirs]}")
+    files = _collect_files(config, dirs, exclude)
 
     files = [file for file in files if FileType.is_cpp_type(determine_file_type(file))]
 

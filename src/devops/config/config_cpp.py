@@ -110,7 +110,11 @@ class CppConfig:
         args = ", ".join(f'"{arg}"' for arg in self.ast_check_compile_args)
         lines.append(f"#ast_check_compile_args = [{args}]\n")
 
-        db = f'"{self.ast_check_compile_commands_db}"' if self.ast_check_compile_commands_db else '"build"'
+        db = (
+            f'"{self.ast_check_compile_commands_db}"'
+            if self.ast_check_compile_commands_db
+            else '"build"'
+        )
         lines.append(f"#ast_check_compile_commands_db = {db}\n")
 
         enabled = ", ".join(f'"{cid}"' for cid in self.ast_check_enabled_ids)

@@ -61,8 +61,8 @@ def run_ast_checks(
         )
     except clang.TranslationUnitLoadError:
         cpp_check_logger.info(
-            f"AST checks: skipping '{filename}' — libclang could not parse it "
-            "(the file may use GCC extensions or built-ins that libclang does not support)."
+            f"AST checks: skipping '{filename}' — libclang could not parse it"
+            " (may use GCC extensions or built-ins not supported by libclang)."
         )
         return []
 

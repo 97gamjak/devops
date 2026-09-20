@@ -175,8 +175,9 @@ class EnforceParamNameForType(Check):
 
         """
         cpp_check_logger.debug(
-            f"paramNameForType: global_finalize — configured keys: {list(self.type_to_name)}, "
-            f"seen types: {sorted(self._seen_type_names)}"
+            "paramNameForType: global_finalize"
+            f" — configured keys: {list(self.type_to_name)},"
+            f" seen types: {sorted(self._seen_type_names)}"
         )
         passed = True
         for type_name in self.type_to_name:
