@@ -4,9 +4,11 @@ from pathlib import Path
 
 from .files import (
     FileType,
+    GitRefError,
     determine_file_type,
     file_exist,
     filter_cpp_files,
+    get_changed_files,
     get_dirs_in_dir,
     get_files_in_dirs,
     get_staged_files,
@@ -19,9 +21,11 @@ __EXECUTION_DIR__ = Path.cwd()
 __all__ = [
     "__EXECUTION_DIR__",
     "FileType",
+    "GitRefError",
     "determine_file_type",
     "file_exist",
     "filter_cpp_files",
+    "get_changed_files",
     "get_dirs_in_dir",
     "get_files_in_dirs",
     "get_staged_files",

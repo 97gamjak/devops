@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+### Features
+
+#### CPP Rules
+
+- add cli arg `--base-ref` to only check git changed files
+
 <!-- insertion marker -->
 ## [0.2.1](https://github.com/repo/owner/releases/tag/0.2.1) - 2026-09-20
 

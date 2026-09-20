@@ -172,12 +172,15 @@ Controls the checks run by :ref:`cpp_checks <cli-cpp_checks>`.
      - ``false``
      - Restrict checks to files currently staged in Git (for pre-commit
        hook usage).
+       The ``--base-ref`` CLI option overrides this setting. See
+       :ref:`changed-files checks <changed-files-checks>`.
    * - ``check_dirs``
      - list of strings
      - ``[]``
      - If non-empty, only files under these directories (relative to the
        current working directory, glob patterns supported) are checked.
-       Ignored when ``check_only_staged_files`` is ``true``.
+       Ignored when ``check_only_staged_files`` is ``true`` or when
+       ``--base-ref`` is given.
    * - ``exclude_dirs``
      - list of strings
      - ``[]``

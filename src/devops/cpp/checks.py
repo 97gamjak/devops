@@ -14,6 +14,7 @@ from devops.cpp.state import (
 from devops.files import (
     FileType,
     determine_file_type,
+    get_changed_files,
     get_dirs_in_dir,
     get_files_in_dirs,
     get_staged_files,
@@ -115,9 +116,31 @@ def run_file_rules(rules: list[Rule], file: Path) -> list[ResultType]:
     return results
 
 
-def _collect_cpp_files(config: CppConfig, dirs: list[Path] | None) -> list[Path]:
-    """Collect candidate C++ files according to config and CLI dirs."""
+def _is_excluded(path: Path, exclude: list[str]) -> bool:
+    """Return True if any directory component of ``path`` is excluded."""
+    return any(part in exclude for part in path.parts[:-1])
+
+
+def _collect_changed_files(
+    base_ref: str, dirs: list[Path] | None, exclude: list[str]
+) -> list[Path]:
+    """Collect files changed since ``base_ref``, honoring dirs and exclude_dirs."""
+    cpp_check_logger.info(f"Running checks on files changed since '{base_ref}'...")
+    changed = [f for f in get_changed_files(base_ref) if not _is_excluded(f, exclude)]
+    if dirs is None:
+        return changed
+    resolved_dirs = [d.resolve() for d in dirs]
+    return [f for f in changed if any(d in f.resolve().parents for d in resolved_dirs)]
+
+
+def _collect_cpp_files(
+    config: CppConfig, dirs: list[Path] | None, base_ref: str | None = None
+) -> list[Path]:
+    """Collect candidate C++ files according to config, CLI dirs and base ref."""
     exclude = config.exclude_dirs or []
+
+    if base_ref is not None:
+        return _collect_changed_files(base_ref, dirs, exclude)
 
     if dirs is not None:
         cpp_check_logger.info(
@@ -187,6 +210,7 @@ def run_cpp_checks(
     config: CppConfig = __GLOBAL_CONFIG__.cpp,
     dirs: list[Path] | None = None,
     state_file: Path | None = None,
+    base_ref: str | None = None,
 ) -> bool:
     """Run C++ checks based on the provided rules.
 
@@ -212,11 +236,18 @@ def run_cpp_checks(
         Path to the JSON state file used for incremental runs.  When
         ``None`` (the default) no state is read or written and the classic
         fail-fast behavior is used.
+    base_ref: str | None
+        A git commit hash or branch name.  When given, only files changed
+        relative to it (see ``get_changed_files``) are checked, overriding
+        ``check_only_staged_files`` and ``check_dirs``.  ``dirs`` further
+        restricts the changed files when also given.
 
     Raises
     ------
     CppCheckError
         If invalid (non-file or non-line) rules are provided.
+    GitRefError
+        If ``base_ref`` cannot be resolved.
 
     Returns
     -------
@@ -224,7 +255,7 @@ def run_cpp_checks(
         True if all checks pass, False if any check fails.
 
     """
-    raw_files = _collect_cpp_files(config, dirs)
+    raw_files = _collect_cpp_files(config, dirs, base_ref)
     files = [f for f in raw_files if FileType.is_cpp_type(determine_file_type(f))]
 
     if not files:
