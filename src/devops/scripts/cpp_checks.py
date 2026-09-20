@@ -9,6 +9,7 @@ import typer
 from devops import __GLOBAL_CONFIG__
 from devops.cpp import build_cpp_rules, run_cpp_checks
 from devops.cpp.state import DEFAULT_STATE_FILE
+from devops.files import GitRefError
 from devops.utils import mstd_print
 
 app = typer.Typer(help="C++ code quality checks.")
@@ -48,6 +49,17 @@ def cpp_checks(
             "full picture of the codebase in one pass."
         ),
     ),
+    base_ref: str | None = typer.Option(
+        None,
+        "--base-ref",
+        help=(
+            "Git commit hash or branch name.  Only files changed relative to "
+            "it (merge-base with HEAD, including uncommitted changes) are "
+            "checked.  Overrides ``check_only_staged_files`` and "
+            "``check_dirs`` in the [cpp] TOML section; explicit directories "
+            "further restrict the changed files."
+        ),
+    ),
 ) -> None:
     """Run C++ code quality checks.
 
@@ -68,6 +80,10 @@ def cpp_checks(
     no_fail_fast: bool
         When True, all files are checked even if some fail.  Overrides
         ``fail_fast`` in the [cpp] TOML section.
+    base_ref: str | None
+        Git commit hash or branch name.  When given, only files changed
+        relative to it are checked, overriding the file selection settings
+        in the [cpp] TOML section.
 
     """
     if license_header is None:
@@ -97,7 +113,13 @@ def cpp_checks(
         state_path = None
 
     rules = build_cpp_rules(config)
-    passed = run_cpp_checks(rules, config, dirs=cli_dirs, state_file=state_path)
+    try:
+        passed = run_cpp_checks(
+            rules, config, dirs=cli_dirs, state_file=state_path, base_ref=base_ref
+        )
+    except GitRefError as e:
+        mstd_print(str(e))
+        sys.exit(1)
 
     if not passed:
         mstd_print("C++ checks failed.")
