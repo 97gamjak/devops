@@ -11,7 +11,9 @@
       "Bash(git rev-list *)",
       "Bash(git merge *)",
       "Bash(git add *)",
-      "Bash(git commit -q -m 'Merge origin/dev into add-cpp-ast-check-for-global-using/issue-105 *)"
+      "Bash(git commit -q -m 'Merge origin/dev into add-cpp-ast-check-for-global-using/issue-105 *)",
+      "Bash(ruff --version)",
+      "Bash(PYTHONPATH=src python -m pytest -q tests -p no:cacheprovider)"
     ]
   }
 }

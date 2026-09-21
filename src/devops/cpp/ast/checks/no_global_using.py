@@ -40,7 +40,7 @@ _GLOBAL_PARENT_KINDS = frozenset(
 # The two cursor kinds that represent using-statements in C++.
 _USING_KINDS = frozenset(
     (
-        clang.CursorKind.USING_DIRECTIVE,    # using namespace X;
+        clang.CursorKind.USING_DIRECTIVE,  # using namespace X;
         clang.CursorKind.USING_DECLARATION,  # using X::Y;
     )
 )
