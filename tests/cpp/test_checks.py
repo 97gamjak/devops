@@ -445,6 +445,91 @@ class TestRunCppChecksIncremental:
 
         assert state_file.exists()
 
+    def _count_runs(self, tmp_path: Path, config_file: Path | None) -> list[int]:
+        """Run twice with a counting rule and return the cumulative counts."""
+        cpp_file = tmp_path / "test.cpp"
+        cpp_file.write_text("int x = 0;\n")
+        state_file = tmp_path / "state.json"
+        checked = [0]
+
+        def counting_rule(_: str) -> ResultType:
+            checked[0] += 1
+            return ResultType(ResultTypeEnum.Ok)
+
+        rule = Rule(
+            name="counting",
+            func=counting_rule,
+            rule_type=RuleType.CPP_STYLE,
+            rule_input_type=RuleInputType.LINE,
+        )
+        counts = []
+        with patch("devops.cpp.checks.get_staged_files", return_value=[cpp_file]):
+            config = CppConfig(check_only_staged_files=True)
+            for _ in range(2):
+                run_cpp_checks(
+                    [rule], config, state_file=state_file, config_file=config_file
+                )
+                counts.append(checked[0])
+        return counts
+
+    def test_unchanged_config_file_keeps_state(self, tmp_path: Path) -> None:
+        """An unchanged TOML config file does not invalidate the state."""
+        toml = tmp_path / "devops.toml"
+        toml.write_text("[cpp]\n")
+
+        first, second = self._count_runs(tmp_path, toml)
+
+        assert second == first
+
+    def test_changed_config_file_invalidates_state(self, tmp_path: Path) -> None:
+        """Changing the TOML config file re-checks previously passing files."""
+        toml = tmp_path / "devops.toml"
+        toml.write_text("[cpp]\n")
+        cpp_file = tmp_path / "test.cpp"
+        cpp_file.write_text("int x = 0;\n")
+        state_file = tmp_path / "state.json"
+        checked = [0]
+
+        def counting_rule(_: str) -> ResultType:
+            checked[0] += 1
+            return ResultType(ResultTypeEnum.Ok)
+
+        rule = Rule(
+            name="counting",
+            func=counting_rule,
+            rule_type=RuleType.CPP_STYLE,
+            rule_input_type=RuleInputType.LINE,
+        )
+        config = CppConfig(check_only_staged_files=True)
+
+        with patch("devops.cpp.checks.get_staged_files", return_value=[cpp_file]):
+            run_cpp_checks([rule], config, state_file=state_file, config_file=toml)
+            after_first = checked[0]
+            toml.write_text("[cpp]\nfail_fast = false\n")
+            run_cpp_checks([rule], config, state_file=state_file, config_file=toml)
+            after_change = checked[0]
+            run_cpp_checks([rule], config, state_file=state_file, config_file=toml)
+            after_stable = checked[0]
+
+        assert after_change > after_first
+        assert after_stable == after_change
+
+    def test_removed_config_file_invalidates_state(self, tmp_path: Path) -> None:
+        """Dropping the config file (hash -> None) invalidates the state."""
+        toml = tmp_path / "devops.toml"
+        toml.write_text("[cpp]\n")
+        cpp_file = tmp_path / "test.cpp"
+        cpp_file.write_text("int x = 0;\n")
+        state_file = tmp_path / "state.json"
+        rule = self._passing_rule()
+        config = CppConfig(check_only_staged_files=True)
+
+        with patch("devops.cpp.checks.get_staged_files", return_value=[cpp_file]):
+            run_cpp_checks([rule], config, state_file=state_file, config_file=toml)
+            run_cpp_checks([rule], config, state_file=state_file, config_file=None)
+
+        assert "__config__" not in json.loads(state_file.read_text())
+
     def test_passing_file_is_skipped_on_second_run(self, tmp_path: Path) -> None:
         """A file that passed and was not modified is skipped on the next run."""
         cpp_file = tmp_path / "test.cpp"

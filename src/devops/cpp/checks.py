@@ -6,6 +6,7 @@ from devops import __GLOBAL_CONFIG__
 from devops.config import CppConfig
 from devops.cpp.state import (
     any_failed,
+    compute_config_hash,
     filter_incremental,
     load_state,
     save_state,
@@ -211,6 +212,7 @@ def run_cpp_checks(
     dirs: list[Path] | None = None,
     state_file: Path | None = None,
     base_ref: str | None = None,
+    config_file: Path | None = None,
 ) -> bool:
     """Run C++ checks based on the provided rules.
 
@@ -222,7 +224,8 @@ def run_cpp_checks(
     persisted to ``state_file`` after every checked file, and only files
     that are new, previously failed, or modified since the last run are
     re-checked.  The return value is ``False`` whenever any entry in the
-    accumulated state is failed.
+    accumulated state is failed.  The state is discarded whenever
+    ``config_file`` changed since it was written.
 
     Parameters
     ----------
@@ -241,6 +244,10 @@ def run_cpp_checks(
         relative to it (see ``get_changed_files``) are checked, overriding
         ``check_only_staged_files`` and ``check_dirs``.  ``dirs`` further
         restricts the changed files when also given.
+    config_file: Path | None
+        The TOML config file in use.  Its content hash is stored in the state
+        file; when it differs on the next run, all incremental state is
+        invalidated and every file is re-checked.
 
     Raises
     ------
@@ -264,7 +271,7 @@ def run_cpp_checks(
 
     state: dict[str, dict] = {}
     if state_file is not None:
-        state = load_state(state_file)
+        state = load_state(state_file, compute_config_hash(config_file))
         to_check = filter_incremental(files, state)
         skipped = len(files) - len(to_check)
         if skipped:
