@@ -115,7 +115,12 @@ def cpp_checks(
     rules = build_cpp_rules(config)
     try:
         passed = run_cpp_checks(
-            rules, config, dirs=cli_dirs, state_file=state_path, base_ref=base_ref
+            rules,
+            config,
+            dirs=cli_dirs,
+            state_file=state_path,
+            base_ref=base_ref,
+            config_file=__GLOBAL_CONFIG__.config_path,
         )
     except GitRefError as e:
         mstd_print(str(e))

@@ -1,5 +1,6 @@
 """State persistence for incremental C++ checks."""
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -8,15 +9,48 @@ DEFAULT_STATE_FILE = Path(".devops_cpp_state.json")
 _RESULT_PASSED = "passed"
 _RESULT_FAILED = "failed"
 
+# Reserved key holding metadata about the config the state was produced with.
+# It can never collide with a file path entry.
+_CONFIG_KEY = "__config__"
 
-def load_state(state_file: Path) -> dict[str, dict]:
+
+def compute_config_hash(config_file: Path | None) -> str | None:
+    """Return a hash of the raw contents of the TOML config file.
+
+    Parameters
+    ----------
+    config_file: Path | None
+        Path to the TOML config file, or ``None`` if none is in use.
+
+    Returns
+    -------
+    str | None
+        Hex SHA-256 digest, or ``None`` if there is no (readable) config file.
+
+    """
+    if config_file is None:
+        return None
+    try:
+        return hashlib.sha256(config_file.read_bytes()).hexdigest()
+    except OSError:
+        return None
+
+
+def load_state(state_file: Path, config_hash: str | None = None) -> dict[str, dict]:
     """Load per-file check state from a JSON file.
+
+    The state is invalidated (an empty state is returned) when the config
+    hash it was saved with differs from ``config_hash``, i.e. whenever the
+    TOML config file changed, appeared or disappeared since the last run.
 
     Parameters
     ----------
     state_file: Path
         Path to the state file. Returns an empty dict if the file does not
         exist or cannot be parsed.
+    config_hash: str | None
+        Hash of the current config file as returned by ``compute_config_hash``.
+        The returned state carries it so that ``save_state`` persists it.
 
     Returns
     -------
@@ -24,6 +58,18 @@ def load_state(state_file: Path) -> dict[str, dict]:
         Mapping of file path string to ``{"mtime": float, "result": str}``.
 
     """
+    state = _read_state(state_file)
+    stored_hash = state.get(_CONFIG_KEY, {}).get("hash")
+    if stored_hash != config_hash:
+        state = {}
+    state.pop(_CONFIG_KEY, None)
+    if config_hash is not None:
+        state[_CONFIG_KEY] = {"hash": config_hash}
+    return state
+
+
+def _read_state(state_file: Path) -> dict[str, dict]:
+    """Read the raw state dict, returning an empty dict on any failure."""
     if not state_file.exists():
         return {}
     try:
