@@ -216,7 +216,8 @@ Controls the checks run by :ref:`cpp_checks <cli-cpp_checks>`.
      - list of strings
      - ``[]``
      - If non-empty, only AST checks whose ``id`` is in this list run
-       (allowlist). See available check ids below.
+       (allowlist). Available check ids: ``paramNameForType``,
+       ``noGlobalUsing``, ``noGlobalUsingEnum`` (each documented below).
    * - ``ast_check_disabled_ids``
      - list of strings
      - ``[]``
@@ -308,6 +309,59 @@ keeping a consistent naming convention across a large codebase (e.g. every
    # type_to_name = { "molsys::SimulationBox" = ["simulationBox", "box"] }
 
    unseen_type_is_error = true
+
+.. rubric:: ``noGlobalUsing``
+
+Flags ``using namespace X;`` directives and ``using X::Y;`` declarations at
+global or namespace scope. The same statements inside a function, lambda, or
+class body are allowed. ``using enum`` is covered by the separate
+``noGlobalUsingEnum`` check. With no configuration every such statement is
+reported; the keys below narrow that down by name.
+
+Names are matched **exactly** against the qualified name as written in the
+source (``std``, ``std::literals``, ``std::string``). A leading ``::`` on an
+entry is ignored.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 20 15 15 50
+
+   * - Key
+     - Type
+     - Default
+     - Description
+   * - ``enabled_names``
+     - list of strings
+     - ``[]``
+     - If non-empty, only using-statements whose name is in this list are
+       reported (allowlist).
+   * - ``disabled_names``
+     - list of strings
+     - ``[]``
+     - Using-statements whose name is in this list are never reported,
+       regardless of ``enabled_names``.
+
+.. code-block:: toml
+
+   [cpp.ast_check_config.noGlobalUsing]
+   # Only complain about `using namespace std;` ...
+   enabled_names = ["std"]
+   # ... or, alternatively, complain about everything except these:
+   # disabled_names = ["std::literals", "std::chrono_literals"]
+
+.. rubric:: ``noGlobalUsingEnum``
+
+Flags ``using enum X;`` (C++20) at global or namespace scope, where it injects
+every enumerator of ``X`` into the enclosing scope. Inside a function or class
+body it is allowed. It is a separate check from ``noGlobalUsing`` so the two
+can be enabled independently, and it accepts the same ``enabled_names`` /
+``disabled_names`` keys, matched against the qualified enum name as written
+(e.g. ``"molsys::HybridZone"``).
+
+.. code-block:: toml
+
+   [cpp.ast_check_config.noGlobalUsingEnum]
+   disabled_names = ["molsys::LegacyZone"]
 
 ``[file]``
 ^^^^^^^^^^

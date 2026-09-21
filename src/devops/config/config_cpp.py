@@ -143,6 +143,11 @@ class CppConfig:
             "#[cpp.ast_check_config.paramNameForType]\n"
             '#type_to_name = { SimulationBox = "simulationBox", '
             'ForceField = "forceField" }\n'
+            "#[cpp.ast_check_config.noGlobalUsing]\n"
+            '#enabled_names = ["std"]\n'
+            '#disabled_names = ["std::literals"]\n'
+            "#[cpp.ast_check_config.noGlobalUsingEnum]\n"
+            '#disabled_names = ["molsys::LegacyZone"]\n'
         )
 
         isf = (

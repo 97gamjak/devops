@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+### Features
+
+#### CPP Rules
+
+- Add `noGlobalUsing` AST check flagging `using namespace X;` and `using X::Y;` at global or namespace scope (the same constructs inside function, lambda or class bodies are allowed); the full qualified name is reported (e.g. `a::b`)
+- Add `noGlobalUsingEnum` AST check flagging `using enum X;` at global or namespace scope
+- Add `enabled_names` / `disabled_names` options for `noGlobalUsing` and `noGlobalUsingEnum` (`[cpp.ast_check_config.<check-id>]`) to report only, or exempt, specific namespaces/declarations, matched by qualified name (e.g. `"std::literals"`)
+
 <!-- insertion marker -->
 ## [0.3.0](https://github.com/repo/owner/releases/tag/0.3.0) - 2026-09-20
 
