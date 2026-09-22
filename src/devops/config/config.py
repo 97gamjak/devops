@@ -55,6 +55,8 @@ class GlobalConfig:
     git: GitConfig = field(default_factory=GitConfig)
     cpp: CppConfig = field(default_factory=CppConfig)
     file: FileConfig = field(default_factory=FileConfig)
+    # Path of the TOML file this config was read from (None for defaults).
+    config_path: Path | None = None
 
     def write_default(self) -> None:
         """Write the current configuration to a TOML file.
@@ -139,7 +141,9 @@ def read_config(path: str | Path | None = None) -> GlobalConfig:
         return GlobalConfig()
 
     raw_config = load_toml(Path(path))
-    return parse_config(raw_config)
+    config = parse_config(raw_config)
+    config.config_path = Path(path)
+    return config
 
 
 def init_config() -> GlobalConfig:
