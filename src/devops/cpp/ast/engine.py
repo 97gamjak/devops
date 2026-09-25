@@ -55,10 +55,10 @@ def run_ast_checks(
 
     is_header = path.suffix.lower() in _HEADER_SUFFIXES
 
-    parse_options = (
-        clang.TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD
-        | clang.TranslationUnit.PARSE_SKIP_FUNCTION_BODIES
-    )
+    # Function bodies are parsed in full (not PARSE_SKIP_FUNCTION_BODIES) so
+    # checks that need statement-level cursors, such as noThrowParen, can see
+    # inside them.
+    parse_options = clang.TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD
 
     index = clang.Index.create()
     if is_header:

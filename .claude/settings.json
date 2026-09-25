@@ -13,7 +13,20 @@
       "Bash(git add *)",
       "Bash(git commit -q -m 'Merge origin/dev into add-cpp-ast-check-for-global-using/issue-105 *)",
       "Bash(ruff --version)",
-      "Bash(PYTHONPATH=src python -m pytest -q tests -p no:cacheprovider)"
+      "Bash(PYTHONPATH=src python -m pytest -q tests -p no:cacheprovider)",
+      "Bash(python3 -c ' *)",
+      "Bash(python -m pytest tests/cpp/ast/test_no_throw_paren.py -q)",
+      "Bash(python -c \"import devops; print\\(devops.__file__\\)\")",
+      "Bash(pip show *)",
+      "Bash(.venv/bin/pip install *)",
+      "Bash(.venv/bin/python -m pip --version)",
+      "Bash(.venv/bin/python -m pip install -e . -q)",
+      "Bash(.venv/bin/python -m pytest tests/cpp/ast/test_no_throw_paren.py -q)",
+      "Bash(.venv/bin/python -c ' *)",
+      "Bash(.venv/bin/python -m pytest tests/cpp/ast/ -q)",
+      "Bash(.venv/bin/python -m pytest tests/cpp/ -q)",
+      "Bash(.venv/bin/python -m ruff check src/devops/cpp/ast/checks/no_throw_paren.py src/devops/cpp/ast/registry.py src/devops/cpp/ast/engine.py tests/cpp/ast/test_no_throw_paren.py)",
+      "Bash(.venv/bin/python -m pytest tests/ -q)"
     ]
   }
 }
