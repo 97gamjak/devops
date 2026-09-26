@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+<!-- insertion marker -->
+## [0.4.0](https://github.com/repo/owner/releases/tag/0.4.0) - 2026-09-26
+
 ### Features
 
 #### CPP Rules
@@ -18,7 +21,6 @@ All notable changes to this project will be documented in this file.
 - Auto-detect and pass `-resource-dir` to libclang when parsing, using the project's own compiler from `compile_commands.json` (or `clang++`/`clang` on PATH as a fallback). Pip's `libclang` wheel ships no builtin headers, so without this, parsing real files could silently hit a fatal error partway through and stop analyzing the rest of the file
 - Surface a fatal libclang parse error (e.g. an unresolvable `#include`) as a visible `astParseError` diagnostic instead of silently reporting no issues for the unparsed remainder of the file
 
-<!-- insertion marker -->
 ## [0.3.0](https://github.com/repo/owner/releases/tag/0.3.0) - 2026-09-22
 
 ### Features
@@ -201,6 +203,7 @@ All notable changes to this project will be documented in this file.
 - Add automatic release CI for PRs to main (either via title or via hotfix/ branch)
 - Add overnight CI runs for pytest and ruff CIs
 - Add test coverage to pytest CI
+
 
 
 
