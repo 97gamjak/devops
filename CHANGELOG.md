@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+### Fixes
+
+#### CPP Rules
+
+- Fix a bug in `compile_commands.json` arg filtering where a bare `-include <file>` (as GCC/CMake's `target_precompile_headers` emits, unlike Clang's `-Xclang -include -Xclang <file>`) had its file argument silently dropped by the positional-source-file heuristic, leaving a dangling `-include` that swallowed the next unrelated flag as its filename and caused a fatal parse error. `-include` (bare or `-Xclang`-wrapped, including `-include-pch`) is now always dropped together with its file argument, since a force-included PCH header may not exist for every cmake target
+
 <!-- insertion marker -->
 ## [0.4.0](https://github.com/repo/owner/releases/tag/0.4.0) - 2026-09-26
 
@@ -20,7 +26,6 @@ All notable changes to this project will be documented in this file.
 - AST checks now parse full function bodies (previously skipped for performance), so statement-level checks like `noThrowParen` can see inside them
 - Auto-detect and pass `-resource-dir` to libclang when parsing, using the project's own compiler from `compile_commands.json` (or `clang++`/`clang` on PATH as a fallback). Pip's `libclang` wheel ships no builtin headers, so without this, parsing real files could silently hit a fatal error partway through and stop analyzing the rest of the file
 - Surface a fatal libclang parse error (e.g. an unresolvable `#include`) as a visible `astParseError` diagnostic instead of silently reporting no issues for the unparsed remainder of the file
-- Fix a bug in `compile_commands.json` arg filtering where a bare `-include <file>` (as GCC/CMake's `target_precompile_headers` emits, unlike Clang's `-Xclang -include -Xclang <file>`) had its file argument silently dropped by the positional-source-file heuristic, leaving a dangling `-include` that swallowed the next unrelated flag as its filename and caused a fatal parse error. `-include` (bare or `-Xclang`-wrapped, including `-include-pch`) is now always dropped together with its file argument, since a force-included PCH header may not exist for every cmake target
 
 ## [0.3.0](https://github.com/repo/owner/releases/tag/0.3.0) - 2026-09-22
 
