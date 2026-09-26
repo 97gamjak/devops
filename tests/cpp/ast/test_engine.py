@@ -23,9 +23,7 @@ pytest.importorskip("clang.cindex")
 class TestFatalParseErrorSurfaced:
     """A fatal libclang diagnostic is reported as an astParseError."""
 
-    def test_unresolvable_include_reports_ast_parse_error(
-        self, tmp_path: Path
-    ) -> None:
+    def test_unresolvable_include_reports_ast_parse_error(self, tmp_path: Path) -> None:
         """Test unresolvable include reports ast parse error."""
         p = tmp_path / "test.cpp"
         code = '#include "does_not_exist_anywhere.hpp"\nvoid f() {}\n'
