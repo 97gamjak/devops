@@ -4,13 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+<!-- insertion marker -->
+## [0.4.2](https://github.com/repo/owner/releases/tag/0.4.2) - 2026-09-26
+
 ### Fixes
 
 #### CPP Rules
 
 - Refine the `-include`/`-include-pch` handling in `compile_commands.json` arg filtering (following up on the 0.4.1 fix): `-include-pch` (the compiled PCH binary) is still always dropped, since it's serialized by whichever real compiler produced it and is generally incompatible with pip's bundled libclang regardless of whether the file exists. A plain `-include <file>` (the textual PCH header CMake also generates alongside the binary one) is now kept — normalized to a bare pair regardless of how it was originally wrapped — whenever that file exists on disk, since real project headers often rely on it being force-included first for standard-library symbols (`<optional>`, `<format>`, ...) they don't include themselves; unconditionally dropping it (the previous fix) produced a cascade of unrelated "no member"/"too many errors" failures when such a header was checked standalone. It's still dropped when missing, to avoid the original "file not found" fatal error
 
-<!-- insertion marker -->
 ## [0.4.1](https://github.com/repo/owner/releases/tag/0.4.1) - 2026-09-26
 
 ### Fixes
@@ -217,6 +219,7 @@ All notable changes to this project will be documented in this file.
 - Add automatic release CI for PRs to main (either via title or via hotfix/ branch)
 - Add overnight CI runs for pytest and ruff CIs
 - Add test coverage to pytest CI
+
 
 
 
