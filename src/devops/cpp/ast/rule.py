@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import typing
+from pathlib import Path
 
 import clang.cindex as clang
 
@@ -12,20 +13,15 @@ from devops.logger import cpp_check_logger
 from devops.rules import ResultType, ResultTypeEnum, Rule, RuleInputType, RuleType
 
 if typing.TYPE_CHECKING:
-    from pathlib import Path
-
     from devops.rules import FileRuleInput
 
 DEFAULT_COMPILE_ARGS = ["-std=c++23"]
 
 
 # Flags that are not useful to libclang and whose following argument (if any)
-# should also be dropped. -include is dropped entirely (not just filtered by
-# the source-extension check below) because a force-included PCH header may
-# not exist for every cmake target and would otherwise cause a hard parse
-# failure; see the -Xclang handling below for the Clang-specific spelling of
-# the same flag.
-_SKIP_WITH_ARG = frozenset(("-o", "-MF", "-MT", "-MQ", "-include"))
+# should also be dropped. -include / -include-pch are handled separately (see
+# _consume_include) since whether to keep them depends on the file they name.
+_SKIP_WITH_ARG = frozenset(("-o", "-MF", "-MT", "-MQ"))
 # Flags that are not useful but take no following argument.
 _SKIP_ALONE = frozenset(
     (
@@ -38,20 +34,68 @@ _SKIP_ALONE = frozenset(
 )
 # Source / header file extensions to skip when they appear as positional args.
 _SOURCE_EXTENSIONS = (".cpp", ".cxx", ".cc", ".c", ".hpp", ".hxx", ".hh", ".h")
+# -include / -include-pch: force-include another file before the translation
+# unit proper. CMake's target_precompile_headers() emits both for the same
+# PCH, spelled differently per compiler/wrapping (see _consume_include).
+_INCLUDE_FLAGS = frozenset(("-include", "-include-pch"))
+
+
+def _include_file_exists(file_arg: str | None) -> bool:
+    """Check whether an ``-include``'s file argument names a real file."""
+    if not file_arg:
+        return False
+    try:
+        return Path(file_arg).is_file()
+    except OSError:
+        return False
+
+
+def _consume_include(it: typing.Iterator[str], result: list[str], flag: str) -> None:
+    """Handle the file argument of an already-consumed ``-include``/``-include-pch``.
+
+    ``-include-pch`` (the compiled PCH binary) is always dropped together
+    with its file argument: it's serialized by whichever real compiler
+    produced it and is generally incompatible with pip's bundled libclang,
+    triggering a hard parse failure regardless of whether the file exists.
+
+    A plain ``-include <file>`` (the textual PCH header CMake also
+    generates alongside the binary one) is kept — normalized to a bare
+    pair regardless of how it was originally wrapped — when that file
+    exists on disk: project headers often rely on it being force-included
+    first for standard-library symbols (``<optional>``, ``<format>``, ...)
+    they don't include themselves, so dropping it unconditionally produces
+    a cascade of unrelated "no member"/"too many errors" failures. It's
+    dropped, like ``-include-pch``, when the file is missing (e.g. a
+    fresh/partial checkout), to avoid a "file not found" fatal error.
+
+    The file argument may itself be wrapped in another ``-Xclang``
+    (``-Xclang -include(-pch) -Xclang <file>``) or bare
+    (``-Xclang -include(-pch) <file>`` / plain ``-include(-pch) <file>``)
+    depending on the CMake/Clang version, so this peeks one token rather
+    than assuming a fixed shape.
+
+    Parameters
+    ----------
+    it: typing.Iterator[str]
+        The shared argument iterator, positioned right after the flag.
+    result: list[str]
+        The filtered-args list being built; appended to in place.
+    flag: str
+        Either ``"-include"`` or ``"-include-pch"``.
+
+    """
+    following = next(it, None)  # the file, bare or another -Xclang
+    file_arg = next(it, None) if following == "-Xclang" else following
+    if flag == "-include" and file_arg is not None and _include_file_exists(file_arg):
+        result.append("-include")
+        result.append(file_arg)
 
 
 def _consume_xclang(it: typing.Iterator[str], result: list[str]) -> None:
     """Handle the token(s) after an ``-Xclang`` already consumed from `it`.
 
-    Drops ``-Xclang -include-pch`` / ``-Xclang -include`` and their file
-    argument entirely, same as the bare ``-include`` case in
-    `_args_from_compile_commands`: a force-included PCH header may not exist
-    for every cmake target and would otherwise cause a hard parse failure.
-    That file argument may itself be wrapped in another ``-Xclang``
-    (``-Xclang -include-pch -Xclang <file>``) or bare
-    (``-Xclang -include-pch <file>``) depending on the CMake/Clang version,
-    so this peeks one token rather than assuming a fixed shape. Every other
-    ``-Xclang <frontend-arg>`` pair is appended to `result` as-is.
+    Delegates ``-Xclang -include(-pch) ...`` to `_consume_include`. Every
+    other ``-Xclang <frontend-arg>`` pair is appended to `result` as-is.
 
     Parameters
     ----------
@@ -62,10 +106,8 @@ def _consume_xclang(it: typing.Iterator[str], result: list[str]) -> None:
 
     """
     xclang_arg = next(it, None)
-    if xclang_arg in ("-include-pch", "-include"):
-        following = next(it, None)  # the file, bare or another -Xclang
-        if following == "-Xclang":
-            next(it, None)  # the file itself, wrapped
+    if xclang_arg in _INCLUDE_FLAGS:
+        _consume_include(it, result, xclang_arg)
         return
     if xclang_arg is not None:
         result.append("-Xclang")
@@ -94,6 +136,9 @@ def _args_from_compile_commands(
             continue
         # Skip source / header files passed as positional arguments.
         if not arg.startswith("-") and arg.endswith(_SOURCE_EXTENSIONS):
+            continue
+        if arg in _INCLUDE_FLAGS:
+            _consume_include(it, result, arg)
             continue
         if arg == "-Xclang":
             _consume_xclang(it, result)
