@@ -84,19 +84,34 @@ def _write_compile_commands(
 class TestArgsFromCompileCommands:
     """`-include`/PCH handling: bare (GCC) and -Xclang-wrapped (Clang) forms.
 
-    Regression coverage for a real bug: a bare `-include <pch>.hxx` (as GCC
-    emits for CMake's target_precompile_headers, unlike Clang's
-    `-Xclang -include -Xclang <pch>.hxx`) used to have its file argument
-    silently dropped by the positional-source-file heuristic (it ends in
-    `.hxx`, one of `_SOURCE_EXTENSIONS`) while the `-include` flag itself
-    was kept — leaving a dangling `-include` that then swallowed the next
-    *unrelated* flag in the args list as its filename, producing a fatal
-    "file not found" libclang parse error for a file that was never
-    referenced by the project at all.
+    Two bugs are covered here, both discovered from real project failures:
+
+    1. A bare `-include <pch>.hxx` (as GCC emits for CMake's
+       `target_precompile_headers`, unlike Clang's
+       `-Xclang -include -Xclang <pch>.hxx`) used to have its file argument
+       silently dropped by the positional-source-file heuristic (it ends in
+       `.hxx`, one of `_SOURCE_EXTENSIONS`) while the `-include` flag itself
+       was kept — leaving a dangling `-include` that then swallowed the next
+       *unrelated* flag in the args list as its filename, producing a fatal
+       "file not found" libclang parse error for a file that was never
+       referenced by the project at all.
+
+    2. The fix for (1) then dropped every `-include`/`-include-pch`
+       unconditionally. That broke real headers that rely on the textual
+       PCH header (the plain `-include`, not the compiled `-include-pch`
+       binary) always being force-included first for standard-library
+       symbols (`<optional>`, `<format>`, ...) they don't include
+       themselves — producing a cascade of unrelated "no member"/"too many
+       errors" failures when checking such a header standalone. So a plain
+       `-include <file>` is now kept (normalized to a bare pair) whenever
+       that file exists on disk, and only dropped when it's missing (e.g. a
+       fresh/partial checkout) — while `-include-pch` (the compiled binary,
+       generally incompatible with pip's bundled libclang regardless of
+       whether it exists) is still always dropped.
     """
 
-    def test_bare_include_and_its_file_are_both_dropped(self, tmp_path: Path) -> None:
-        """Test bare include and its file are both dropped."""
+    def test_bare_include_dropped_when_file_missing(self, tmp_path: Path) -> None:
+        """Test bare include dropped when file missing."""
         db_dir = tmp_path
         cpp_file = tmp_path / "foo.cpp"
         cpp_file.write_text("void f() {}\n")
@@ -116,14 +131,38 @@ class TestArgsFromCompileCommands:
         idx = args.index("-Wno-unknown-warning-option")
         assert args[idx - 1] != "-include"
 
-    def test_xclang_wrapped_include_pch_is_dropped(self, tmp_path: Path) -> None:
-        """Test xclang wrapped include pch is dropped."""
+    def test_bare_include_kept_when_file_exists(self, tmp_path: Path) -> None:
+        """Test bare include kept when file exists."""
         db_dir = tmp_path
         cpp_file = tmp_path / "foo.cpp"
         cpp_file.write_text("void f() {}\n")
+        pch_header = tmp_path / "cmake_pch.hxx"
+        pch_header.write_text("#include <optional>\n")
         command = (
-            "/usr/bin/clang++-20 -Xclang -include-pch -Xclang "
-            f"{tmp_path}/pch.pch -std=c++23 -o foo.o -c {cpp_file}"
+            f"/usr/bin/g++-13 -Winvalid-pch -include {pch_header} "
+            f"-std=c++23 -o foo.o -c {cpp_file}"
+        )
+        _write_compile_commands(tmp_path, db_dir, cpp_file, command)
+
+        db = clang.CompilationDatabase.fromDirectory(str(db_dir))
+        args = _args_from_compile_commands(db, cpp_file)
+
+        assert args is not None
+        idx = args.index("-include")
+        assert args[idx + 1] == str(pch_header)
+
+    def test_xclang_wrapped_include_pch_is_always_dropped(
+        self, tmp_path: Path
+    ) -> None:
+        """The compiled PCH binary is dropped even when the file exists."""
+        db_dir = tmp_path
+        cpp_file = tmp_path / "foo.cpp"
+        cpp_file.write_text("void f() {}\n")
+        pch_binary = tmp_path / "pch.pch"
+        pch_binary.write_bytes(b"not a real pch")
+        command = (
+            f"/usr/bin/clang++-20 -Xclang -include-pch -Xclang {pch_binary} "
+            f"-std=c++23 -o foo.o -c {cpp_file}"
         )
         _write_compile_commands(tmp_path, db_dir, cpp_file, command)
 
@@ -134,8 +173,10 @@ class TestArgsFromCompileCommands:
         assert "-include-pch" not in args
         assert not any(a.endswith("pch.pch") for a in args)
 
-    def test_xclang_wrapped_include_is_dropped(self, tmp_path: Path) -> None:
-        """Test xclang wrapped include is dropped (Clang's own -include form)."""
+    def test_xclang_wrapped_include_dropped_when_file_missing(
+        self, tmp_path: Path
+    ) -> None:
+        """Test xclang wrapped include dropped when file missing."""
         db_dir = tmp_path
         cpp_file = tmp_path / "foo.cpp"
         cpp_file.write_text("void f() {}\n")
@@ -151,6 +192,28 @@ class TestArgsFromCompileCommands:
         assert args is not None
         assert "-include" not in args
         assert not any(a.endswith("cmake_pch.hxx") for a in args)
+
+    def test_xclang_wrapped_include_kept_when_file_exists(
+        self, tmp_path: Path
+    ) -> None:
+        """Kept (and normalized to a bare pair) when the file exists."""
+        db_dir = tmp_path
+        cpp_file = tmp_path / "foo.cpp"
+        cpp_file.write_text("void f() {}\n")
+        pch_header = tmp_path / "cmake_pch.hxx"
+        pch_header.write_text("#include <optional>\n")
+        command = (
+            f"/usr/bin/clang++-20 -Xclang -include -Xclang {pch_header} "
+            f"-std=c++23 -o foo.o -c {cpp_file}"
+        )
+        _write_compile_commands(tmp_path, db_dir, cpp_file, command)
+
+        db = clang.CompilationDatabase.fromDirectory(str(db_dir))
+        args = _args_from_compile_commands(db, cpp_file)
+
+        assert args is not None
+        idx = args.index("-include")
+        assert args[idx + 1] == str(pch_header)
 
     def test_other_xclang_pairs_are_preserved(self, tmp_path: Path) -> None:
         """Test other xclang pairs are preserved."""
