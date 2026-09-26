@@ -151,9 +151,7 @@ class TestArgsFromCompileCommands:
         idx = args.index("-include")
         assert args[idx + 1] == str(pch_header)
 
-    def test_xclang_wrapped_include_pch_is_always_dropped(
-        self, tmp_path: Path
-    ) -> None:
+    def test_xclang_wrapped_include_pch_is_always_dropped(self, tmp_path: Path) -> None:
         """The compiled PCH binary is dropped even when the file exists."""
         db_dir = tmp_path
         cpp_file = tmp_path / "foo.cpp"
@@ -193,9 +191,7 @@ class TestArgsFromCompileCommands:
         assert "-include" not in args
         assert not any(a.endswith("cmake_pch.hxx") for a in args)
 
-    def test_xclang_wrapped_include_kept_when_file_exists(
-        self, tmp_path: Path
-    ) -> None:
+    def test_xclang_wrapped_include_kept_when_file_exists(self, tmp_path: Path) -> None:
         """Kept (and normalized to a bare pair) when the file exists."""
         db_dir = tmp_path
         cpp_file = tmp_path / "foo.cpp"
