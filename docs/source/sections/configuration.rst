@@ -363,6 +363,19 @@ can be enabled independently, and it accepts the same ``enabled_names`` /
    [cpp.ast_check_config.noGlobalUsingEnum]
    disabled_names = ["molsys::LegacyZone"]
 
+.. rubric:: ``noThrowParen``
+
+Flags ``throw(...)`` where the parentheses wrap the *entire* thrown
+expression, e.g. ``throw(x);`` or ``throw(SomeException(1));``. Write these as
+``throw x;`` / ``throw SomeException(1);`` instead. Parentheses that are only
+part of the thrown expression itself, such as a constructor or function call
+(``throw SomeException(1);``), are not affected, and a bare rethrow
+(``throw;``) is always allowed. This check takes no configuration; disable it
+with::
+
+   [cpp]
+   ast_check_disabled_ids = ["noThrowParen"]
+
 ``[file]``
 ^^^^^^^^^^
 

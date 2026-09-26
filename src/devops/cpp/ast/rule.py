@@ -6,7 +6,7 @@ import typing
 
 import clang.cindex as clang
 
-from devops.cpp.ast.engine import run_ast_checks
+from devops.cpp.ast.engine import _with_auto_resource_dir, run_ast_checks
 from devops.cpp.ast.registry import ALL_CHECKS, configure_checks, select_checks
 from devops.logger import cpp_check_logger
 from devops.rules import ResultType, ResultTypeEnum, Rule, RuleInputType, RuleType
@@ -17,6 +17,7 @@ if typing.TYPE_CHECKING:
     from devops.rules import FileRuleInput
 
 DEFAULT_COMPILE_ARGS = ["-std=c++23"]
+
 
 # Flags that are not useful to libclang and whose following argument (if any)
 # should also be dropped.
@@ -75,7 +76,8 @@ def _args_from_compile_commands(
     # Clang/libclang compatibility: silently ignore GCC-only flags that
     # would otherwise cause libclang to reject the translation unit.
     result += ["-Wno-unknown-warning-option", "-Wno-unused-command-line-argument"]
-    return result
+
+    return _with_auto_resource_dir(result, raw[0])
 
 
 class ASTChecksRule(Rule):

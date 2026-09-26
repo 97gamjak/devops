@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import functools
+import shutil
+import subprocess
 import typing
 from pathlib import Path
 
@@ -14,6 +17,107 @@ if typing.TYPE_CHECKING:
     from devops.cpp.ast.base import Check
 
 _HEADER_SUFFIXES = {".h", ".hpp", ".hxx", ".hh", ".tpp"}
+
+
+@functools.cache
+def _resource_dir_for_compiler(compiler: str) -> str | None:
+    """Ask `compiler` for its builtin resource-dir via ``-print-resource-dir``.
+
+    Pip's ``libclang`` wheel ships only the shared library, not the builtin
+    headers (``stddef.h`` and friends) a real Clang install carries under its
+    resource directory. Without ``-resource-dir`` pointing at a real one,
+    libclang hits a fatal error as soon as parsing reaches a standard header
+    that needs them (e.g. via ``<locale>`` or ``<format>``), silently
+    truncating the AST for the rest of the file. GCC compilers don't support
+    this flag and simply return None here, leaving compile args unchanged.
+
+    Parameters
+    ----------
+    compiler: str
+        The compiler executable to query, e.g. ``"clang++"`` or a path from
+        a compile_commands.json entry's argv[0].
+
+    Returns
+    -------
+    str | None
+        The resource directory path, or None if it could not be determined
+        (unknown/non-Clang compiler, not found on PATH, etc.).
+
+    """
+    try:
+        result = subprocess.run(  # noqa: S603 - no shell, compiler path is trusted
+            [compiler, "-print-resource-dir"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if result.returncode != 0:
+        return None
+    return result.stdout.strip() or None
+
+
+def _has_resource_dir(args: list[str]) -> bool:
+    """Check whether `args` already sets ``-resource-dir``."""
+    return any(
+        arg == "-resource-dir" or arg.startswith("-resource-dir=") for arg in args
+    )
+
+
+def _with_auto_resource_dir(args: list[str], compiler: str) -> list[str]:
+    """Append an auto-detected ``-resource-dir`` for `compiler` if not already set.
+
+    Parameters
+    ----------
+    args: list[str]
+        The compile args to (possibly) extend.
+    compiler: str
+        The compiler executable to query via `_resource_dir_for_compiler`.
+
+    Returns
+    -------
+    list[str]
+        `args` unchanged if it already sets ``-resource-dir`` or none could
+        be auto-detected; otherwise `args` plus ``-resource-dir=<path>``.
+
+    """
+    if _has_resource_dir(args):
+        return args
+    resource_dir = _resource_dir_for_compiler(compiler)
+    if resource_dir is None:
+        return args
+    return [*args, f"-resource-dir={resource_dir}"]
+
+
+def _with_fallback_resource_dir(args: list[str]) -> list[str]:
+    """Add a best-effort ``-resource-dir`` using whatever Clang is on PATH.
+
+    Callers that know the project's own compiler (e.g. from
+    compile_commands.json) should resolve `_with_auto_resource_dir` against
+    that compiler themselves first — it is more likely to match the code
+    being parsed. This is the fallback for callers (including direct
+    `run_ast_checks` callers) that don't have a specific compiler in hand.
+
+    Parameters
+    ----------
+    args: list[str]
+        The compile args to (possibly) extend.
+
+    Returns
+    -------
+    list[str]
+        `args` unchanged if it already sets ``-resource-dir`` or no Clang is
+        on PATH; otherwise `args` plus ``-resource-dir=<path>``.
+
+    """
+    if _has_resource_dir(args):
+        return args
+    clang_exe = shutil.which("clang++") or shutil.which("clang")
+    if clang_exe is None:
+        return args
+    return _with_auto_resource_dir(args, clang_exe)
 
 
 def run_ast_checks(
@@ -47,6 +151,7 @@ def run_ast_checks(
 
     """
     checks = ALL_CHECKS if checks is None else checks
+    compile_args = _with_fallback_resource_dir(compile_args)
 
     # Use the display/diagnostic path as-is; resolve to absolute for libclang
     # so that unsaved-file lookup and AST node locations are consistent.
@@ -55,10 +160,10 @@ def run_ast_checks(
 
     is_header = path.suffix.lower() in _HEADER_SUFFIXES
 
-    parse_options = (
-        clang.TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD
-        | clang.TranslationUnit.PARSE_SKIP_FUNCTION_BODIES
-    )
+    # Function bodies are parsed in full (not PARSE_SKIP_FUNCTION_BODIES) so
+    # checks that need statement-level cursors, such as noThrowParen, can see
+    # inside them.
+    parse_options = clang.TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD
 
     index = clang.Index.create()
     if is_header:
@@ -101,6 +206,35 @@ def run_ast_checks(
         ]
 
     diagnostics: list[Diagnostic] = []
+
+    # A fatal diagnostic (e.g. an unresolvable #include) aborts libclang's
+    # parse partway through the file: everything after that point is absent
+    # from the AST, so checks silently see less than the whole file with no
+    # indication why. Surface it instead of letting that pass silently — the
+    # checks below still run against whatever *was* parsed.
+    fatal = next(
+        (
+            d
+            for d in translation_unit.diagnostics
+            if d.severity >= clang.Diagnostic.Fatal
+        ),
+        None,
+    )
+    if fatal is not None:
+        diagnostics.append(
+            Diagnostic(
+                file=filename,
+                line=fatal.location.line,
+                column=fatal.location.column,
+                message=(
+                    "libclang hit a fatal error while parsing this file — "
+                    "everything after this point was not parsed, so checks "
+                    f"may have missed issues there: {fatal.spelling}"
+                ),
+                check_id="astParseError",
+                severity="error",
+            )
+        )
 
     for cursor in translation_unit.cursor.walk_preorder():
         loc = cursor.location

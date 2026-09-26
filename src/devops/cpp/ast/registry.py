@@ -12,6 +12,7 @@ import typing
 from devops.cpp.ast.checks.enforce_param_name_for_type import EnforceParamNameForType
 from devops.cpp.ast.checks.no_global_using import NoGlobalUsing
 from devops.cpp.ast.checks.no_global_using_enum import NoGlobalUsingEnum
+from devops.cpp.ast.checks.no_throw_paren import NoThrowParen
 from devops.logger import cpp_check_logger
 
 if typing.TYPE_CHECKING:
@@ -25,6 +26,7 @@ ALL_CHECKS: list[Check] = [
     EnforceParamNameForType(),
     NoGlobalUsing(),
     NoGlobalUsingEnum(),
+    NoThrowParen(),
 ]
 
 
