@@ -20,8 +20,12 @@ DEFAULT_COMPILE_ARGS = ["-std=c++23"]
 
 
 # Flags that are not useful to libclang and whose following argument (if any)
-# should also be dropped.
-_SKIP_WITH_ARG = frozenset(("-o", "-MF", "-MT", "-MQ"))
+# should also be dropped. -include is dropped entirely (not just filtered by
+# the source-extension check below) because a force-included PCH header may
+# not exist for every cmake target and would otherwise cause a hard parse
+# failure; see the -Xclang handling below for the Clang-specific spelling of
+# the same flag.
+_SKIP_WITH_ARG = frozenset(("-o", "-MF", "-MT", "-MQ", "-include"))
 # Flags that are not useful but take no following argument.
 _SKIP_ALONE = frozenset(
     (
@@ -34,6 +38,38 @@ _SKIP_ALONE = frozenset(
 )
 # Source / header file extensions to skip when they appear as positional args.
 _SOURCE_EXTENSIONS = (".cpp", ".cxx", ".cc", ".c", ".hpp", ".hxx", ".hh", ".h")
+
+
+def _consume_xclang(it: typing.Iterator[str], result: list[str]) -> None:
+    """Handle the token(s) after an ``-Xclang`` already consumed from `it`.
+
+    Drops ``-Xclang -include-pch`` / ``-Xclang -include`` and their file
+    argument entirely, same as the bare ``-include`` case in
+    `_args_from_compile_commands`: a force-included PCH header may not exist
+    for every cmake target and would otherwise cause a hard parse failure.
+    That file argument may itself be wrapped in another ``-Xclang``
+    (``-Xclang -include-pch -Xclang <file>``) or bare
+    (``-Xclang -include-pch <file>``) depending on the CMake/Clang version,
+    so this peeks one token rather than assuming a fixed shape. Every other
+    ``-Xclang <frontend-arg>`` pair is appended to `result` as-is.
+
+    Parameters
+    ----------
+    it: typing.Iterator[str]
+        The shared argument iterator, positioned right after ``-Xclang``.
+    result: list[str]
+        The filtered-args list being built; appended to in place.
+
+    """
+    xclang_arg = next(it, None)
+    if xclang_arg in ("-include-pch", "-include"):
+        following = next(it, None)  # the file, bare or another -Xclang
+        if following == "-Xclang":
+            next(it, None)  # the file itself, wrapped
+        return
+    if xclang_arg is not None:
+        result.append("-Xclang")
+        result.append(xclang_arg)
 
 
 def _args_from_compile_commands(
@@ -59,18 +95,8 @@ def _args_from_compile_commands(
         # Skip source / header files passed as positional arguments.
         if not arg.startswith("-") and arg.endswith(_SOURCE_EXTENSIONS):
             continue
-        # Handle -Xclang <frontend-arg> pairs.  Drop -include-pch entirely
-        # (the .gch file may not exist for every cmake target and causes a
-        # hard parse failure).  All other -Xclang pairs are kept as-is.
         if arg == "-Xclang":
-            xclang_arg = next(it, None)
-            if xclang_arg == "-include-pch":
-                next(it, None)  # skip following -Xclang
-                next(it, None)  # skip the .gch file path
-                continue
-            if xclang_arg is not None:
-                result.append(arg)
-                result.append(xclang_arg)
+            _consume_xclang(it, result)
             continue
         result.append(arg)
     # Clang/libclang compatibility: silently ignore GCC-only flags that
