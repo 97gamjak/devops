@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+<!-- insertion marker -->
+## [0.4.0](https://github.com/repo/owner/releases/tag/0.4.0) - 2026-09-26
+
 ### Features
 
 #### CPP Rules
@@ -19,7 +22,6 @@ All notable changes to this project will be documented in this file.
 - Surface a fatal libclang parse error (e.g. an unresolvable `#include`) as a visible `astParseError` diagnostic instead of silently reporting no issues for the unparsed remainder of the file
 - Fix a bug in `compile_commands.json` arg filtering where a bare `-include <file>` (as GCC/CMake's `target_precompile_headers` emits, unlike Clang's `-Xclang -include -Xclang <file>`) had its file argument silently dropped by the positional-source-file heuristic, leaving a dangling `-include` that swallowed the next unrelated flag as its filename and caused a fatal parse error. `-include` (bare or `-Xclang`-wrapped, including `-include-pch`) is now always dropped together with its file argument, since a force-included PCH header may not exist for every cmake target
 
-<!-- insertion marker -->
 ## [0.3.0](https://github.com/repo/owner/releases/tag/0.3.0) - 2026-09-22
 
 ### Features
@@ -202,6 +204,7 @@ All notable changes to this project will be documented in this file.
 - Add automatic release CI for PRs to main (either via title or via hotfix/ branch)
 - Add overnight CI runs for pytest and ruff CIs
 - Add test coverage to pytest CI
+
 
 
 
