@@ -117,11 +117,7 @@ class TestMembersAllowed:
         self, tmp_path: Path
     ) -> None:
         """A macro-instantiation line's own range covers the whole invocation."""
-        code = (
-            "#define NOOP(x)\nclass C {\nprivate:\n"
-            "    NOOP(1) int count;\n"
-            "};\n"
-        )
+        code = "#define NOOP(x)\nclass C {\nprivate:\n    NOOP(1) int count;\n};\n"
         # The macro invocation and the field share line 4, so this is the
         # documented trade-off: skipped rather than flagged.
         assert _diags(code, tmp_path) == []
