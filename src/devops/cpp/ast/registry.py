@@ -9,6 +9,9 @@ from __future__ import annotations
 import copy
 import typing
 
+from devops.cpp.ast.checks.enforce_member_leading_underscore import (
+    EnforceMemberLeadingUnderscore,
+)
 from devops.cpp.ast.checks.enforce_param_name_for_type import EnforceParamNameForType
 from devops.cpp.ast.checks.macro_replacement import MacroReplacement
 from devops.cpp.ast.checks.no_global_using import NoGlobalUsing
@@ -24,6 +27,7 @@ if typing.TYPE_CHECKING:
 # Each check's `.id` is the identifier used in CppConfig.ast_check_enabled_ids
 # / ast_check_disabled_ids to turn it on or off from the input file.
 ALL_CHECKS: list[Check] = [
+    EnforceMemberLeadingUnderscore(),
     EnforceParamNameForType(),
     MacroReplacement(),
     NoGlobalUsing(),

@@ -216,8 +216,9 @@ Controls the checks run by :ref:`cpp_checks <cli-cpp_checks>`.
      - list of strings
      - ``[]``
      - If non-empty, only AST checks whose ``id`` is in this list run
-       (allowlist). Available check ids: ``paramNameForType``,
-       ``noGlobalUsing``, ``noGlobalUsingEnum`` (each documented below).
+       (allowlist). Available check ids: ``memberLeadingUnderscore``,
+       ``paramNameForType``, ``macroReplacement``, ``noGlobalUsing``,
+       ``noGlobalUsingEnum``, ``noThrowParen`` (each documented below).
    * - ``ast_check_disabled_ids``
      - list of strings
      - ``[]``
@@ -266,8 +267,9 @@ Controls the checks run by :ref:`cpp_checks <cli-cpp_checks>`.
 Per-check configuration lives in sub-tables of ``[cpp.ast_check_config]``,
 one sub-table per check id. Each check defines its own keys; unknown keys are
 silently ignored. See :doc:`ast_checks/index` for what each check flags and
-its full configuration reference (``paramNameForType``, ``macroReplacement``,
-``noGlobalUsing``, ``noGlobalUsingEnum``, ``noThrowParen``).
+its full configuration reference (``memberLeadingUnderscore``,
+``paramNameForType``, ``macroReplacement``, ``noGlobalUsing``,
+``noGlobalUsingEnum``, ``noThrowParen``).
 
 ``[file]``
 ^^^^^^^^^^

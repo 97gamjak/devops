@@ -64,6 +64,9 @@ Available checks
    * - Check id
      - Flags
      - Configuration
+   * - :doc:`memberLeadingUnderscore <enforce_member_leading_underscore>`
+     - A private or protected member variable not starting with ``_``.
+     - None
    * - :doc:`paramNameForType <param_name_for_type>`
      - A parameter of a configured type not using its canonical name.
      - Required (``type_to_name``)
@@ -84,6 +87,7 @@ Available checks
    :maxdepth: 1
    :hidden:
 
+   enforce_member_leading_underscore
    param_name_for_type
    macro_replacement
    no_global_using
