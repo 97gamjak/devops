@@ -51,9 +51,7 @@ class MacroReplacement(Check):
 
     def __init__(self) -> None:
         """Initialize with the built-in default macro-to-replacement mapping."""
-        self.macro_to_replacement: dict[str, str] = dict(
-            _DEFAULT_MACRO_TO_REPLACEMENT
-        )
+        self.macro_to_replacement: dict[str, str] = dict(_DEFAULT_MACRO_TO_REPLACEMENT)
 
     def configure(self, config: dict) -> None:
         """Replace the default macro-to-replacement mapping from the TOML config.
