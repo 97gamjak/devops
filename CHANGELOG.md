@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+### Features
+
+#### CPP Rules
+
+- Add `macroReplacement` AST check flagging invocations of a banned macro and suggesting its replacement, e.g. disallowing gtest's `EXPECT_THROW`/`ASSERT_THROW` in favor of custom `EXPECT_THROW_MSG`/`ASSERT_THROW_MSG` macros that also require a failure message. Ships with that mapping as a built-in default (no configuration required) and is fully configurable/extensible via `[cpp.ast_check_config.macroReplacement].macro_to_replacement`. Detection matches the macro name exactly and works whether the macro is defined in the same file or an included header
+
 <!-- insertion marker -->
 ## [0.4.2](https://github.com/repo/owner/releases/tag/0.4.2) - 2026-09-26
 
