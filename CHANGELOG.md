@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+<!-- insertion marker -->
+## [0.5.0](https://github.com/repo/owner/releases/tag/0.5.0) - 2026-09-27
+
 ### Features
 
 #### CPP Rules
@@ -20,7 +23,6 @@ All notable changes to this project will be documented in this file.
 
 - Fix a libclang crash (`astParseError` with no useful diagnostic) when parsing a file whose compile args force-include a PCH header via the `-include <file>` compiler flag (as kept by the earlier `-include`-handling fix). Pip's libclang build has been observed to hard-crash on some real PCH headers when force-included this way — even though the exact same header content parses cleanly as an ordinary `#include`, and even though the project's own real compiler accepts the identical flag without issue. `-include <file>` is now stripped from the compiler args and instead turned into a real `#include` line ahead of the checked file in a synthetic wrapper (the same technique already used for header checks), which avoids the crash while preserving the checked file's own path and line numbers exactly
 
-<!-- insertion marker -->
 ## [0.4.2](https://github.com/repo/owner/releases/tag/0.4.2) - 2026-09-26
 
 ### Fixes
@@ -235,6 +237,7 @@ All notable changes to this project will be documented in this file.
 - Add automatic release CI for PRs to main (either via title or via hotfix/ branch)
 - Add overnight CI runs for pytest and ruff CIs
 - Add test coverage to pytest CI
+
 
 
 
