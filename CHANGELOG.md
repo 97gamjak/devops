@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+### Documentation
+
+- Add a dedicated "AST-Based C++ Checks" section to the Sphinx docs with an overview table of every AST check and its own sidebar-linked page per check (`paramNameForType`, `macroReplacement`, `noGlobalUsing`, `noGlobalUsingEnum`, `noThrowParen`), each with flagged-code examples and its full configuration reference. The scattered/partial AST-check descriptions previously duplicated across the overview and configuration pages now point to these pages instead
+
 <!-- insertion marker -->
 ## [0.5.0](https://github.com/repo/owner/releases/tag/0.5.0) - 2026-09-27
 
@@ -12,10 +16,6 @@ All notable changes to this project will be documented in this file.
 #### CPP Rules
 
 - Add `macroReplacement` AST check flagging invocations of a banned macro and suggesting its replacement, e.g. disallowing gtest's `EXPECT_THROW`/`ASSERT_THROW` in favor of custom `EXPECT_THROW_MSG`/`ASSERT_THROW_MSG` macros that also require a failure message. Ships with that mapping as a built-in default (no configuration required) and is fully configurable/extensible via `[cpp.ast_check_config.macroReplacement].macro_to_replacement`. Detection matches the macro name exactly and works whether the macro is defined in the same file or an included header
-
-#### Documentation
-
-- Add a dedicated "AST-Based C++ Checks" section to the Sphinx docs with an overview table of every AST check and its own sidebar-linked page per check (`paramNameForType`, `macroReplacement`, `noGlobalUsing`, `noGlobalUsingEnum`, `noThrowParen`), each with flagged-code examples and its full configuration reference. The scattered/partial AST-check descriptions previously duplicated across the overview and configuration pages now point to these pages instead
 
 ### Fixes
 
