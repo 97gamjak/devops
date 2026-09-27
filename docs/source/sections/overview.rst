@@ -27,14 +27,10 @@ and runs them against a project's C++ sources:
   contents of a configured license header file (see below).
 - **AST-based checks** (optional, requires ``pip install devops[ast]``) — uses
   libclang to parse each file and run semantic checks that text-based rules
-  cannot express:
-
-  - ``paramNameForType`` — enforces that parameters of configured types use a
-    canonical name (e.g. every ``SimulationBox`` parameter must be called
-    ``simulationBox``). The type-to-name mapping is configured in
-    ``[cpp.ast_check_config.paramNameForType]``. Supports fully-qualified type
-    names, multiple accepted names per type, and per-file compile flags from a
-    ``compile_commands.json`` database.
+  cannot express, such as enforcing canonical parameter names for specific
+  types or banning particular macros. See
+  :doc:`AST-based C++ checks <ast_checks/index>` for the full list and how
+  each one is configured.
 
 Run it with :ref:`cpp_checks <cli-cpp_checks>`.
 

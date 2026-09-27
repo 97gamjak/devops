@@ -6,7 +6,7 @@ A collection of DevOps related tools and scripts.
 Version |release|
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    :caption: User Guide
 
    sections/index

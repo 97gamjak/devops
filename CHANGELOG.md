@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+### Documentation
+
+- Add a dedicated "AST-Based C++ Checks" section to the Sphinx docs with an overview table of every AST check and its own sidebar-linked page per check (`paramNameForType`, `macroReplacement`, `noGlobalUsing`, `noGlobalUsingEnum`, `noThrowParen`), each with flagged-code examples and its full configuration reference. The scattered/partial AST-check descriptions previously duplicated across the overview and configuration pages now point to these pages instead
+
 <!-- insertion marker -->
 ## [0.5.0](https://github.com/repo/owner/releases/tag/0.5.0) - 2026-09-27
 
