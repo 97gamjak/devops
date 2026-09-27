@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+### Features
+
+#### CPP Rules
+
+- Add `memberFunctionLeadingUnderscore` AST check flagging private and protected member functions (including static and template ones) whose name doesn't start with `_`, e.g. `void compute();` under `private:`/`protected:` should be `void _compute();`. Public methods are never checked, and constructors/destructors, operator overloads/conversions, and methods overriding a base-class virtual method are always exempt, since their names aren't the author's to change. As with `memberLeadingUnderscore`, methods synthesized entirely by a macro invoked on the same source line are excluded too. Takes no configuration
+
 <!-- insertion marker -->
 ## [0.6.0](https://github.com/repo/owner/releases/tag/0.6.0) - 2026-09-27
 
