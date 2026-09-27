@@ -96,6 +96,36 @@ class TestMembersAllowed:
         code = "int global;\nvoid f() {\n    int local;\n    (void)local;\n}\n"
         assert _diags(code, tmp_path) == []
 
+    def test_macro_synthesized_member_allowed(self, tmp_path: Path) -> None:
+        """A member declared entirely inside a macro body is not flagged.
+
+        Mirrors gtest's ``TEST_F(...)`` expanding to a fixture class with its
+        own private ``test_info_`` member: the whole class is synthesized on
+        the macro-invocation line, so there is no user-typed name to rename.
+        """
+        code = (
+            "#define DECLARE_FIXTURE(name) \\\n"
+            "    class name { \\\n"
+            "    private: \\\n"
+            "        static int test_info_; \\\n"
+            "    };\n"
+            "DECLARE_FIXTURE(Foo)\n"
+        )
+        assert _diags(code, tmp_path) == []
+
+    def test_field_sharing_a_macro_call_line_still_allowed(
+        self, tmp_path: Path
+    ) -> None:
+        """A macro-instantiation line's own range covers the whole invocation."""
+        code = (
+            "#define NOOP(x)\nclass C {\nprivate:\n"
+            "    NOOP(1) int count;\n"
+            "};\n"
+        )
+        # The macro invocation and the field share line 4, so this is the
+        # documented trade-off: skipped rather than flagged.
+        assert _diags(code, tmp_path) == []
+
     def test_lambda_capture_allowed(self, tmp_path: Path) -> None:
         """Test lambda capture allowed."""
         code = (

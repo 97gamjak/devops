@@ -20,6 +20,11 @@ members are never flagged.
        int _flag;        // Good.
    };
 
+A member synthesized entirely by a macro invoked on that same source line
+(e.g. gtest's ``TEST_F(...)`` expanding to a fixture class with its own
+private ``test_info_`` member) is not flagged — there is no user-typed name
+to rename.
+
 Configuration
 --------------
 
