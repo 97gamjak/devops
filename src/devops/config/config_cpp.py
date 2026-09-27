@@ -148,6 +148,9 @@ class CppConfig:
             '#disabled_names = ["std::literals"]\n'
             "#[cpp.ast_check_config.noGlobalUsingEnum]\n"
             '#disabled_names = ["molsys::LegacyZone"]\n'
+            "#[cpp.ast_check_config.macroReplacement]\n"
+            '#macro_to_replacement = { EXPECT_THROW = "EXPECT_THROW_MSG", '
+            'ASSERT_THROW = "ASSERT_THROW_MSG" }\n'
         )
 
         isf = (

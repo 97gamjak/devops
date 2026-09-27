@@ -10,6 +10,7 @@ import copy
 import typing
 
 from devops.cpp.ast.checks.enforce_param_name_for_type import EnforceParamNameForType
+from devops.cpp.ast.checks.macro_replacement import MacroReplacement
 from devops.cpp.ast.checks.no_global_using import NoGlobalUsing
 from devops.cpp.ast.checks.no_global_using_enum import NoGlobalUsingEnum
 from devops.cpp.ast.checks.no_throw_paren import NoThrowParen
@@ -24,6 +25,7 @@ if typing.TYPE_CHECKING:
 # / ast_check_disabled_ids to turn it on or off from the input file.
 ALL_CHECKS: list[Check] = [
     EnforceParamNameForType(),
+    MacroReplacement(),
     NoGlobalUsing(),
     NoGlobalUsingEnum(),
     NoThrowParen(),
