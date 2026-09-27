@@ -120,6 +120,45 @@ def _with_fallback_resource_dir(args: list[str]) -> list[str]:
     return _with_auto_resource_dir(args, clang_exe)
 
 
+def _extract_plain_include(compile_args: list[str]) -> tuple[list[str], str | None]:
+    """Pull a bare ``-include <file>`` pair out of `compile_args`, if present.
+
+    `rule.py` normalizes any force-include it decides to keep (CMake PCH
+    headers, in both GCC's bare and Clang's ``-Xclang``-wrapped spellings)
+    to exactly this bare pair, so that's the only shape handled here.
+
+    Passing that file to libclang as the ``-include`` compiler flag is
+    avoided: pip's libclang build has been observed to hard-crash
+    (``TranslationUnitLoadError``, no diagnostics at all) on some real PCH
+    headers when force-included this way, even though the exact same
+    header parses cleanly as an ordinary ``#include`` — and even though
+    the project's own real compiler parses the identical flag with no
+    problem. The caller turns the extracted file into a real ``#include``
+    line instead (see `run_ast_checks`), which sidesteps the crash and
+    parses correctly.
+
+    Parameters
+    ----------
+    compile_args: list[str]
+        The compile args to search.
+
+    Returns
+    -------
+    tuple[list[str], str | None]
+        `compile_args` with the ``-include <file>`` pair removed (or
+        unchanged, if none was found) and the extracted file path (or
+        None).
+
+    """
+    if "-include" not in compile_args:
+        return compile_args, None
+    idx = compile_args.index("-include")
+    file_arg = compile_args[idx + 1] if idx + 1 < len(compile_args) else None
+    if file_arg is None:
+        return compile_args, None
+    return compile_args[:idx] + compile_args[idx + 2 :], file_arg
+
+
 def run_ast_checks(
     path: Path,
     content: str,
@@ -152,6 +191,7 @@ def run_ast_checks(
     """
     checks = ALL_CHECKS if checks is None else checks
     compile_args = _with_fallback_resource_dir(compile_args)
+    compile_args, prelude_include = _extract_plain_include(compile_args)
 
     # Use the display/diagnostic path as-is; resolve to absolute for libclang
     # so that unsaved-file lookup and AST node locations are consistent.
@@ -166,15 +206,23 @@ def run_ast_checks(
     parse_options = clang.TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD
 
     index = clang.Index.create()
-    if is_header:
-        # Parse a virtual .cpp wrapper that #includes the header so that
-        # libclang gets a proper translation-unit context.  Parsing a header
-        # directly often causes TranslationUnitLoadError because libclang
-        # expects a complete translation unit as its entry point.
+    if is_header or prelude_include is not None:
+        # Parse a virtual .cpp wrapper that #includes the file(s) so that
+        # libclang gets a proper translation-unit context, rather than
+        # passing them as compiler flags. For a header, parsing it directly
+        # often causes TranslationUnitLoadError because libclang expects a
+        # complete translation unit as its entry point. For a force-included
+        # PCH header (`prelude_include`), passing it via the `-include`
+        # compiler flag instead of an ordinary #include has been observed to
+        # crash libclang outright on some real headers (see
+        # `_extract_plain_include`). Either way, the real file is registered
+        # under its own real path with its own unmodified content, so
+        # per-file line numbers and locations are unaffected by the wrapper.
         # Use absolute paths so libclang's internal path resolution can match
         # our unsaved-file entries (it normalises to absolute before lookup).
-        wrapper_name = str(Path.cwd() / "__devops_ast_header_check__.cpp")
-        wrapper_content = f'#include "{filename_abs}"\n'
+        wrapper_name = str(Path.cwd() / "__devops_ast_wrapper__.cpp")
+        prelude = f'#include "{prelude_include}"\n' if prelude_include else ""
+        wrapper_content = f'{prelude}#include "{filename_abs}"\n'
         unsaved = [(filename_abs, content), (wrapper_name, wrapper_content)]
         parse_name = wrapper_name
         filter_name = filename_abs

@@ -10,6 +10,12 @@ All notable changes to this project will be documented in this file.
 
 - Add `macroReplacement` AST check flagging invocations of a banned macro and suggesting its replacement, e.g. disallowing gtest's `EXPECT_THROW`/`ASSERT_THROW` in favor of custom `EXPECT_THROW_MSG`/`ASSERT_THROW_MSG` macros that also require a failure message. Ships with that mapping as a built-in default (no configuration required) and is fully configurable/extensible via `[cpp.ast_check_config.macroReplacement].macro_to_replacement`. Detection matches the macro name exactly and works whether the macro is defined in the same file or an included header
 
+### Fixes
+
+#### CPP Rules
+
+- Fix a libclang crash (`astParseError` with no useful diagnostic) when parsing a file whose compile args force-include a PCH header via the `-include <file>` compiler flag (as kept by the earlier `-include`-handling fix). Pip's libclang build has been observed to hard-crash on some real PCH headers when force-included this way — even though the exact same header content parses cleanly as an ordinary `#include`, and even though the project's own real compiler accepts the identical flag without issue. `-include <file>` is now stripped from the compiler args and instead turned into a real `#include` line ahead of the checked file in a synthetic wrapper (the same technique already used for header checks), which avoids the crash while preserving the checked file's own path and line numbers exactly
+
 <!-- insertion marker -->
 ## [0.4.2](https://github.com/repo/owner/releases/tag/0.4.2) - 2026-09-26
 
