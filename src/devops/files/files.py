@@ -302,7 +302,7 @@ def file_exist(
 @contextmanager
 def open_file(
     file: str | Path, mode: str = "r"
-) -> typing.Generator[typing.IO[str], None, None]:
+) -> typing.Generator[typing.IO[str]]:
     """Read the content of a file.
 
     Parameters
