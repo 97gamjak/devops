@@ -64,18 +64,32 @@ _RESTRICTED_ACCESS = frozenset(
     (clang.AccessSpecifier.PRIVATE, clang.AccessSpecifier.PROTECTED)
 )
 
-# clang_getOverriddenCursors()/clang_disposeOverriddenCursors() have no
-# high-level wrapper in this libclang Python binding, so they're bound here
-# directly via ctypes (a stable part of the public libclang C API since
-# LLVM 3.x).
-conf.lib.clang_getOverriddenCursors.restype = None
-conf.lib.clang_getOverriddenCursors.argtypes = [
-    clang.Cursor,
-    ctypes.POINTER(ctypes.POINTER(clang.Cursor)),
-    ctypes.POINTER(ctypes.c_uint),
-]
-conf.lib.clang_disposeOverriddenCursors.restype = None
-conf.lib.clang_disposeOverriddenCursors.argtypes = [ctypes.POINTER(clang.Cursor)]
+_overridden_cursors_bound = False
+
+
+def _bind_overridden_cursors_ctypes() -> None:
+    """Bind the ctypes signatures for the two libclang functions used below.
+
+    ``clang_getOverriddenCursors()``/``clang_disposeOverriddenCursors()``
+    have no high-level wrapper in this libclang Python binding, so they're
+    bound here directly via ctypes (a stable part of the public libclang C
+    API since LLVM 3.x). Deferred to first use — rather than run at import
+    time — so that importing this module (e.g. when Sphinx documents it with
+    ``clang`` mocked out because libclang isn't installed) doesn't require a
+    real ``clang.Cursor`` ctypes type.
+    """
+    global _overridden_cursors_bound
+    if _overridden_cursors_bound:
+        return
+    conf.lib.clang_getOverriddenCursors.restype = None
+    conf.lib.clang_getOverriddenCursors.argtypes = [
+        clang.Cursor,
+        ctypes.POINTER(ctypes.POINTER(clang.Cursor)),
+        ctypes.POINTER(ctypes.c_uint),
+    ]
+    conf.lib.clang_disposeOverriddenCursors.restype = None
+    conf.lib.clang_disposeOverriddenCursors.argtypes = [ctypes.POINTER(clang.Cursor)]
+    _overridden_cursors_bound = True
 
 
 def _is_restricted_member_function(cursor: clang.Cursor) -> bool:
@@ -120,6 +134,7 @@ def _overrides_base_method(cursor: clang.Cursor) -> bool:
         True if `cursor` overrides one or more base-class virtual methods.
 
     """
+    _bind_overridden_cursors_ctypes()
     overridden = ctypes.POINTER(clang.Cursor)()
     count = ctypes.c_uint()
     conf.lib.clang_getOverriddenCursors(
