@@ -64,9 +64,6 @@ _RESTRICTED_ACCESS = frozenset(
     (clang.AccessSpecifier.PRIVATE, clang.AccessSpecifier.PROTECTED)
 )
 
-_overridden_cursors_bound = False
-
-
 def _bind_overridden_cursors_ctypes() -> None:
     """Bind the ctypes signatures for the two libclang functions used below.
 
@@ -76,10 +73,11 @@ def _bind_overridden_cursors_ctypes() -> None:
     API since LLVM 3.x). Deferred to first use — rather than run at import
     time — so that importing this module (e.g. when Sphinx documents it with
     ``clang`` mocked out because libclang isn't installed) doesn't require a
-    real ``clang.Cursor`` ctypes type.
+    real ``clang.Cursor`` ctypes type. Idempotent: checks whether the
+    signature is already bound instead of relying on a mutable module-level
+    flag.
     """
-    global _overridden_cursors_bound
-    if _overridden_cursors_bound:
+    if conf.lib.clang_getOverriddenCursors.argtypes is not None:
         return
     conf.lib.clang_getOverriddenCursors.restype = None
     conf.lib.clang_getOverriddenCursors.argtypes = [
@@ -89,7 +87,6 @@ def _bind_overridden_cursors_ctypes() -> None:
     ]
     conf.lib.clang_disposeOverriddenCursors.restype = None
     conf.lib.clang_disposeOverriddenCursors.argtypes = [ctypes.POINTER(clang.Cursor)]
-    _overridden_cursors_bound = True
 
 
 def _is_restricted_member_function(cursor: clang.Cursor) -> bool:
