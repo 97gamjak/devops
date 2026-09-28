@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+<!-- insertion marker -->
+## [0.7.0](https://github.com/repo/owner/releases/tag/0.7.0) - 2026-09-28
+
 ### Python Requirement
 
 - remove 3.12 dependeny
@@ -21,7 +24,6 @@ All notable changes to this project will be documented in this file.
 
 - Fix `sphinx-build` failing under `-W` when the optional `ast` extra (`libclang`) isn't installed — as in the docs CI job, which only installs the `docs` extra. `memberFunctionLeadingUnderscore` bound a libclang ctypes function signature (`ctypes.POINTER(clang.Cursor)`) at module import time, which raised `TypeError: must be a ctypes type` against Sphinx's mocked `clang` module and broke autosummary for `devops.cpp` and everything that imports it (`add_license_header`, `cpp_checks`, `cpp_files`). The binding is now deferred to first use, when a real `clang.Cursor` is guaranteed to be available
 
-<!-- insertion marker -->
 ## [0.6.0](https://github.com/repo/owner/releases/tag/0.6.0) - 2026-09-27
 
 ### Features
@@ -262,6 +264,7 @@ All notable changes to this project will be documented in this file.
 - Add automatic release CI for PRs to main (either via title or via hotfix/ branch)
 - Add overnight CI runs for pytest and ruff CIs
 - Add test coverage to pytest CI
+
 
 
 
