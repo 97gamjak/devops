@@ -64,6 +64,7 @@ _RESTRICTED_ACCESS = frozenset(
     (clang.AccessSpecifier.PRIVATE, clang.AccessSpecifier.PROTECTED)
 )
 
+
 def _bind_overridden_cursors_ctypes() -> None:
     """Bind the ctypes signatures for the two libclang functions used below.
 
