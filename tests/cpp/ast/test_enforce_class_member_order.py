@@ -6,6 +6,7 @@ import typing
 
 import pytest
 
+from devops.config.base import ConfigError
 from devops.cpp.ast.checks.enforce_class_member_order import EnforceClassMemberOrder
 from devops.cpp.ast.engine import run_ast_checks
 
@@ -18,10 +19,12 @@ _CHECK = [EnforceClassMemberOrder()]
 _ARGS = ["-std=c++17"]
 
 
-def _diags(code: str, tmp_path: Path) -> list[str]:
+def _diags(
+    code: str, tmp_path: Path, checks: list[EnforceClassMemberOrder] | None = None
+) -> list[str]:
     p = tmp_path / "test.cpp"
     p.write_text(code)
-    return [d.message for d in run_ast_checks(p, code, _ARGS, checks=_CHECK)]
+    return [d.message for d in run_ast_checks(p, code, _ARGS, checks=checks or _CHECK)]
 
 
 class TestCorrectOrderAllowed:
@@ -209,6 +212,72 @@ class TestStaticAndSpecialMembers:
         diags = _diags(code, tmp_path)
         assert len(diags) == 1
         assert "public member variable 'a'" in diags[0]
+
+
+class TestExcludedMacros:
+    """Declarations synthesized by a configured macro are ignored for ordering."""
+
+    def _check(self, excluded_macros: list[str]) -> list[EnforceClassMemberOrder]:
+        check = EnforceClassMemberOrder()
+        check.configure({"excluded_macros": excluded_macros})
+        return [check]
+
+    def test_excluded_macro_member_ignored(self, tmp_path: Path) -> None:
+        """A member synthesized by an excluded macro doesn't break ordering.
+
+        The macro expands to a private field followed by a reset back to
+        ``public:`` (mirroring how ``Q_OBJECT``-style macros bring their own
+        access-specifier bookkeeping), which would otherwise make the
+        public ``a`` that follows look like a public-after-private
+        violation.
+        """
+        code = (
+            "#define Q_OBJECT private: int _qObjectData; public:\n"
+            "class C {\n"
+            "public:\n"
+            "    Q_OBJECT\n"
+            "    int a;\n"
+            "};\n"
+        )
+        assert _diags(code, tmp_path, self._check(["Q_OBJECT"])) == []
+
+    def test_excluded_macro_member_still_flagged_when_not_configured(
+        self, tmp_path: Path
+    ) -> None:
+        """The same file is flagged when the macro isn't excluded."""
+        code = (
+            "#define Q_OBJECT private: int _qObjectData; public:\n"
+            "class C {\n"
+            "public:\n"
+            "    Q_OBJECT\n"
+            "    int a;\n"
+            "};\n"
+        )
+        assert _diags(code, tmp_path) != []
+
+    def test_unrelated_macro_not_excluded(self, tmp_path: Path) -> None:
+        """Only the configured macro name is excluded, not every macro."""
+        code = (
+            "#define OTHER_MACRO private: int _otherData; public:\n"
+            "class C {\n"
+            "public:\n"
+            "    OTHER_MACRO\n"
+            "    int a;\n"
+            "};\n"
+        )
+        assert _diags(code, tmp_path, self._check(["Q_OBJECT"])) != []
+
+    def test_invalid_excluded_macros_type_raises(self) -> None:
+        """A non-list-of-strings ``excluded_macros`` raises ConfigError."""
+        check = EnforceClassMemberOrder()
+        with pytest.raises(ConfigError):
+            check.configure({"excluded_macros": "Q_OBJECT"})
+
+    def test_invalid_excluded_macros_element_type_raises(self) -> None:
+        """A list containing a non-string element raises ConfigError."""
+        check = EnforceClassMemberOrder()
+        with pytest.raises(ConfigError):
+            check.configure({"excluded_macros": [123]})
 
 
 class TestEnforceClassMemberOrderCheckId:

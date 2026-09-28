@@ -10,7 +10,7 @@ All notable changes to this project will be documented in this file.
 
 #### CPP Rules
 
-- Add `classMemberOrder` AST check enforcing a fixed section order within each class/struct/union body: public, protected, then private member variables, followed by public, protected, then private member functions. Only in-class declarations count — out-of-line member-function definitions don't affect ordering — and declarations outside that list (nested types, `using` declarations, enums, friend declarations, ...) are ignored rather than resetting the sequence. Takes no configuration
+- Add `classMemberOrder` AST check enforcing a fixed section order within each class/struct/union body: public, protected, then private member variables, followed by public, protected, then private member functions. Only in-class declarations count — out-of-line member-function definitions don't affect ordering — and declarations outside that list (nested types, `using` declarations, enums, friend declarations, ...) are ignored rather than resetting the sequence. Takes an optional `excluded_macros` list (e.g. `["Q_OBJECT"]`) so members/access-specifier changes synthesized by a named macro invocation are excluded from ordering entirely
 
 ## [0.7.0](https://github.com/repo/owner/releases/tag/0.7.0) - 2026-09-28
 

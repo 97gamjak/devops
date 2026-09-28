@@ -20,7 +20,18 @@ considered, so an out-of-line member-function definition
 (``void C::f() { ... }``) never affects its class's ordering — only the
 in-class declaration does.
 
-To disable this check for a project set::
+Declarations synthesized by a configured macro (matched by the macro's own
+name, at its invocation line) are excluded entirely from ordering: they are
+neither flagged themselves nor counted when checking what came before or
+after them — exactly like the nested-type/using-declaration exclusions
+above. This is for macros such as Qt's ``Q_OBJECT`` that expand to
+boilerplate members (and possibly their own access-specifier changes) whose
+position isn't the author's choice::
+
+    [cpp.ast_check_config.classMemberOrder]
+    excluded_macros = ["Q_OBJECT", "MY_DECLARE_PROPERTY"]
+
+To disable this check entirely for a project set::
 
     [cpp]
     ast_check_disabled_ids = ["classMemberOrder"]
@@ -28,8 +39,11 @@ To disable this check for a project set::
 
 from __future__ import annotations
 
+import typing
+
 import clang.cindex as clang
 
+from devops.config.base import ConfigError
 from devops.cpp.ast.base import Check, Diagnostic
 
 # Record kinds whose direct children this check inspects.
@@ -106,13 +120,60 @@ def _category_rank(kind: clang.CursorKind) -> int | None:
     return None
 
 
+class _PendingMember(typing.NamedTuple):
+    """A classified record member, buffered until end-of-file macro info is known."""
+
+    phase: int
+    name: str
+    line: int
+    column: int
+
+
 class EnforceClassMemberOrder(Check):
-    """Flag member variables/functions declared out of the required section order."""
+    """Flag member variables/functions declared out of the required section order.
+
+    Reporting is deferred to `finalize()`: a macro invoked inside a class
+    body (e.g. ``Q_OBJECT``) shows up in libclang's preprocessing record as
+    a cursor local to the translation unit rather than as a lexical child of
+    the class, and may be visited before or after the class itself in a
+    single preorder walk. Whether a given member's line is covered by an
+    *excluded* macro invocation can therefore only be known once the whole
+    file has been walked.
+    """
 
     id = "classMemberOrder"
 
+    def __init__(self) -> None:
+        """Initialise with no macros excluded and empty per-file buffers."""
+        self._excluded_macros: frozenset[str] = frozenset()
+        self._macro_lines: dict[str, set[int]] = {}
+        self._pending_records: dict[str, list[list[_PendingMember]]] = {}
+
+    def configure(self, config: dict) -> None:
+        """Load the ``excluded_macros`` list from the check's TOML config block.
+
+        Parameters
+        ----------
+        config: dict
+            Expected shape: ``{"excluded_macros": ["Q_OBJECT"]}``.
+
+        Raises
+        ------
+        ConfigError
+            If ``excluded_macros`` is present but is not a list of strings.
+
+        """
+        raw = config.get("excluded_macros", [])
+        if not isinstance(raw, list) or not all(isinstance(n, str) for n in raw):
+            msg = (
+                f"{self.id}: 'excluded_macros' in "
+                f"[cpp.ast_check_config.{self.id}] must be a list of strings"
+            )
+            raise ConfigError(msg)
+        self._excluded_macros = frozenset(raw)
+
     def visit(self, cursor: clang.Cursor, filename: str) -> list[Diagnostic]:
-        """Check one record's direct children for out-of-order sections.
+        """Record excluded-macro lines and classify one record's direct children.
 
         Parameters
         ----------
@@ -124,18 +185,22 @@ class EnforceClassMemberOrder(Check):
         Returns
         -------
         list[Diagnostic]
-            One diagnostic per member declared before a section that must
-            precede it (e.g. a member function found before a still-pending
-            private member variable section).
+            Always empty — diagnostics are emitted from `finalize()` once
+            the whole file (including its macro instantiations) is known.
 
         """
+        if cursor.kind == clang.CursorKind.MACRO_INSTANTIATION:
+            if cursor.spelling in self._excluded_macros:
+                lines = self._macro_lines.setdefault(filename, set())
+                lines.update(
+                    range(cursor.extent.start.line, cursor.extent.end.line + 1)
+                )
+            return []
+
         if cursor.kind not in _RECORD_KINDS:
             return []
 
-        diagnostics: list[Diagnostic] = []
-        highest_phase_seen = -1
-        highest_label = ""
-
+        members: list[_PendingMember] = []
         for child in cursor.get_children():
             category_rank = _category_rank(child.kind)
             if category_rank is None:
@@ -144,29 +209,67 @@ class EnforceClassMemberOrder(Check):
             if access_rank is None:
                 continue
 
-            phase = category_rank * 3 + access_rank
-            if phase < highest_phase_seen:
-                name = child.spelling or "<unnamed>"
-                loc = child.location
-                diagnostics.append(
-                    Diagnostic(
-                        file=filename,
-                        line=loc.line,
-                        column=loc.column,
-                        message=(
-                            f"{_PHASE_LABELS[phase]} '{name}' is declared "
-                            f"after {highest_label} — a class must declare "
-                            "public, protected, then private member "
-                            "variables, followed by public, protected, then "
-                            "private member functions, in that order"
-                        ),
-                        check_id=self.id,
-                        severity="style",
-                    )
+            loc = child.location
+            members.append(
+                _PendingMember(
+                    phase=category_rank * 3 + access_rank,
+                    name=child.spelling or "<unnamed>",
+                    line=loc.line,
+                    column=loc.column,
                 )
-                continue
+            )
 
-            highest_phase_seen = phase
-            highest_label = _PHASE_LABELS[phase]
+        self._pending_records.setdefault(filename, []).append(members)
+        return []
+
+    def finalize(self, filename: str) -> list[Diagnostic]:
+        """Evaluate ordering for every record buffered for `filename`.
+
+        Parameters
+        ----------
+        filename: str
+            Path of the file being checked.
+
+        Returns
+        -------
+        list[Diagnostic]
+            One diagnostic per member declared before a section that must
+            precede it, skipping members whose line is covered by an
+            excluded macro invocation.
+
+        """
+        macro_lines = self._macro_lines.pop(filename, set())
+        records = self._pending_records.pop(filename, [])
+
+        diagnostics: list[Diagnostic] = []
+        for members in records:
+            highest_phase_seen = -1
+            highest_label = ""
+            for member in members:
+                if member.line in macro_lines:
+                    continue
+
+                if member.phase < highest_phase_seen:
+                    diagnostics.append(
+                        Diagnostic(
+                            file=filename,
+                            line=member.line,
+                            column=member.column,
+                            message=(
+                                f"{_PHASE_LABELS[member.phase]} '{member.name}' "
+                                f"is declared after {highest_label} — a class "
+                                "must declare public, protected, then private "
+                                "member variables, followed by public, "
+                                "protected, then private member functions, in "
+                                "that order"
+                            ),
+                            check_id=self.id,
+                            severity="style",
+                        )
+                    )
+                    continue
+
+                highest_phase_seen = member.phase
+                highest_label = _PHASE_LABELS[member.phase]
 
         return diagnostics

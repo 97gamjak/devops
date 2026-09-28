@@ -74,7 +74,7 @@ Available checks
      - A member variable/function declared before a section that must
        precede it (public/protected/private members, then
        public/protected/private member functions).
-     - None
+     - Optional (``excluded_macros``)
    * - :doc:`paramNameForType <param_name_for_type>`
      - A parameter of a configured type not using its canonical name.
      - Required (``type_to_name``)

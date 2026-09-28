@@ -66,7 +66,18 @@ sequence.
 Configuration
 --------------
 
-This check takes no configuration.
+Optional — exclude specific macros invoked inside a class body from
+ordering entirely. Any member (or access-specifier change) synthesized by
+a listed macro, matched by the macro's own name at its invocation line, is
+skipped: it's neither flagged itself nor counted when checking what came
+before or after it. Useful for macros such as Qt's ``Q_OBJECT`` that expand
+to boilerplate members and their own access-specifier bookkeeping, whose
+position isn't the author's choice.
+
+.. code-block:: toml
+
+   [cpp.ast_check_config.classMemberOrder]
+   excluded_macros = ["Q_OBJECT", "MY_DECLARE_PROPERTY"]
 
 Disabling
 ----------
