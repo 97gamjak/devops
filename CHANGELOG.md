@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+### Python Requirement
+
+- remove 3.12 dependeny
+- add support for 3.14
+
 ### Features
 
 #### CPP Rules
