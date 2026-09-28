@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+### Python Requirement
+
+- remove 3.12 dependeny
+- add support for 3.14
+
+### Features
+
+#### CPP Rules
+
+- Add `memberFunctionLeadingUnderscore` AST check flagging private and protected member functions (including static and template ones) whose name doesn't start with `_`, e.g. `void compute();` under `private:`/`protected:` should be `void _compute();`. Public methods are never checked, and constructors/destructors, operator overloads/conversions, and methods overriding a base-class virtual method are always exempt, since their names aren't the author's to change. As with `memberLeadingUnderscore`, methods synthesized entirely by a macro invoked on the same source line are excluded too. Takes no configuration
+
+### Fixes
+
+#### Documentation
+
+- Fix `sphinx-build` failing under `-W` when the optional `ast` extra (`libclang`) isn't installed — as in the docs CI job, which only installs the `docs` extra. `memberFunctionLeadingUnderscore` bound a libclang ctypes function signature (`ctypes.POINTER(clang.Cursor)`) at module import time, which raised `TypeError: must be a ctypes type` against Sphinx's mocked `clang` module and broke autosummary for `devops.cpp` and everything that imports it (`add_license_header`, `cpp_checks`, `cpp_files`). The binding is now deferred to first use, when a real `clang.Cursor` is guaranteed to be available
+
 <!-- insertion marker -->
 ## [0.6.0](https://github.com/repo/owner/releases/tag/0.6.0) - 2026-09-27
 
