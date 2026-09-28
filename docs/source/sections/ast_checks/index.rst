@@ -70,6 +70,11 @@ Available checks
    * - :doc:`memberFunctionLeadingUnderscore <enforce_member_function_leading_underscore>`
      - A private or protected member function not starting with ``_``.
      - None
+   * - :doc:`classMemberOrder <enforce_class_member_order>`
+     - A member variable/function declared before a section that must
+       precede it (public/protected/private members, then
+       public/protected/private member functions).
+     - None
    * - :doc:`paramNameForType <param_name_for_type>`
      - A parameter of a configured type not using its canonical name.
      - Required (``type_to_name``)
@@ -92,6 +97,7 @@ Available checks
 
    enforce_member_leading_underscore
    enforce_member_function_leading_underscore
+   enforce_class_member_order
    param_name_for_type
    macro_replacement
    no_global_using
