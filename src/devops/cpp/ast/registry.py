@@ -16,6 +16,9 @@ from devops.cpp.ast.checks.enforce_member_function_leading_underscore import (
 from devops.cpp.ast.checks.enforce_member_leading_underscore import (
     EnforceMemberLeadingUnderscore,
 )
+from devops.cpp.ast.checks.enforce_no_public_leading_underscore import (
+    EnforceNoPublicLeadingUnderscore,
+)
 from devops.cpp.ast.checks.enforce_param_name_for_type import EnforceParamNameForType
 from devops.cpp.ast.checks.macro_replacement import MacroReplacement
 from devops.cpp.ast.checks.no_global_using import NoGlobalUsing
@@ -34,6 +37,7 @@ ALL_CHECKS: list[Check] = [
     EnforceClassMemberOrder(),
     EnforceMemberFunctionLeadingUnderscore(),
     EnforceMemberLeadingUnderscore(),
+    EnforceNoPublicLeadingUnderscore(),
     EnforceParamNameForType(),
     MacroReplacement(),
     NoGlobalUsing(),
