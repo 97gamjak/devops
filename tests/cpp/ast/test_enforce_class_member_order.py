@@ -102,14 +102,7 @@ class TestOutOfOrderFlagged:
 
     def test_private_before_public_member_flagged(self, tmp_path: Path) -> None:
         """Test private before public member flagged."""
-        code = (
-            "class C {\n"
-            "private:\n"
-            "    int b;\n"
-            "public:\n"
-            "    int a;\n"
-            "};\n"
-        )
+        code = "class C {\nprivate:\n    int b;\npublic:\n    int a;\n};\n"
         diags = _diags(code, tmp_path)
         assert len(diags) == 1
         assert "public member variable 'a'" in diags[0]
@@ -117,14 +110,7 @@ class TestOutOfOrderFlagged:
 
     def test_protected_before_public_member_flagged(self, tmp_path: Path) -> None:
         """Test protected before public member flagged."""
-        code = (
-            "class C {\n"
-            "protected:\n"
-            "    int b;\n"
-            "public:\n"
-            "    int a;\n"
-            "};\n"
-        )
+        code = "class C {\nprotected:\n    int b;\npublic:\n    int a;\n};\n"
         diags = _diags(code, tmp_path)
         assert len(diags) == 1
         assert "public member variable 'a'" in diags[0]
@@ -141,14 +127,7 @@ class TestOutOfOrderFlagged:
         self, tmp_path: Path
     ) -> None:
         """Test public function before private member flagged."""
-        code = (
-            "class C {\n"
-            "public:\n"
-            "    void f();\n"
-            "private:\n"
-            "    int a;\n"
-            "};\n"
-        )
+        code = "class C {\npublic:\n    void f();\nprivate:\n    int a;\n};\n"
         diags = _diags(code, tmp_path)
         assert len(diags) == 1
         assert "private member variable 'a'" in diags[0]
@@ -157,14 +136,7 @@ class TestOutOfOrderFlagged:
         self, tmp_path: Path
     ) -> None:
         """Test private function before public function flagged."""
-        code = (
-            "class C {\n"
-            "private:\n"
-            "    void g();\n"
-            "public:\n"
-            "    void f();\n"
-            "};\n"
-        )
+        code = "class C {\nprivate:\n    void g();\npublic:\n    void f();\n};\n"
         diags = _diags(code, tmp_path)
         assert len(diags) == 1
         assert "public member function 'f'" in diags[0]
@@ -195,13 +167,7 @@ class TestStaticAndSpecialMembers:
 
     def test_static_member_treated_as_variable(self, tmp_path: Path) -> None:
         """Test static member treated as variable."""
-        code = (
-            "class C {\n"
-            "public:\n"
-            "    void f();\n"
-            "    static int count;\n"
-            "};\n"
-        )
+        code = "class C {\npublic:\n    void f();\n    static int count;\n};\n"
         diags = _diags(code, tmp_path)
         assert len(diags) == 1
         assert "public member variable 'count'" in diags[0]
@@ -289,11 +255,5 @@ class TestEnforceClassMemberOrderCheckId:
 
     def test_clean_file_produces_no_diagnostics(self, tmp_path: Path) -> None:
         """Test clean file produces no diagnostics."""
-        code = (
-            "class C {\n"
-            "public:\n"
-            "    int a;\n"
-            "    void f();\n"
-            "};\n"
-        )
+        code = "class C {\npublic:\n    int a;\n    void f();\n};\n"
         assert _diags(code, tmp_path) == []
