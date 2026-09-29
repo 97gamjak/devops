@@ -70,6 +70,9 @@ Available checks
    * - :doc:`memberFunctionLeadingUnderscore <enforce_member_function_leading_underscore>`
      - A private or protected member function not starting with ``_``.
      - None
+   * - :doc:`noPublicLeadingUnderscore <enforce_no_public_leading_underscore>`
+     - A public member variable/function starting with ``_``.
+     - None
    * - :doc:`classMemberOrder <enforce_class_member_order>`
      - A member variable/function declared before a section that must
        precede it (public/protected/private members, then
@@ -97,6 +100,7 @@ Available checks
 
    enforce_member_leading_underscore
    enforce_member_function_leading_underscore
+   enforce_no_public_leading_underscore
    enforce_class_member_order
    param_name_for_type
    macro_replacement
