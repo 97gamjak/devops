@@ -93,6 +93,14 @@ Available checks
    * - :doc:`noThrowParen <no_throw_paren>`
      - ``throw(...)`` wrapping the whole thrown expression.
      - None
+   * - :doc:`noDeleteInGtestTeardown <no_delete_in_gtest_teardown>`
+     - ``delete``/``delete[]`` inside a GTest ``TearDown``/``TearDownTestSuite``/
+       ``TearDownTestCase`` function.
+     - None
+   * - :doc:`noNewInGtestSetup <no_new_in_gtest_setup>`
+     - ``new`` inside a GTest ``SetUp``/``SetUpTestSuite``/``SetUpTestCase``
+       function.
+     - None
 
 .. toctree::
    :maxdepth: 1
@@ -107,3 +115,5 @@ Available checks
    no_global_using
    no_global_using_enum
    no_throw_paren
+   no_delete_in_gtest_teardown
+   no_new_in_gtest_setup

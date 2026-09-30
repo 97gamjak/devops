@@ -21,8 +21,10 @@ from devops.cpp.ast.checks.enforce_no_public_leading_underscore import (
 )
 from devops.cpp.ast.checks.enforce_param_name_for_type import EnforceParamNameForType
 from devops.cpp.ast.checks.macro_replacement import MacroReplacement
+from devops.cpp.ast.checks.no_delete_in_gtest_teardown import NoDeleteInGtestTeardown
 from devops.cpp.ast.checks.no_global_using import NoGlobalUsing
 from devops.cpp.ast.checks.no_global_using_enum import NoGlobalUsingEnum
+from devops.cpp.ast.checks.no_new_in_gtest_setup import NoNewInGtestSetup
 from devops.cpp.ast.checks.no_throw_paren import NoThrowParen
 from devops.logger import cpp_check_logger
 
@@ -40,8 +42,10 @@ ALL_CHECKS: list[Check] = [
     EnforceNoPublicLeadingUnderscore(),
     EnforceParamNameForType(),
     MacroReplacement(),
+    NoDeleteInGtestTeardown(),
     NoGlobalUsing(),
     NoGlobalUsingEnum(),
+    NoNewInGtestSetup(),
     NoThrowParen(),
 ]
 
