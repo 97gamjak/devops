@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+### Features
+
+#### CPP Rules
+
+- Add `noDeleteInGtestTeardown` AST check flagging `delete`/`delete[]` expressions anywhere inside a member function named `TearDown`, `TearDownTestSuite`, or `TearDownTestCase` — the fixture-teardown hooks GTest calls by name. Manually deleting a raw pointer there is fragile (a `SetUp()` that throws or returns early skips the matching `delete`, and a test body that already freed the pointer causes a double-free); prefer an RAII/smart-pointer owner instead. Only a literal `delete`/`delete[]` lexically inside the teardown function's own body is flagged, not calls into other functions. Takes no configuration
+
 <!-- insertion marker -->
 ## [0.8.0](https://github.com/repo/owner/releases/tag/0.8.0) - 2026-09-30
 
