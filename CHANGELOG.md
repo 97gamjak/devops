@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+### Features
+
+#### CPP Rules
+
+- Add `noPublicLeadingUnderscore` AST check flagging public member variables and member functions (including static and template ones) whose name starts with `_`, e.g. `int _count;` or `void _compute();` under `public:` (or under a `struct`'s default access) should drop the leading underscore. Private/protected members are never checked here, since that's the concern of `memberLeadingUnderscore`/`memberFunctionLeadingUnderscore`. Constructors/destructors, operator overloads/conversions, and methods overriding a base-class virtual method are always exempt, and members synthesized entirely by a macro invoked on the same source line are excluded too. Takes no configuration
+- Add `classMemberOrder` AST check enforcing a fixed section order within each class/struct/union body: public, protected, then private member variables, followed by public, protected, then private member functions. Only in-class declarations count — out-of-line member-function definitions don't affect ordering — and declarations outside that list (nested types, `using` declarations, enums, friend declarations, ...) are ignored rather than resetting the sequence. Takes an optional `excluded_macros` list (e.g. `["Q_OBJECT"]`) so members/access-specifier changes synthesized by a named macro invocation are excluded from ordering entirely
+
 <!-- insertion marker -->
 ## [0.7.0](https://github.com/repo/owner/releases/tag/0.7.0) - 2026-09-28
 
