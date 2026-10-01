@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+### Features
+
+#### CPP Rules
+
+- Add `includeIwyuPragmaOnly` AST check flagging a `#include` line whose trailing comment is not a valid `// IWYU pragma: ...` comment (Fixes #150). An `#include` with no trailing comment is always allowed. Takes an optional `allowed_pragmas` list restricting which IWYU pragma keywords (e.g. `export`, `keep`) are accepted; when unset, every pragma keyword is allowed
+
 <!-- insertion marker -->
 ## [0.9.0](https://github.com/repo/owner/releases/tag/0.9.0) - 2026-09-30
 
