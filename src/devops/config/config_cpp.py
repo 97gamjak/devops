@@ -151,6 +151,8 @@ class CppConfig:
             "#[cpp.ast_check_config.macroReplacement]\n"
             '#macro_to_replacement = { EXPECT_THROW = "EXPECT_THROW_MSG", '
             'ASSERT_THROW = "ASSERT_THROW_MSG" }\n'
+            "#[cpp.ast_check_config.includeIwyuPragmaOnly]\n"
+            '#allowed_pragmas = ["export", "keep"]\n'
         )
 
         isf = (
