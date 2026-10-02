@@ -4,13 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+<!-- insertion marker -->
+## [0.10.0](https://github.com/repo/owner/releases/tag/0.10.0) - 2026-10-02
+
 ### Features
 
 #### CPP Rules
 
 - Add `includeIwyuPragmaOnly` AST check flagging a `#include` line whose trailing comment is not a valid `// IWYU pragma: ...` comment (Fixes #150). An `#include` with no trailing comment is always allowed. Takes an optional `allowed_pragmas` list restricting which IWYU pragma keywords (e.g. `export`, `keep`) are accepted; when unset, every pragma keyword is allowed
 
-<!-- insertion marker -->
 ## [0.9.0](https://github.com/repo/owner/releases/tag/0.9.0) - 2026-09-30
 
 ### Features
@@ -288,6 +290,7 @@ All notable changes to this project will be documented in this file.
 - Add automatic release CI for PRs to main (either via title or via hotfix/ branch)
 - Add overnight CI runs for pytest and ruff CIs
 - Add test coverage to pytest CI
+
 
 
 
