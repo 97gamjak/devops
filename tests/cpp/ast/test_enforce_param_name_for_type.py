@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import typing
+from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 
@@ -273,6 +274,45 @@ class TestEnforceParamNameForTypeConfiguration:
         result = check.global_finalize()
 
         assert result is True
+
+    def test_seen_type_names_thread_safe_across_concurrent_visits(
+        self, tmp_path: Path
+    ) -> None:
+        """A single check instance's _seen_type_names survives concurrent visits.
+
+        Mirrors how a single ASTChecksRule's checks are shared across threads
+        when run_cpp_checks uses parallel_jobs > 1: every file's AST walk
+        mutates the same check instance's cross-file state concurrently.
+
+        Parameters
+        ----------
+        tmp_path: Path
+            Temporary path for creating test files.
+
+        """
+        type_to_name = {f"Type{i}": f"arg{i}" for i in range(20)}
+        check = EnforceParamNameForType()
+        check.configure(
+            {"type_to_name": type_to_name, "unseen_type_is_error": True}
+        )
+
+        files = []
+        for i in range(20):
+            content = f"struct Type{i} {{}};\nvoid f(Type{i} arg{i}) {{}}\n"
+            cpp_file = tmp_path / f"file{i}.cpp"
+            cpp_file.write_text(content)
+            files.append((cpp_file, content))
+
+        def run_one(args: tuple[Path, str]) -> None:
+            path, content = args
+            run_ast_checks(path, content, ["-std=c++23"], checks=[check])
+
+        with ThreadPoolExecutor(max_workers=8) as executor:
+            list(executor.map(run_one, files))
+
+        # unseen_type_is_error=True means this is only True if every one of
+        # the 20 configured types was recorded despite the concurrent visits.
+        assert check.global_finalize() is True
 
 
 class TestEnforceParamNameForType:

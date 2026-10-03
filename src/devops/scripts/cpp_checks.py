@@ -16,7 +16,7 @@ app = typer.Typer(help="C++ code quality checks.")
 
 
 @app.command()
-def cpp_checks(
+def cpp_checks(  # noqa: PLR0913 - each param is an independent CLI flag
     license_header: str | None = None,
     dirs: list[str] | None = None,
     incremental: bool = typer.Option(
@@ -60,6 +60,19 @@ def cpp_checks(
             "further restrict the changed files."
         ),
     ),
+    jobs: int | None = typer.Option(
+        None,
+        "--jobs",
+        "-j",
+        help=(
+            "Number of files to check concurrently. 1 (the default) checks "
+            "files serially, identical to pre-parallel behavior. Values "
+            "<= 0 use os.cpu_count() workers. Overrides ``parallel_jobs`` "
+            "in the [cpp] TOML section. With --jobs > 1 and fail_fast "
+            "enabled, the run stops soon after a failure rather than at the "
+            "exact first failing file."
+        ),
+    ),
 ) -> None:
     """Run C++ code quality checks.
 
@@ -84,6 +97,9 @@ def cpp_checks(
         Git commit hash or branch name.  When given, only files changed
         relative to it are checked, overriding the file selection settings
         in the [cpp] TOML section.
+    jobs: int | None
+        Number of files to check concurrently.  When omitted, falls back to
+        ``parallel_jobs`` in the [cpp] TOML section (default 1, serial).
 
     """
     if license_header is None:
@@ -93,6 +109,7 @@ def cpp_checks(
         __GLOBAL_CONFIG__.cpp,
         license_header=license_header,
         **({"fail_fast": False} if no_fail_fast else {}),
+        **({"parallel_jobs": jobs} if jobs is not None else {}),
     )
 
     cli_dirs = [Path(d) for d in dirs] if dirs is not None else None

@@ -69,6 +69,84 @@ class TestASTChecksRule:
 
         assert result.value == ResultTypeEnum.Ok
 
+    def test_check_file_matches_apply(self, tmp_path: Path) -> None:
+        """check_file() is equivalent to apply() with a FileRuleInput."""
+        cpp_file = tmp_path / "bad.cpp"
+        content = "struct SimulationBox {};\nvoid foo(SimulationBox simBox) {}\n"
+        cpp_file.write_text(content)
+
+        check_config = {
+            "paramNameForType": {"type_to_name": {"SimulationBox": "simulationBox"}}
+        }
+        via_apply = ASTChecksRule(check_config=check_config).apply(
+            FileRuleInput(file_content=content, path=cpp_file)
+        )
+        via_check_file = ASTChecksRule(check_config=check_config).check_file(
+            cpp_file, content
+        )
+
+        assert via_apply.value == via_check_file.value == ResultTypeEnum.Error
+        assert via_apply.description == via_check_file.description
+
+    def test_from_spec_rebuilds_equivalent_rule(self, tmp_path: Path) -> None:
+        """from_spec(worker_spec()) behaves like the original instance.
+
+        This is the contract devops.cpp.checks relies on to run AST checks
+        across a ProcessPoolExecutor: a worker can't receive the original
+        rule (it holds an unpicklable clang.CompilationDatabase), only its
+        worker_spec(), and must rebuild an equivalent rule from that.
+        """
+        cpp_file = tmp_path / "bad.cpp"
+        content = "struct SimulationBox {};\nvoid foo(SimulationBox simBox) {}\n"
+        cpp_file.write_text(content)
+
+        original = ASTChecksRule(
+            check_config={
+                "paramNameForType": {"type_to_name": {"SimulationBox": "simulationBox"}}
+            }
+        )
+        rebuilt = ASTChecksRule.from_spec(original.worker_spec())
+
+        result = rebuilt.check_file(cpp_file, content)
+        assert result.value == ResultTypeEnum.Error
+        assert "simBox" in result.description
+
+    def test_collect_and_merge_state_roundtrip(self, tmp_path: Path) -> None:
+        """merge_state(collect_state()) carries a check's state across instances.
+
+        Mirrors how devops.cpp.checks merges a worker process's
+        EnforceParamNameForType._seen_type_names snapshot back into the
+        main process's rule after a parallel run.
+        """
+        cpp_file = tmp_path / "ok.cpp"
+        content = "struct SimulationBox {};\nvoid foo(SimulationBox simulationBox) {}\n"
+        cpp_file.write_text(content)
+
+        type_to_name = {"SimulationBox": "simulationBox"}
+        worker_rule = ASTChecksRule(
+            check_config={
+                "paramNameForType": {
+                    "type_to_name": type_to_name,
+                    "unseen_type_is_error": True,
+                }
+            }
+        )
+        worker_rule.check_file(cpp_file, content)
+
+        main_rule = ASTChecksRule(
+            check_config={
+                "paramNameForType": {
+                    "type_to_name": type_to_name,
+                    "unseen_type_is_error": True,
+                }
+            }
+        )
+        # The main process's rule never saw any file directly in this test,
+        # only the state collected from the (simulated) worker.
+        main_rule.merge_state(worker_rule.collect_state())
+
+        assert main_rule.finalize_run() is True
+
 
 def _write_compile_commands(
     tmp_path: Path, directory: Path, file: Path, command: str
