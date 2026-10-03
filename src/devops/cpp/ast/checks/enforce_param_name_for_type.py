@@ -14,6 +14,7 @@ all resolve to the same key and all require the same parameter name.
 from __future__ import annotations
 
 import re
+import threading
 
 import clang.cindex as clang
 
@@ -111,6 +112,7 @@ class EnforceParamNameForType(Check):
         """Initialise with an empty type-to-name mapping."""
         self.type_to_name: dict[str, list[str]] = {}
         self._seen_type_names: set[str] = set()
+        self._seen_type_names_lock = threading.Lock()
         self.unseen_type_is_error: bool = False
 
     def configure(self, config: dict) -> None:
@@ -159,6 +161,30 @@ class EnforceParamNameForType(Check):
         }
         self._seen_type_names = set()
         self.unseen_type_is_error = bool(config.get("unseen_type_is_error", False))
+
+    def collect_state(self) -> dict:
+        """Return the set of type names seen so far, for cross-process merging.
+
+        Returns
+        -------
+        dict
+            ``{"seen_type_names": [...]}``.
+
+        """
+        with self._seen_type_names_lock:
+            return {"seen_type_names": sorted(self._seen_type_names)}
+
+    def merge_state(self, state: dict) -> None:
+        """Merge a ``collect_state()`` snapshot from another instance.
+
+        Parameters
+        ----------
+        state: dict
+            A snapshot as returned by `collect_state`.
+
+        """
+        with self._seen_type_names_lock:
+            self._seen_type_names.update(state.get("seen_type_names", []))
 
     def global_finalize(self) -> bool:
         """Warn (or error) about configured types never seen as parameter types.
@@ -228,7 +254,8 @@ class EnforceParamNameForType(Check):
             return []
 
         type_name = declaration_type_key(cursor.type)
-        self._seen_type_names.add(type_name)
+        with self._seen_type_names_lock:
+            self._seen_type_names.add(type_name)
         # Match by exact key or by suffix (e.g. "molsys::SimulationBox" matches
         # "std::molsys::SimulationBox" when the namespace is wrapped in another).
         matched_key = type_name

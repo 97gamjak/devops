@@ -109,6 +109,37 @@ class Check:
         """
         del config
 
+    def collect_state(self) -> dict:
+        """Return this check's exportable cross-file state, if any.
+
+        Used to merge a check's accumulated state (e.g.
+        `EnforceParamNameForType`'s seen-type-names set) back into a single
+        instance after files were checked across parallel worker processes,
+        so `global_finalize()` sees the full picture. The default
+        implementation returns an empty dict (nothing to merge).
+
+        Returns
+        -------
+        dict
+            Picklable snapshot of this check's cross-file state.
+
+        """
+        return {}
+
+    def merge_state(self, state: dict) -> None:
+        """Merge state previously returned by `collect_state` into this check.
+
+        Override alongside `collect_state` for checks with cross-file
+        accumulated state. The default implementation ignores `state`.
+
+        Parameters
+        ----------
+        state: dict
+            A snapshot as returned by another instance's `collect_state`.
+
+        """
+        del state
+
     def finalize(self, filename: str) -> list[Diagnostic]:
         """Run once after the whole file's AST has been walked.
 

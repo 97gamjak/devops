@@ -101,6 +101,9 @@ Available checks
      - ``new`` inside a GTest ``SetUp``/``SetUpTestSuite``/``SetUpTestCase``
        function.
      - None
+   * - :doc:`noClangFormatToggle <no_clang_format_toggle>`
+     - ``// clang-format off``/``on`` comments (line or block form).
+     - None
 
 .. toctree::
    :maxdepth: 1
@@ -117,3 +120,4 @@ Available checks
    no_throw_paren
    no_delete_in_gtest_teardown
    no_new_in_gtest_setup
+   no_clang_format_toggle
