@@ -21,9 +21,7 @@ import clang.cindex as clang
 
 from devops.cpp.ast.base import Check, Diagnostic
 
-_CLANG_FORMAT_TOGGLE_RE = re.compile(
-    r"^/[/*]\s*clang-format\s+(off|on)\s*\*?/?$"
-)
+_CLANG_FORMAT_TOGGLE_RE = re.compile(r"^/[/*]\s*clang-format\s+(off|on)\s*\*?/?$")
 
 
 class NoClangFormatToggle(Check):
