@@ -15,6 +15,11 @@ from devops.cpp.checks import run_cpp_checks
 from devops.files import GitRefError
 from devops.rules import ResultType, ResultTypeEnum, Rule, RuleInputType, RuleType
 
+try:
+    from devops.cpp.ast import ASTChecksRule
+except ImportError:
+    ASTChecksRule = None
+
 if typing.TYPE_CHECKING:
     from pathlib import Path
 
@@ -729,6 +734,152 @@ class TestRunCppChecksIncremental:
             )
 
         assert result is False
+
+    def test_parallel_jobs_same_outcome_as_serial(self, tmp_path: Path) -> None:
+        """parallel_jobs > 1 produces the same pass/fail outcome as serial."""
+        files = []
+        for i in range(8):
+            f = tmp_path / f"file{i}.cpp"
+            f.write_text("int x = 0;\n")
+            files.append(f)
+
+        visited: list[str] = []
+
+        def recording_rule(line: str) -> ResultType:
+            visited.append(line.strip())
+            return ResultType(ResultTypeEnum.Ok)
+
+        rule = Rule(
+            name="recording",
+            func=recording_rule,
+            rule_type=RuleType.CPP_STYLE,
+            rule_input_type=RuleInputType.LINE,
+        )
+
+        with patch("devops.cpp.checks.get_staged_files", return_value=files):
+            config = CppConfig(check_only_staged_files=True, parallel_jobs=4)
+            result = run_cpp_checks([rule], config)
+
+        assert result is True
+        assert sorted(visited) == sorted(f.read_text().strip() for f in files)
+
+    def test_parallel_jobs_detects_failures_across_all_files(
+        self, tmp_path: Path
+    ) -> None:
+        """With parallel_jobs > 1 and fail_fast=False, every file is checked."""
+        files = []
+        for i in range(6):
+            f = tmp_path / f"file{i}.cpp"
+            f.write_text("bad\n")
+            files.append(f)
+
+        visited: list[str] = []
+
+        def recording_failing_rule(line: str) -> ResultType:
+            visited.append(line.strip())
+            return ResultType(ResultTypeEnum.Error, "fail")
+
+        rule = Rule(
+            name="recording_failing",
+            func=recording_failing_rule,
+            rule_type=RuleType.CPP_STYLE,
+            rule_input_type=RuleInputType.LINE,
+        )
+
+        with patch("devops.cpp.checks.get_staged_files", return_value=files):
+            config = CppConfig(
+                check_only_staged_files=True, parallel_jobs=3, fail_fast=False
+            )
+            result = run_cpp_checks([rule], config)
+
+        assert result is False
+        assert len(visited) == len(files)
+
+    def test_parallel_jobs_fail_fast_stops_early(self, tmp_path: Path) -> None:
+        """With parallel_jobs > 1, fail_fast still stops before all files run."""
+        files = []
+        for i in range(20):
+            f = tmp_path / f"file{i}.cpp"
+            f.write_text("bad\n")
+            files.append(f)
+
+        visited: list[str] = []
+
+        def recording_failing_rule(line: str) -> ResultType:
+            visited.append(line.strip())
+            return ResultType(ResultTypeEnum.Error, "fail")
+
+        rule = Rule(
+            name="recording_failing",
+            func=recording_failing_rule,
+            rule_type=RuleType.CPP_STYLE,
+            rule_input_type=RuleInputType.LINE,
+        )
+
+        with patch("devops.cpp.checks.get_staged_files", return_value=files):
+            config = CppConfig(check_only_staged_files=True, parallel_jobs=4)
+            result = run_cpp_checks([rule], config)
+
+        assert result is False
+        # fail_fast stops after the in-flight batch, not necessarily at
+        # exactly one file, but well short of checking all 20.
+        assert 0 < len(visited) < len(files)
+
+    def test_parallel_ast_checks_find_same_violations_as_serial(
+        self, tmp_path: Path, caplog: LogCaptureFixture
+    ) -> None:
+        """A process-pool AST run finds the same violations as a serial one.
+
+        AST checks are the one rule type parallel_jobs actually parallelizes
+        (see devops.cpp.checks._run_checks_parallel); this exercises the
+        real ProcessPoolExecutor path end-to-end, not just the fallback used
+        by the other parallel_jobs tests above (which pass plain Rule
+        closures with no ASTChecksRule, and so fall back to serial).
+        """
+        if ASTChecksRule is None:
+            pytest.skip("libclang not installed")
+
+        files = []
+        for i in range(6):
+            cpp_file = tmp_path / f"file{i}.cpp"
+            content = (
+                f"struct SimulationBox {{}};\nvoid foo{i}(SimulationBox simBox) {{}}\n"
+            )
+            cpp_file.write_text(content)
+            files.append(cpp_file)
+
+        check_config = {
+            "paramNameForType": {"type_to_name": {"SimulationBox": "simulationBox"}}
+        }
+
+        def violation_errors() -> list[logging.LogRecord]:
+            return [
+                r
+                for r in caplog.records
+                if r.levelname == "ERROR" and "simBox" in r.message
+            ]
+
+        with patch("devops.cpp.checks.get_staged_files", return_value=files):
+            serial_config = CppConfig(
+                check_only_staged_files=True, fail_fast=False, parallel_jobs=1
+            )
+            serial_result = run_cpp_checks(
+                [ASTChecksRule(check_config=check_config)], serial_config
+            )
+            serial_violations = len(violation_errors())
+            caplog.clear()
+
+            parallel_config = CppConfig(
+                check_only_staged_files=True, fail_fast=False, parallel_jobs=3
+            )
+            parallel_result = run_cpp_checks(
+                [ASTChecksRule(check_config=check_config)], parallel_config
+            )
+            parallel_violations = len(violation_errors())
+
+        assert serial_result is False
+        assert parallel_result is False
+        assert serial_violations == parallel_violations == len(files)
 
 
 class TestRunCppChecksBaseRef:

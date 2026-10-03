@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+### Features
+
+#### CPP Checks
+
+- Add `parallel_jobs` option (`[cpp]` TOML section, also `--jobs`/`-j` on the `cpp_checks` CLI) to speed up slow AST checks by parsing files concurrently across a process pool. Defaults to `1` (serial, identical to prior behavior); values `> 0` use that many worker processes, values `<= 0` use `os.cpu_count()`. Only the libclang AST parse — the CPU-bound part — is parallelized; other rule types keep running serially since they're cheap. With `fail_fast` enabled, a parallel run stops soon after a failure rather than at the exact first failing file in listing order
+
+### Fixes
+
+#### CPP Checks
+
+- Stop reading each checked file from disk twice per run (once for file-based rules, once for line-based rules); the content is now read once and shared between both
+
 <!-- insertion marker -->
 ## [0.10.0](https://github.com/repo/owner/releases/tag/0.10.0) - 2026-10-02
 

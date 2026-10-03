@@ -118,6 +118,33 @@ def get_bool(
     return value
 
 
+def get_int(
+    mapping: dict[str, Any], key: str, *, default: int | None = None
+) -> int | None:
+    """Get an integer value from a mapping.
+
+    Parameters
+    ----------
+    mapping: dict[str, Any]
+        The mapping to extract the integer from.
+    key: str
+        The key of the integer.
+    default: int | None
+        The default value to return if the key is not found.
+
+    Returns
+    -------
+    int | None
+        The extracted integer value or the default if the key is not found.
+    """
+    value = _get_type(mapping, key, int)
+
+    if value is None:
+        return default
+
+    return value
+
+
 def get_str(
     mapping: dict[str, Any], key: str, default: str | None = None
 ) -> str | None:
