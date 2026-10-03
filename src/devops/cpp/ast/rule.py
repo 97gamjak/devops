@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import typing
+from dataclasses import dataclass
 from pathlib import Path
 
 import clang.cindex as clang
@@ -10,10 +11,14 @@ import clang.cindex as clang
 from devops.cpp.ast.engine import _with_auto_resource_dir, run_ast_checks
 from devops.cpp.ast.registry import ALL_CHECKS, configure_checks, select_checks
 from devops.logger import cpp_check_logger
-from devops.rules import ResultType, ResultTypeEnum, Rule, RuleInputType, RuleType
-
-if typing.TYPE_CHECKING:
-    from devops.rules import FileRuleInput
+from devops.rules import (
+    FileRuleInput,
+    ResultType,
+    ResultTypeEnum,
+    Rule,
+    RuleInputType,
+    RuleType,
+)
 
 DEFAULT_COMPILE_ARGS = ["-std=c++23"]
 
@@ -151,6 +156,23 @@ def _args_from_compile_commands(
     return _with_auto_resource_dir(result, raw[0])
 
 
+@dataclass
+class ASTWorkerSpec:
+    """Picklable snapshot of `ASTChecksRule`'s constructor args.
+
+    Sent to a `ProcessPoolExecutor` worker so it can build its own
+    `ASTChecksRule` locally (fresh `Check` instances, its own
+    `clang.CompilationDatabase`), since the rule instance itself holds
+    unpicklable libclang/ctypes objects.
+    """
+
+    compile_args: list[str] | None
+    compile_commands_db: str | None
+    enabled_check_ids: list[str] | None
+    disabled_check_ids: list[str] | None
+    check_config: dict[str, dict] | None
+
+
 class ASTChecksRule(Rule):
     """Run every enabled libclang AST-based check in a single pass.
 
@@ -192,6 +214,13 @@ class ASTChecksRule(Rule):
             each check's ``configure()`` method.
 
         """
+        self._worker_spec = ASTWorkerSpec(
+            compile_args=compile_args,
+            compile_commands_db=compile_commands_db,
+            enabled_check_ids=enabled_check_ids,
+            disabled_check_ids=disabled_check_ids,
+            check_config=check_config,
+        )
         self.compile_args = compile_args or DEFAULT_COMPILE_ARGS
         self._compile_db: clang.CompilationDatabase | None = None
         if compile_commands_db is not None:
@@ -266,6 +295,28 @@ class ASTChecksRule(Rule):
         description = "\n" + "\n".join(d.format() for d in diagnostics)
         return ResultType(ResultTypeEnum.Error, description)
 
+    def check_file(self, path: Path, content: str) -> ResultType:
+        """Run all enabled AST checks against a single file's content.
+
+        Public equivalent of `_run`, usable directly (without constructing
+        a `FileRuleInput`) by callers like the process-pool worker in
+        `run_ast_checks_in_worker`.
+
+        Parameters
+        ----------
+        path: Path
+            The file being checked.
+        content: str
+            The file's full content.
+
+        Returns
+        -------
+        ResultType
+            Same as `_run`.
+
+        """
+        return self._run(FileRuleInput(file_content=content, path=path))
+
     def finalize_run(self) -> bool:
         """Call global_finalize() on every active check after all files are done.
 
@@ -276,3 +327,118 @@ class ASTChecksRule(Rule):
 
         """
         return all(check.global_finalize() for check in self.checks)
+
+    def worker_spec(self) -> ASTWorkerSpec:
+        """Return a picklable spec that can rebuild an equivalent instance.
+
+        Used by `devops.cpp.checks` to run this rule's checks across a
+        `ProcessPoolExecutor`: the spec (not this instance, which holds
+        unpicklable libclang objects) is sent to each worker, which calls
+        `ASTChecksRule.from_spec` to build its own local instance.
+
+        Returns
+        -------
+        ASTWorkerSpec
+            The constructor args this instance was built with.
+
+        """
+        return self._worker_spec
+
+    @classmethod
+    def from_spec(cls, spec: ASTWorkerSpec) -> ASTChecksRule:
+        """Build a fresh `ASTChecksRule` from a previously captured spec.
+
+        Parameters
+        ----------
+        spec: ASTWorkerSpec
+            As returned by another instance's `worker_spec()`.
+
+        Returns
+        -------
+        ASTChecksRule
+            A new, independently-constructed instance with the same
+            configuration (fresh `Check` instances, its own
+            `clang.CompilationDatabase`).
+
+        """
+        return cls(
+            compile_args=spec.compile_args,
+            compile_commands_db=spec.compile_commands_db,
+            enabled_check_ids=spec.enabled_check_ids,
+            disabled_check_ids=spec.disabled_check_ids,
+            check_config=spec.check_config,
+        )
+
+    def collect_state(self) -> dict[str, dict]:
+        """Return every check's exportable cross-file state, keyed by check id.
+
+        Returns
+        -------
+        dict[str, dict]
+            ``{check.id: check.collect_state()}`` for each active check.
+
+        """
+        return {check.id: check.collect_state() for check in self.checks}
+
+    def merge_state(self, states: dict[str, dict]) -> None:
+        """Merge a `collect_state()` snapshot from another instance.
+
+        Parameters
+        ----------
+        states: dict[str, dict]
+            A snapshot as returned by another instance's `collect_state`.
+
+        """
+        for check in self.checks:
+            if check.id in states:
+                check.merge_state(states[check.id])
+
+
+# Module-level so a ProcessPoolExecutor can pickle a reference to it (not a
+# bound method or closure). Each worker process builds its own ASTChecksRule
+# once via the initializer below and reuses it across every file it checks,
+# so a check's cross-file state (e.g. EnforceParamNameForType) accumulates
+# correctly for that worker's share of the files.
+_worker_rule: ASTChecksRule | None = None
+
+
+def _init_ast_worker(spec: ASTWorkerSpec) -> None:
+    """Build this worker process's local `ASTChecksRule` from `spec`.
+
+    Parameters
+    ----------
+    spec: ASTWorkerSpec
+        As returned by the main process's `ASTChecksRule.worker_spec()`.
+
+    """
+    global _worker_rule  # noqa: PLW0603 - required ProcessPoolExecutor initializer pattern
+    _worker_rule = ASTChecksRule.from_spec(spec)
+
+
+def run_ast_checks_in_worker(
+    path: Path, content: str
+) -> tuple[ResultType, dict[str, dict]]:
+    """Check one file against this worker's local `ASTChecksRule`.
+
+    Parameters
+    ----------
+    path: Path
+        The file to check.
+    content: str
+        The file's full content (read once by the main process and sent
+        here, rather than re-read from disk in the worker).
+
+    Returns
+    -------
+    tuple[ResultType, dict[str, dict]]
+        The check result, and a `collect_state()` snapshot of this worker's
+        checks for the main process to merge back after every file (state
+        only grows, so merging the snapshot from every call, not just the
+        last, is safe and gives the correct union across all workers).
+
+    """
+    if _worker_rule is None:
+        msg = "AST worker process was not initialized with _init_ast_worker"
+        raise RuntimeError(msg)
+    result = _worker_rule.check_file(path, content)
+    return result, _worker_rule.collect_state()
