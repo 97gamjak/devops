@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+<!-- insertion marker -->
+## [0.11.0](https://github.com/repo/owner/releases/tag/0.11.0) - 2026-10-03
+
 ### Features
 
 #### CPP Rules
@@ -20,7 +23,6 @@ All notable changes to this project will be documented in this file.
 
 - Stop reading each checked file from disk twice per run (once for file-based rules, once for line-based rules); the content is now read once and shared between both
 
-<!-- insertion marker -->
 ## [0.10.0](https://github.com/repo/owner/releases/tag/0.10.0) - 2026-10-02
 
 ### Features
@@ -306,6 +308,7 @@ All notable changes to this project will be documented in this file.
 - Add automatic release CI for PRs to main (either via title or via hotfix/ branch)
 - Add overnight CI runs for pytest and ruff CIs
 - Add test coverage to pytest CI
+
 
 
 
