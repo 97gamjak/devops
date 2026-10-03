@@ -6,6 +6,10 @@ All notable changes to this project will be documented in this file.
 
 ### Features
 
+#### CPP Rules
+
+- Add `noClangFormatToggle` AST check flagging `// clang-format off` / `// clang-format on` comments (both line- and block-comment spellings) anywhere in code (Fixes #153)
+
 #### CPP Checks
 
 - Add `parallel_jobs` option (`[cpp]` TOML section, also `--jobs`/`-j` on the `cpp_checks` CLI) to speed up slow AST checks by parsing files concurrently across a process pool. Defaults to `1` (serial, identical to prior behavior); values `> 0` use that many worker processes, values `<= 0` use `os.cpu_count()`. Only the libclang AST parse — the CPU-bound part — is parallelized; other rule types keep running serially since they're cheap. With `fail_fast` enabled, a parallel run stops soon after a failure rather than at the exact first failing file in listing order
