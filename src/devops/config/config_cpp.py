@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 
 from devops.logger import config_logger
 
-from .base import get_bool, get_str, get_str_list, get_table
+from .base import get_bool, get_int, get_str, get_str_list, get_table
 
 
 @dataclass
@@ -80,6 +80,17 @@ class CppConfig:
     # picture of the codebase in a single pass.  Can also be disabled via
     # the CLI --no-fail-fast flag.
     fail_fast: bool = True
+
+    # Number of files to check concurrently. 1 (the default) checks files
+    # strictly serially, identical to pre-parallel behavior. Values > 1
+    # dispatch the (CPU-bound) per-file libclang AST parse across a process
+    # pool; values <= 0 use os.cpu_count() workers. Only has an effect when
+    # ast_checks is enabled -- other rule types are cheap and always run
+    # serially. With fail_fast enabled, parallel runs stop scheduling
+    # further files soon after a failure is seen, rather than at the exact
+    # first failing file in listing order. Can also be set via the CLI
+    # --jobs/-j flag.
+    parallel_jobs: int = 1
 
     def to_toml_lines(self) -> list[str]:
         """Convert the CppConfig to TOML lines.
@@ -164,6 +175,8 @@ class CppConfig:
 
         lines.append(f"#fail_fast = {str(self.fail_fast).lower()}\n")
 
+        lines.append(f"#parallel_jobs = {self.parallel_jobs}\n")
+
         return lines
 
 
@@ -227,6 +240,8 @@ def parse_cpp_config(raw_config: dict) -> CppConfig:
 
     fail_fast = get_bool(table, "fail_fast", default=CppConfig.fail_fast)
 
+    parallel_jobs = get_int(table, "parallel_jobs", default=CppConfig.parallel_jobs)
+
     config = CppConfig(
         style_checks=style_checks,
         license_header_check=license_header_check,
@@ -243,6 +258,7 @@ def parse_cpp_config(raw_config: dict) -> CppConfig:
         ast_check_config=ast_check_config,
         incremental_state_file=incremental_state_file,
         fail_fast=fail_fast,
+        parallel_jobs=parallel_jobs,
     )
 
     config_logger.debug(f"Parsed C++ configuration: {config}")

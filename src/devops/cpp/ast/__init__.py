@@ -10,6 +10,6 @@ Requires the optional `libclang` dependency (``pip install devops[ast]``).
 
 from .base import Check, Diagnostic
 from .registry import ALL_CHECKS
-from .rule import ASTChecksRule
+from .rule import ASTChecksRule, ASTWorkerSpec
 
-__all__ = ["ALL_CHECKS", "ASTChecksRule", "Check", "Diagnostic"]
+__all__ = ["ALL_CHECKS", "ASTChecksRule", "ASTWorkerSpec", "Check", "Diagnostic"]
