@@ -17,6 +17,7 @@ app = typer.Typer(help="C++ code quality checks.")
 
 @app.command()
 def cpp_checks(  # noqa: PLR0913 - each param is an independent CLI flag
+    *,
     license_header: str | None = None,
     dirs: list[str] | None = None,
     incremental: bool = typer.Option(

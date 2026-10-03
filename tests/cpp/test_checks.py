@@ -843,8 +843,7 @@ class TestRunCppChecksIncremental:
         for i in range(6):
             cpp_file = tmp_path / f"file{i}.cpp"
             content = (
-                "struct SimulationBox {};\n"
-                f"void foo{i}(SimulationBox simBox) {{}}\n"
+                f"struct SimulationBox {{}};\nvoid foo{i}(SimulationBox simBox) {{}}\n"
             )
             cpp_file.write_text(content)
             files.append(cpp_file)

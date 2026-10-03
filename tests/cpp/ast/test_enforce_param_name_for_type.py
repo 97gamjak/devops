@@ -292,9 +292,7 @@ class TestEnforceParamNameForTypeConfiguration:
         """
         type_to_name = {f"Type{i}": f"arg{i}" for i in range(20)}
         check = EnforceParamNameForType()
-        check.configure(
-            {"type_to_name": type_to_name, "unseen_type_is_error": True}
-        )
+        check.configure({"type_to_name": type_to_name, "unseen_type_is_error": True})
 
         files = []
         for i in range(20):
