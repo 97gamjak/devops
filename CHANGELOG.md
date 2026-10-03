@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+### Features
+
+#### CPP Rules
+
+- Add `noClangFormatToggle` AST check flagging `// clang-format off` / `// clang-format on` comments (both line- and block-comment spellings) anywhere in code (Fixes #153)
+
 <!-- insertion marker -->
 ## [0.10.0](https://github.com/repo/owner/releases/tag/0.10.0) - 2026-10-02
 
