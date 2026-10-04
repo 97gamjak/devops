@@ -104,6 +104,9 @@ Available checks
    * - :doc:`noClangFormatToggle <no_clang_format_toggle>`
      - ``// clang-format off``/``on`` comments (line or block form).
      - None
+   * - :doc:`noFinalKeyword <no_final_keyword>`
+     - ``final`` on a class/struct declaration or a virtual method.
+     - None
 
 .. toctree::
    :maxdepth: 1
@@ -121,3 +124,4 @@ Available checks
    no_delete_in_gtest_teardown
    no_new_in_gtest_setup
    no_clang_format_toggle
+   no_final_keyword
