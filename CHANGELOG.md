@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+### Features
+
+#### CPP Rules
+
+- Add `noFinalKeyword` AST check flagging use of the `final` specifier on classes, structs, and virtual methods (Fixes #158)
+
 <!-- insertion marker -->
 ## [0.11.0](https://github.com/repo/owner/releases/tag/0.11.0) - 2026-10-03
 
