@@ -24,6 +24,7 @@ from devops.cpp.ast.checks.include_iwyu_pragma_only import IncludeIwyuPragmaOnly
 from devops.cpp.ast.checks.macro_replacement import MacroReplacement
 from devops.cpp.ast.checks.no_clang_format_toggle import NoClangFormatToggle
 from devops.cpp.ast.checks.no_delete_in_gtest_teardown import NoDeleteInGtestTeardown
+from devops.cpp.ast.checks.no_final_keyword import NoFinalKeyword
 from devops.cpp.ast.checks.no_global_using import NoGlobalUsing
 from devops.cpp.ast.checks.no_global_using_enum import NoGlobalUsingEnum
 from devops.cpp.ast.checks.no_new_in_gtest_setup import NoNewInGtestSetup
@@ -47,6 +48,7 @@ ALL_CHECKS: list[Check] = [
     MacroReplacement(),
     NoClangFormatToggle(),
     NoDeleteInGtestTeardown(),
+    NoFinalKeyword(),
     NoGlobalUsing(),
     NoGlobalUsingEnum(),
     NoNewInGtestSetup(),
