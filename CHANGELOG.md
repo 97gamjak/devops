@@ -4,13 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+<!-- insertion marker -->
+## [0.12.0](https://github.com/repo/owner/releases/tag/0.12.0) - 2026-10-04
+
 ### Features
 
 #### CPP Rules
 
 - Add `noFinalKeyword` AST check flagging use of the `final` specifier on classes, structs, and virtual methods (Fixes #158)
 
-<!-- insertion marker -->
 ## [0.11.0](https://github.com/repo/owner/releases/tag/0.11.0) - 2026-10-03
 
 ### Features
@@ -314,6 +316,7 @@ All notable changes to this project will be documented in this file.
 - Add automatic release CI for PRs to main (either via title or via hotfix/ branch)
 - Add overnight CI runs for pytest and ruff CIs
 - Add test coverage to pytest CI
+
 
 
 
