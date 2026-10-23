@@ -178,3 +178,89 @@ class TestNameFilters:
         """Test invalid config raises."""
         with pytest.raises(ConfigError, match=key):
             NoGlobalUsing().configure({key: bad})
+
+
+class TestPathExceptions:
+    """path_exceptions allow specific names only in designated files/dirs."""
+
+    # Code that uses two names at global scope: "ns1" and "ns2".
+    _CODE = (
+        "namespace ns1 {}\nnamespace ns2 {}\n"
+        "using namespace ns1;\nusing namespace ns2;\n"
+    )
+
+    @staticmethod
+    def _run(code: str, tmp_path: Path, filename: str, config: dict) -> list[str]:
+        check = NoGlobalUsing()
+        check.configure(config)
+        p = tmp_path / filename
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(code)
+        return [d.message for d in run_ast_checks(p, code, _ARGS, checks=[check])]
+
+    def test_name_in_allowed_dir_prefix_not_flagged(self, tmp_path: Path) -> None:
+        """Name in an allowed directory prefix is not flagged."""
+        config = {"path_exceptions": [{"names": ["ns1"], "paths": ["src/units/"]}]}
+        diags = self._run(self._CODE, tmp_path, "src/units/angle.cpp", config)
+        assert all("ns2" in d for d in diags), diags
+        assert not any("ns1" in d for d in diags), diags
+
+    def test_name_outside_allowed_dir_is_flagged(self, tmp_path: Path) -> None:
+        """Same name in a different directory is still flagged."""
+        config = {"path_exceptions": [{"names": ["ns1"], "paths": ["src/units/"]}]}
+        diags = self._run(self._CODE, tmp_path, "src/other/foo.cpp", config)
+        assert any("ns1" in d for d in diags), diags
+
+    def test_name_not_in_exception_list_always_flagged(self, tmp_path: Path) -> None:
+        """A name not listed in any path_exception is always flagged."""
+        config = {"path_exceptions": [{"names": ["ns1"], "paths": ["src/units/"]}]}
+        diags = self._run(self._CODE, tmp_path, "src/units/angle.cpp", config)
+        assert any("ns2" in d for d in diags), diags
+
+    def test_glob_pattern_matches(self, tmp_path: Path) -> None:
+        """A fnmatch glob pattern (no trailing /) matches correctly."""
+        config = {"path_exceptions": [{"names": ["ns1"], "paths": ["src/units/*.cpp"]}]}
+        diags = self._run(self._CODE, tmp_path, "src/units/angle.cpp", config)
+        assert not any("ns1" in d for d in diags), diags
+
+    def test_glob_pattern_does_not_match_other_dir(self, tmp_path: Path) -> None:
+        """A glob pattern does not match a file in a different directory."""
+        config = {"path_exceptions": [{"names": ["ns1"], "paths": ["src/units/*.cpp"]}]}
+        diags = self._run(self._CODE, tmp_path, "src/math/angle.cpp", config)
+        assert any("ns1" in d for d in diags), diags
+
+    def test_multiple_exceptions_all_applied(self, tmp_path: Path) -> None:
+        """Multiple path_exception entries are all evaluated."""
+        config = {
+            "path_exceptions": [
+                {"names": ["ns1"], "paths": ["src/units/"]},
+                {"names": ["ns2"], "paths": ["src/units/"]},
+            ]
+        }
+        diags = self._run(self._CODE, tmp_path, "src/units/angle.cpp", config)
+        assert diags == []
+
+    def test_leading_double_colon_in_names_ignored(self, tmp_path: Path) -> None:
+        """Leading :: in path_exceptions names is stripped."""
+        config = {"path_exceptions": [{"names": ["::ns1"], "paths": ["src/units/"]}]}
+        diags = self._run(self._CODE, tmp_path, "src/units/angle.cpp", config)
+        assert not any("ns1" in d for d in diags), diags
+
+    def test_invalid_path_exceptions_not_a_list_raises(self) -> None:
+        """path_exceptions must be a list (array of tables)."""
+        with pytest.raises(ConfigError, match="path_exceptions"):
+            NoGlobalUsing().configure({"path_exceptions": "src/units/"})
+
+    def test_invalid_path_exceptions_names_not_strings_raises(self) -> None:
+        """path_exceptions[i].names must be a list of strings."""
+        with pytest.raises(ConfigError, match="path_exceptions"):
+            NoGlobalUsing().configure(
+                {"path_exceptions": [{"names": [1, 2], "paths": ["src/"]}]}
+            )
+
+    def test_invalid_path_exceptions_paths_not_strings_raises(self) -> None:
+        """path_exceptions[i].paths must be a list of strings."""
+        with pytest.raises(ConfigError, match="path_exceptions"):
+            NoGlobalUsing().configure(
+                {"path_exceptions": [{"names": ["ns1"], "paths": [42]}]}
+            )

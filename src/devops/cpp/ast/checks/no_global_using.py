@@ -20,6 +20,14 @@ Names are matched exactly against the qualified name as written in the source
     enabled_names = ["std"]
     # ... and never flag these (applied on top of enabled_names).
     disabled_names = ["std::literals", "std::chrono_literals"]
+
+To allow specific names only in certain files or directories, add one or more
+``[[...path_exceptions]]`` entries.  Patterns ending with ``/`` match any file
+under that directory; other patterns use ``fnmatch`` (``*`` = one dir level)::
+
+    [[cpp.ast_check_config.noGlobalUsing.path_exceptions]]
+    names = ["rad"]
+    paths = ["src/units/", "include/units/"]
 """
 
 from __future__ import annotations
@@ -91,7 +99,7 @@ class NoGlobalUsing(NameFilteredCheck):
             or cursor.spelling
         )
 
-        if not self._is_selected(name):
+        if not self._is_selected_for_file(name, filename):
             return []
 
         if cursor.kind == clang.CursorKind.USING_DIRECTIVE:
