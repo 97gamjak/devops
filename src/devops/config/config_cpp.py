@@ -157,8 +157,16 @@ class CppConfig:
             "#[cpp.ast_check_config.noGlobalUsing]\n"
             '#enabled_names = ["std"]\n'
             '#disabled_names = ["std::literals"]\n'
+            "# Allow specific names only in designated files/directories:\n"
+            "#[[cpp.ast_check_config.noGlobalUsing.path_exceptions]]\n"
+            '#names = ["rad"]\n'
+            '#paths = ["src/units/", "include/units/"]'
+            "  # '/' suffix = dir prefix; otherwise fnmatch glob\n"
             "#[cpp.ast_check_config.noGlobalUsingEnum]\n"
             '#disabled_names = ["molsys::LegacyZone"]\n'
+            "#[[cpp.ast_check_config.noGlobalUsingEnum.path_exceptions]]\n"
+            '#names = ["molsys::LegacyZone"]\n'
+            '#paths = ["src/legacy/"]\n'
             "#[cpp.ast_check_config.macroReplacement]\n"
             '#macro_to_replacement = { EXPECT_THROW = "EXPECT_THROW_MSG", '
             'ASSERT_THROW = "ASSERT_THROW_MSG" }\n'

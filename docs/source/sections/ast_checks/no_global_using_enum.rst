@@ -14,9 +14,9 @@ or class body it is allowed. This is a separate check from
        using enum Color;  // Good — confined to the function body.
    }
 
-It accepts the same ``enabled_names`` / ``disabled_names`` keys as
-``noGlobalUsing``, matched against the qualified enum name as written (e.g.
-``"molsys::HybridZone"``); a leading ``::`` is ignored.
+It accepts the same ``enabled_names`` / ``disabled_names`` / ``path_exceptions``
+keys as :doc:`no_global_using`, matched against the qualified enum name as
+written (e.g. ``"molsys::HybridZone"``); a leading ``::`` is ignored.
 
 Configuration
 --------------
@@ -39,11 +39,21 @@ Configuration
      - ``[]``
      - ``using enum`` declarations whose name is in this list are never
        reported, regardless of ``enabled_names``.
+   * - ``path_exceptions``
+     - array of tables
+     - ``[]``
+     - Per-name file/directory exemptions; same semantics as in
+       :doc:`no_global_using`.
 
 .. code-block:: toml
 
    [cpp.ast_check_config.noGlobalUsingEnum]
    disabled_names = ["molsys::LegacyZone"]
+
+   # Allow a specific legacy enum only inside the legacy/ subtree
+   [[cpp.ast_check_config.noGlobalUsingEnum.path_exceptions]]
+   names = ["molsys::LegacyZone"]
+   paths = ["src/legacy/"]
 
 Disabling
 ----------

@@ -19,6 +19,13 @@ source; a leading ``::`` is ignored::
     [cpp.ast_check_config.noGlobalUsingEnum]
     enabled_names = ["molsys::HybridZone"]
     disabled_names = ["molsys::Legacy"]
+
+To allow specific enum names only in certain files or directories, add one or
+more ``[[...path_exceptions]]`` entries::
+
+    [[cpp.ast_check_config.noGlobalUsingEnum.path_exceptions]]
+    names = ["molsys::LegacyZone"]
+    paths = ["src/legacy/"]
 """
 
 from __future__ import annotations
@@ -76,7 +83,7 @@ class NoGlobalUsingEnum(NameFilteredCheck):
             return []
 
         name = "".join(t for t in tokens[2:] if t != ";") or cursor.spelling
-        if not self._is_selected(name):
+        if not self._is_selected_for_file(name, filename):
             return []
 
         loc = cursor.location
