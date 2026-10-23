@@ -107,6 +107,10 @@ Available checks
    * - :doc:`noFinalKeyword <no_final_keyword>`
      - ``final`` on a class/struct declaration or a virtual method.
      - None
+   * - :doc:`enforceTypenameOverClass <enforce_typename_over_class>`
+     - A template type parameter introduced with ``class`` instead of
+       ``typename``.
+     - None
 
 .. toctree::
    :maxdepth: 1
@@ -125,3 +129,4 @@ Available checks
    no_new_in_gtest_setup
    no_clang_format_toggle
    no_final_keyword
+   enforce_typename_over_class
