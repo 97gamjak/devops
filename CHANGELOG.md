@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+<!-- insertion marker -->
+## [0.13.0](https://github.com/repo/owner/releases/tag/0.13.0) - 2026-10-23
+
 ### Features
 
 #### CPP Rules
@@ -11,7 +14,6 @@ All notable changes to this project will be documented in this file.
 - Add `path_exceptions` support to `noGlobalUsing` and `noGlobalUsingEnum` AST checks. Each entry in the `[[...path_exceptions]]` array-of-tables specifies a set of `names` that are allowed in designated files or directories (`paths`). Patterns ending with `/` match any file under that directory prefix (recursively); other patterns follow `fnmatch` glob rules. This makes it possible to permit specific `using` aliases (e.g. `using rad = ...;`) only in certain parts of the codebase while still enforcing the rule everywhere else
 - Add `enforceTypenameOverClass` AST check flagging template type parameters introduced with `class` instead of `typename` (Fixes #162)
 
-<!-- insertion marker -->
 ## [0.12.0](https://github.com/repo/owner/releases/tag/0.12.0) - 2026-10-04
 
 ### Features
@@ -323,6 +325,7 @@ All notable changes to this project will be documented in this file.
 - Add automatic release CI for PRs to main (either via title or via hotfix/ branch)
 - Add overnight CI runs for pytest and ruff CIs
 - Add test coverage to pytest CI
+
 
 
 
