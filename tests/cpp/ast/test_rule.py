@@ -8,7 +8,12 @@ import typing
 import clang.cindex as clang
 import pytest
 
-from devops.cpp.ast.rule import ASTChecksRule, _args_from_compile_commands
+from devops.cpp.ast.rule import (
+    ASTChecksRule,
+    _args_for_header,
+    _args_from_compile_commands,
+    _load_entries,
+)
 from devops.rules import FileRuleInput, ResultTypeEnum
 
 if typing.TYPE_CHECKING:
@@ -306,3 +311,118 @@ class TestArgsFromCompileCommands:
         assert args is not None
         assert "-Xclang" in args
         assert "-fsome-frontend-flag" in args
+
+
+class TestHeaderCompileArgs:
+    """A header is checked with the flags of a TU that can reach it.
+
+    Headers never have a compile-database entry of their own (CMake only
+    records translation units), so they must not fall back to bare default
+    flags: that loses every per-target ``-I``/``-isystem`` (e.g. a header-only
+    dependency such as ``mstd``) and makes libclang abort on the first include.
+    """
+
+    @staticmethod
+    def _project(root: Path) -> Path:
+        """Build a tiny project; only the ``mod`` target sees ``dep``.
+
+        The unrelated ``sibling.cpp`` sits right next to the header, so
+        libclang's path-similarity guess for a header with no entry of its
+        own picks it -- the wrong unit, which has no ``dep`` on its path.
+
+        Parameters
+        ----------
+        root: Path
+            Directory to create the project in.
+
+        Returns
+        -------
+        Path
+            The header that depends on ``<dep/dep.hpp>``.
+
+        """
+        dep_inc = root / "external/dep/include"
+        (dep_inc / "dep").mkdir(parents=True)
+        (dep_inc / "dep/dep.hpp").write_text("#define DEP 1\n")
+        (root / "include/mod/sub").mkdir(parents=True)
+        (root / "include/other").mkdir(parents=True)
+        (root / "src").mkdir()
+        header = root / "include/mod/sub/a.hpp"
+        header.write_text("#pragma once\n#include <dep/dep.hpp>\nint a = DEP;\n")
+        (root / "include/other/b.hpp").write_text("#pragma once\n")
+        mod_cpp = root / "src/mod.cpp"
+        sibling = root / "include/mod/sub/sibling.cpp"
+        mod_cpp.write_text('#include "sub/a.hpp"\n')
+        sibling.write_text('#include "b.hpp"\n')
+        entries = [
+            {
+                "directory": str(root),
+                "file": str(sibling),
+                "command": f"/usr/bin/clang++ -std=c++23 -I{root}/include/other "
+                f"-c {sibling}",
+            },
+            {
+                "directory": str(root),
+                "file": str(mod_cpp),
+                "command": f"/usr/bin/clang++ -std=c++23 -I {root}/include/mod "
+                f"-isystem {dep_inc} -c {mod_cpp}",
+            },
+        ]
+        (root / "compile_commands.json").write_text(json.dumps(entries))
+        return header
+
+    def test_header_uses_flags_of_tu_that_reaches_it(self, tmp_path: Path) -> None:
+        """The header gets the flags of the unit with its dir on the -I path."""
+        header = self._project(tmp_path)
+        db = clang.CompilationDatabase.fromDirectory(str(tmp_path))
+
+        args = _args_for_header(_load_entries(db), header)
+
+        assert args is not None
+        assert "-isystem" in args
+        assert str(tmp_path / "external/dep/include") in args
+
+    def test_most_specific_include_dir_wins(self, tmp_path: Path) -> None:
+        """``include/other`` beats a broader ``include`` for the same header."""
+        header = self._project(tmp_path)
+        broad = tmp_path / "src/broad.cpp"
+        broad.write_text("")
+        entries = json.loads((tmp_path / "compile_commands.json").read_text())
+        entries.append(
+            {
+                "directory": str(tmp_path),
+                "file": str(broad),
+                "command": f"/usr/bin/clang++ -DBROAD -I{tmp_path}/include -c {broad}",
+            }
+        )
+        (tmp_path / "compile_commands.json").write_text(json.dumps(entries))
+        db = clang.CompilationDatabase.fromDirectory(str(tmp_path))
+
+        args = _args_for_header(_load_entries(db), header)
+
+        assert args is not None
+        assert "-DBROAD" not in args
+
+    def test_none_when_no_tu_reaches_header(self, tmp_path: Path) -> None:
+        """A header outside every include path gets no borrowed flags."""
+        self._project(tmp_path)
+        lonely = tmp_path / "lonely/x.hpp"
+        lonely.parent.mkdir()
+        lonely.write_text("")
+        db = clang.CompilationDatabase.fromDirectory(str(tmp_path))
+
+        assert _args_for_header(_load_entries(db), lonely) is None
+
+    def test_rule_parses_header_without_fatal_error(self, tmp_path: Path) -> None:
+        """End to end: no ``astParseError`` for a header with a per-target dep."""
+        header = self._project(tmp_path)
+        content = header.read_text()
+
+        with_db = ASTChecksRule(compile_commands_db=str(tmp_path))
+        without_db = ASTChecksRule()
+        ok = with_db.apply(FileRuleInput(file_content=content, path=header))
+        broken = without_db.apply(FileRuleInput(file_content=content, path=header))
+
+        assert ok.value == ResultTypeEnum.Ok
+        assert broken.value == ResultTypeEnum.Error
+        assert "astParseError" in broken.description
