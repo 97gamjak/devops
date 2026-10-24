@@ -4,13 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+<!-- insertion marker -->
+## [0.13.1](https://github.com/repo/owner/releases/tag/0.13.1) - 2026-10-24
+
 ### Fixes
 
 #### CPP Checks
 
 - Drop AST-check diagnostics located at or after a fatal libclang parse error. libclang's error-recovery parsing past that point can misreport cursor properties such as `access_specifier`, which previously surfaced as false `classMemberOrder`/`noPublicLeadingUnderscore` (and similar) findings on declarations that were actually correct (Fixes #165)
 
-<!-- insertion marker -->
 ## [0.13.0](https://github.com/repo/owner/releases/tag/0.13.0) - 2026-10-23
 
 ### Features
@@ -331,6 +333,7 @@ All notable changes to this project will be documented in this file.
 - Add automatic release CI for PRs to main (either via title or via hotfix/ branch)
 - Add overnight CI runs for pytest and ruff CIs
 - Add test coverage to pytest CI
+
 
 
 
