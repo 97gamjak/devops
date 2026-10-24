@@ -254,12 +254,16 @@ def run_ast_checks(
         ]
 
     diagnostics: list[Diagnostic] = []
+    check_diagnostics: list[Diagnostic] = []
 
     # A fatal diagnostic (e.g. an unresolvable #include) aborts libclang's
     # parse partway through the file: everything after that point is absent
-    # from the AST, so checks silently see less than the whole file with no
-    # indication why. Surface it instead of letting that pass silently — the
-    # checks below still run against whatever *was* parsed.
+    # or only partially recovered in the AST (e.g. cursors may report the
+    # wrong access_specifier once libclang starts error-recovering), so
+    # checks can't be trusted there. Surface the fatal error instead of
+    # letting that pass silently, and below, drop any check diagnostic
+    # located at or after it rather than risk reporting something the
+    # (unreliable) post-fatal AST only appeared to show.
     fatal = next(
         (
             d
@@ -289,9 +293,15 @@ def run_ast_checks(
         if not loc.file or loc.file.name != filter_name:
             continue
         for check in checks:
-            diagnostics.extend(check.visit(cursor, filename))
+            check_diagnostics.extend(check.visit(cursor, filename))
 
     for check in checks:
-        diagnostics.extend(check.finalize(filename))
+        check_diagnostics.extend(check.finalize(filename))
 
+    if fatal is not None:
+        check_diagnostics = [
+            d for d in check_diagnostics if d.line < fatal.location.line
+        ]
+
+    diagnostics.extend(check_diagnostics)
     return sorted(diagnostics, key=lambda d: (d.line, d.column))

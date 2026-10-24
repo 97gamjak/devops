@@ -52,6 +52,27 @@ class TestFatalParseErrorSurfaced:
         diags = run_ast_checks(p, code, ["-std=c++17"], checks=[NoGlobalUsing()])
         assert any(d.check_id == "noGlobalUsing" for d in diags)
 
+    def test_check_diagnostics_after_the_fatal_point_are_dropped(
+        self, tmp_path: Path
+    ) -> None:
+        """Diagnostics from the unreliable post-fatal AST are not reported.
+
+        libclang's error-recovery parsing past a fatal diagnostic can
+        misreport cursor properties (e.g. access_specifier), so anything a
+        check reports there isn't trustworthy and must be suppressed —
+        only the astParseError itself should survive.
+        """
+        p = tmp_path / "test.cpp"
+        code = (
+            '#include "does_not_exist_anywhere.hpp"\n'
+            "namespace ns1 {}\n"
+            "using namespace ns1;\n"
+        )
+        p.write_text(code)
+        diags = run_ast_checks(p, code, ["-std=c++17"], checks=[NoGlobalUsing()])
+        assert not any(d.check_id == "noGlobalUsing" for d in diags)
+        assert any(d.check_id == "astParseError" for d in diags)
+
 
 class TestResourceDirHelpers:
     """Unit tests for the -resource-dir detection/injection helpers."""
