@@ -6,6 +6,7 @@ import typing
 
 import pytest
 
+from devops.cpp.ast import engine
 from devops.cpp.ast.checks.no_global_using import NoGlobalUsing
 from devops.cpp.ast.engine import (
     _extract_plain_include,
@@ -175,3 +176,54 @@ class TestPreludeIncludeWrapping:
             checks=[],
         )
         assert any(d.check_id == "astParseError" for d in diags)
+
+
+class TestFatalErrorInNestedInclude:
+    """A fatal error inside an included file is not blamed on the checked file."""
+
+    def test_location_names_the_included_file(self, tmp_path: Path) -> None:
+        """The reported file/line are the include's, not the checked file's."""
+        inner = tmp_path / "inner.hpp"
+        inner.write_text("// line 1\n#include <definitely/not/there.hpp>\n")
+        outer = tmp_path / "outer.hpp"
+        outer.write_text('#pragma once\n#include "inner.hpp"\n')
+
+        diags = run_ast_checks(outer, outer.read_text(), [f"-I{tmp_path}"])
+
+        parse_errors = [d for d in diags if d.check_id == "astParseError"]
+        assert len(parse_errors) == 1
+        assert parse_errors[0].line == 0
+        assert "inner.hpp:2" in parse_errors[0].message
+        assert "not/there.hpp" in parse_errors[0].message
+
+
+class TestGccBuiltinIncludeFallback:
+    """A GCC compiler (no ``-print-resource-dir``) contributes its builtin headers."""
+
+    def test_gcc_include_dir_is_added_as_isystem(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """With no resource dir, ``-isystem <gcc builtin include dir>`` is added."""
+        monkeypatch.setattr(engine, "_resource_dir_for_compiler", lambda _c: None)
+        monkeypatch.setattr(
+            engine, "_builtin_include_dir_for_compiler", lambda _c: "/gcc/include"
+        )
+
+        result = _with_auto_resource_dir(["-std=c++23"], "g++-14")
+
+        assert result == ["-std=c++23", "-isystem", "/gcc/include"]
+
+    def test_clang_resource_dir_wins_over_gcc_fallback(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A real Clang resource dir is preferred; no -isystem is added."""
+        monkeypatch.setattr(engine, "_resource_dir_for_compiler", lambda _c: "/rd")
+        monkeypatch.setattr(
+            engine, "_builtin_include_dir_for_compiler", lambda _c: "/gcc/include"
+        )
+
+        assert _with_auto_resource_dir([], "clang++") == ["-resource-dir=/rd"]
+
+    def test_unknown_compiler_is_still_a_noop(self) -> None:
+        """Neither query works for a missing compiler: args are unchanged."""
+        assert _with_auto_resource_dir(["-x"], "not-a-real-compiler-xyz") == ["-x"]

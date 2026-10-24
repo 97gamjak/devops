@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+### Fixes
+
+#### CPP Checks
+
+- Drop AST-check diagnostics located at or after a fatal libclang parse error. libclang's error-recovery parsing past that point can misreport cursor properties such as `access_specifier`, which previously surfaced as false `classMemberOrder`/`noPublicLeadingUnderscore` (and similar) findings on declarations that were actually correct (Fixes #165)
+
 <!-- insertion marker -->
 ## [0.13.0](https://github.com/repo/owner/releases/tag/0.13.0) - 2026-10-23
 

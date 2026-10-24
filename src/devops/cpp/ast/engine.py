@@ -59,6 +59,43 @@ def _resource_dir_for_compiler(compiler: str) -> str | None:
     return result.stdout.strip() or None
 
 
+@functools.cache
+def _builtin_include_dir_for_compiler(compiler: str) -> str | None:
+    """Ask `compiler` for its builtin-header directory via ``-print-file-name=include``.
+
+    GCC does not know ``-print-resource-dir``, but ships the same builtin
+    headers (``stddef.h``, ``stdarg.h``, ...) in a directory it can report.
+    This is the substitute for a compile database produced by GCC, which the
+    pip ``libclang`` wheel cannot otherwise parse past the first standard
+    header.
+
+    Parameters
+    ----------
+    compiler: str
+        The compiler executable to query.
+
+    Returns
+    -------
+    str | None
+        An existing directory path, or None if the compiler did not report one.
+
+    """
+    try:
+        result = subprocess.run(  # noqa: S603 - no shell, compiler path is trusted
+            [compiler, "-print-file-name=include"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    path = result.stdout.strip()
+    if result.returncode != 0 or not Path(path).is_absolute():
+        return None
+    return path if Path(path).is_dir() else None
+
+
 def _has_resource_dir(args: list[str]) -> bool:
     """Check whether `args` already sets ``-resource-dir``."""
     return any(
@@ -79,16 +116,22 @@ def _with_auto_resource_dir(args: list[str], compiler: str) -> list[str]:
     Returns
     -------
     list[str]
-        `args` unchanged if it already sets ``-resource-dir`` or none could
-        be auto-detected; otherwise `args` plus ``-resource-dir=<path>``.
+        `args` unchanged if it already sets ``-resource-dir`` or nothing could
+        be auto-detected; otherwise `args` plus ``-resource-dir=<path>`` (Clang)
+        or ``-isystem <builtin include dir>`` (GCC).
 
     """
     if _has_resource_dir(args):
         return args
     resource_dir = _resource_dir_for_compiler(compiler)
-    if resource_dir is None:
-        return args
-    return [*args, f"-resource-dir={resource_dir}"]
+    if resource_dir is not None:
+        return [*args, f"-resource-dir={resource_dir}"]
+    # Not a Clang (e.g. a GCC compile database): use that compiler's own
+    # builtin headers instead, so libclang can still parse past <cstddef>.
+    builtin_dir = _builtin_include_dir_for_compiler(compiler)
+    if builtin_dir is not None:
+        return [*args, "-isystem", builtin_dir]
+    return args
 
 
 def _with_fallback_resource_dir(args: list[str]) -> list[str]:
@@ -269,15 +312,28 @@ def run_ast_checks(
         None,
     )
     if fatal is not None:
+        # The fatal error often sits in a *nested* include (e.g. a standard
+        # header), not in the file being checked: only claim the line/column
+        # when it is in this file, otherwise name the file it really is in.
+        fatal_file = fatal.location.file.name if fatal.location.file else None
+        in_this_file = fatal_file in (None, filename_abs, filename)
+        where = (
+            ""
+            if in_this_file
+            else (
+                f" (in included file {fatal_file}:"
+                f"{fatal.location.line}:{fatal.location.column})"
+            )
+        )
         diagnostics.append(
             Diagnostic(
                 file=filename,
-                line=fatal.location.line,
-                column=fatal.location.column,
+                line=fatal.location.line if in_this_file else 0,
+                column=fatal.location.column if in_this_file else 0,
                 message=(
                     "libclang hit a fatal error while parsing this file — "
                     "everything after this point was not parsed, so checks "
-                    f"may have missed issues there: {fatal.spelling}"
+                    f"may have missed issues there: {fatal.spelling}{where}"
                 ),
                 check_id="astParseError",
                 severity="error",
