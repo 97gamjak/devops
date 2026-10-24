@@ -2,13 +2,18 @@
 
 from __future__ import annotations
 
+import os
 import typing
 from dataclasses import dataclass
 from pathlib import Path
 
 import clang.cindex as clang
 
-from devops.cpp.ast.engine import _with_auto_resource_dir, run_ast_checks
+from devops.cpp.ast.engine import (
+    _HEADER_SUFFIXES,
+    _with_auto_resource_dir,
+    run_ast_checks,
+)
 from devops.cpp.ast.registry import ALL_CHECKS, configure_checks, select_checks
 from devops.logger import cpp_check_logger
 from devops.rules import (
@@ -119,15 +124,22 @@ def _consume_xclang(it: typing.Iterator[str], result: list[str]) -> None:
         result.append(xclang_arg)
 
 
-def _args_from_compile_commands(
-    db: clang.CompilationDatabase, path: Path
-) -> list[str] | None:
-    """Return filtered compile args for *path* from *db*, or None if not found."""
-    cmds = db.getCompileCommands(str(path.resolve()))
-    if not cmds:
-        return None
+def _filter_compile_args(raw: list[str]) -> list[str]:
+    """Turn a raw compile command (compiler first) into libclang-friendly args.
 
-    raw = list(cmds[0].arguments)  # first element is the compiler executable
+    Parameters
+    ----------
+    raw: list[str]
+        The full argv of a compile command; ``raw[0]`` is the compiler.
+
+    Returns
+    -------
+    list[str]
+        The flags to hand to libclang (no compiler, output, dependency or
+        positional source arguments), with an auto-detected ``-resource-dir``
+        for the compiler appended where possible.
+
+    """
     result: list[str] = []
     it = iter(raw[1:])  # skip compiler executable
     for arg in it:
@@ -154,6 +166,128 @@ def _args_from_compile_commands(
     result += ["-Wno-unknown-warning-option", "-Wno-unused-command-line-argument"]
 
     return _with_auto_resource_dir(result, raw[0])
+
+
+def _args_from_compile_commands(
+    db: clang.CompilationDatabase, path: Path
+) -> list[str] | None:
+    """Return filtered compile args for *path* from *db*, or None if not found."""
+    cmds = db.getCompileCommands(str(path.resolve()))
+    if not cmds:
+        return None
+    return _filter_compile_args(list(cmds[0].arguments))
+
+
+# Flags that put a directory on the include search path, in both the joined
+# (``-Idir``) and separated (``-I dir``) spelling.
+_INCLUDE_DIR_FLAGS = ("-I", "-isystem", "-iquote", "-idirafter")
+
+
+def _include_dirs(raw: list[str], directory: str) -> tuple[Path, ...]:
+    """Collect the include search directories named in a raw compile command.
+
+    Parameters
+    ----------
+    raw: list[str]
+        The full argv of a compile command.
+    directory: str
+        The command's working directory; relative include dirs are resolved
+        against it.
+
+    Returns
+    -------
+    tuple[Path, ...]
+        Absolute, de-duplicated include directories, in command-line order.
+
+    """
+    dirs: dict[Path, None] = {}
+    it = iter(raw[1:])
+    for arg in it:
+        value: str | None = None
+        for flag in _INCLUDE_DIR_FLAGS:
+            if arg == flag:
+                value = next(it, None)
+                break
+            if arg.startswith(flag) and flag == "-I":
+                value = arg[len(flag) :]
+                break
+        if value:
+            dirs[Path(os.path.normpath(Path(directory) / value))] = None
+    return tuple(dirs)
+
+
+@dataclass(frozen=True)
+class _CompileEntry:
+    """One compile-database entry reduced to what header lookup needs."""
+
+    file: str
+    raw: tuple[str, ...]
+    include_dirs: tuple[Path, ...]
+
+
+def _load_entries(db: clang.CompilationDatabase) -> list[_CompileEntry]:
+    """Read every entry of *db* once, sorted by file for deterministic lookup."""
+    entries = []
+    for cmd in db.getAllCompileCommands():
+        raw = list(cmd.arguments)
+        entries.append(
+            _CompileEntry(
+                file=os.path.normpath(Path(cmd.directory) / cmd.filename),
+                raw=tuple(raw),
+                include_dirs=_include_dirs(raw, cmd.directory),
+            )
+        )
+    return sorted(entries, key=lambda e: e.file)
+
+
+def _args_for_header(entries: list[_CompileEntry], header: Path) -> list[str] | None:
+    """Return compile args for a header, taken from a TU that can reach it.
+
+    A header has no compile command of its own: it is always compiled as part
+    of some translation unit, with that unit's flags. The unit's include
+    search path decides which headers it can reach, so a unit that has one of
+    the header's parent directories on its ``-I`` / ``-isystem`` path is, by
+    the compiler's own lookup rules, one that can include it. The most
+    specific such directory wins (``include/concepts`` before ``include``);
+    ties are broken by file name so the result is deterministic.
+
+    This deliberately does not use ``CompilationDatabase.getCompileCommands``
+    for headers: libclang answers that call for files missing from the
+    database with a *guessed* command borrowed from the entry with the most
+    similar path (the same heuristic clangd uses), never with "not found". For
+    a header whose include tree does not mirror the source tree, that guess
+    is an unrelated unit lacking the header's dependencies.
+
+    Parameters
+    ----------
+    entries: list[_CompileEntry]
+        Entries as returned by `_load_entries`.
+    header: Path
+        The header being checked.
+
+    Returns
+    -------
+    list[str] | None
+        Filtered compile args of the chosen unit, or None if no unit has an
+        include directory containing *header*.
+
+    """
+    header = header.resolve()
+    best: _CompileEntry | None = None
+    best_depth = -1
+    for entry in entries:
+        if entry.file == str(header):  # a real entry for the header itself
+            return _filter_compile_args(list(entry.raw))
+        for inc in entry.include_dirs:
+            if header.is_relative_to(inc) and len(inc.parts) > best_depth:
+                best, best_depth = entry, len(inc.parts)
+    if best is None:
+        return None
+    cpp_check_logger.debug(
+        f"AST checks: '{header}' has no compile command — using the flags of "
+        f"'{best.file}', which has its directory on the include path."
+    )
+    return _filter_compile_args(list(best.raw))
 
 
 @dataclass
@@ -223,6 +357,7 @@ class ASTChecksRule(Rule):
         )
         self.compile_args = compile_args or DEFAULT_COMPILE_ARGS
         self._compile_db: clang.CompilationDatabase | None = None
+        self._entries: list[_CompileEntry] | None = None  # loaded on first header
         if compile_commands_db is not None:
             try:
                 self._compile_db = clang.CompilationDatabase.fromDirectory(
@@ -271,9 +406,13 @@ class ASTChecksRule(Rule):
 
         compile_args = self.compile_args
         if self._compile_db is not None:
-            per_file = _args_from_compile_commands(
-                self._compile_db, file_rule_input.path
-            )
+            path = file_rule_input.path
+            if path.suffix.lower() in _HEADER_SUFFIXES:
+                if self._entries is None:
+                    self._entries = _load_entries(self._compile_db)
+                per_file = _args_for_header(self._entries, path)
+            else:
+                per_file = _args_from_compile_commands(self._compile_db, path)
             if per_file is not None:
                 compile_args = per_file
             else:
