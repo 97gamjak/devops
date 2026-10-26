@@ -240,6 +240,54 @@ def _load_entries(db: clang.CompilationDatabase) -> list[_CompileEntry]:
     return sorted(entries, key=lambda e: e.file)
 
 
+def _best_explicit_match(
+    entries: list[_CompileEntry], header: Path
+) -> _CompileEntry | None:
+    """Return the entry whose declared ``-I``/``-isystem`` path best reaches *header*.
+
+    The most specific matching directory wins. Several TUs often tie on that
+    specificity (e.g. many test ``.cpp`` files all have the same shared
+    test-fixture directory on their path) while differing wildly in how many
+    *other* directories they can reach, so ties are broken by preferring the
+    TU with the most include directories overall — the one least likely to
+    be missing something the header needs — and only then by file name (via
+    `entries` already being sorted), so the result stays deterministic.
+    """
+    best: _CompileEntry | None = None
+    best_depth = -1
+    best_breadth = -1
+    for entry in entries:
+        for inc in entry.include_dirs:
+            if not header.is_relative_to(inc):
+                continue
+            depth = len(inc.parts)
+            breadth = len(entry.include_dirs)
+            if depth > best_depth or (depth == best_depth and breadth > best_breadth):
+                best, best_depth, best_breadth = entry, depth, breadth
+    return best
+
+
+def _best_same_dir_match(
+    entries: list[_CompileEntry], header: Path
+) -> _CompileEntry | None:
+    """Return the richest entry whose own source file sits next to *header*.
+
+    A compiler always searches a quote-included file's own directory first,
+    with no ``-I`` needed for it — so a header that merely sits beside its
+    ``.cpp`` (e.g. in ``benchmarks/perf`` or a ``src/`` subtree that mirrors
+    no ``include/`` root) is reachable from that TU even though the
+    directory never appears as an explicit ``-I``. This is only consulted
+    when no entry's *explicit* include path reaches the header
+    (`_best_explicit_match` returned None): unlike an explicit ``-I``, "sits
+    in the same folder" is true of every sibling file, so it is too weak a
+    signal to let it outrank a genuine, intentional ``-I`` match.
+    """
+    same_dir = [e for e in entries if Path(e.file).parent == header.parent]
+    if not same_dir:
+        return None
+    return max(same_dir, key=lambda e: len(e.include_dirs))
+
+
 def _args_for_header(entries: list[_CompileEntry], header: Path) -> list[str] | None:
     """Return compile args for a header, taken from a TU that can reach it.
 
@@ -247,9 +295,12 @@ def _args_for_header(entries: list[_CompileEntry], header: Path) -> list[str] | 
     of some translation unit, with that unit's flags. The unit's include
     search path decides which headers it can reach, so a unit that has one of
     the header's parent directories on its ``-I`` / ``-isystem`` path is, by
-    the compiler's own lookup rules, one that can include it. The most
-    specific such directory wins (``include/concepts`` before ``include``);
-    ties are broken by file name so the result is deterministic.
+    the compiler's own lookup rules, one that can include it — see
+    `_best_explicit_match` for how the most specific such directory is
+    chosen. Failing that, `_best_same_dir_match` falls back to a TU whose own
+    source file merely sits beside the header, for the common case of a
+    header with no ``include/``-rooted directory on any TU's path at all
+    (e.g. one living next to its ``.cpp`` under ``benchmarks/`` or ``src/``).
 
     This deliberately does not use ``CompilationDatabase.getCompileCommands``
     for headers: libclang answers that call for files missing from the
@@ -268,24 +319,23 @@ def _args_for_header(entries: list[_CompileEntry], header: Path) -> list[str] | 
     Returns
     -------
     list[str] | None
-        Filtered compile args of the chosen unit, or None if no unit has an
-        include directory containing *header*.
+        Filtered compile args of the chosen unit, or None if no unit can
+        reach *header*.
 
     """
     header = header.resolve()
-    best: _CompileEntry | None = None
-    best_depth = -1
     for entry in entries:
         if entry.file == str(header):  # a real entry for the header itself
             return _filter_compile_args(list(entry.raw))
-        for inc in entry.include_dirs:
-            if header.is_relative_to(inc) and len(inc.parts) > best_depth:
-                best, best_depth = entry, len(inc.parts)
+
+    best = _best_explicit_match(entries, header) or _best_same_dir_match(
+        entries, header
+    )
     if best is None:
         return None
     cpp_check_logger.debug(
         f"AST checks: '{header}' has no compile command — using the flags of "
-        f"'{best.file}', which has its directory on the include path."
+        f"'{best.file}', which can reach it."
     )
     return _filter_compile_args(list(best.raw))
 
