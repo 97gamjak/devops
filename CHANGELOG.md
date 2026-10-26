@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+### Features
+
+#### CPP Rules
+
+- Add `enforceSystemHeaderLibs` AST check flagging `#include "lib/..."` for configured libraries that must be included as system headers (`#include <lib/...>`) (Fixes #171)
+
 <!-- insertion marker -->
 ## [0.13.2](https://github.com/repo/owner/releases/tag/0.13.2) - 2026-10-26
 
