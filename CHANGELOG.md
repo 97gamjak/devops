@@ -10,6 +10,12 @@ All notable changes to this project will be documented in this file.
 
 - Add `enforceSystemHeaderLibs` AST check flagging `#include "lib/..."` for configured libraries that must be included as system headers (`#include <lib/...>`) (Fixes #171)
 
+### Fixes
+
+#### CPP Checks
+
+- Fix spurious `'<header>.hpp' file not found` AST-check failures for a header shared by many test TUs (e.g. a fixture header under `tests/include/...`). When several TUs tied on the most specific matching `-I` directory, the previous breadth-based tie-break could pick a TU unrelated to the header instead of its own same-named `.cpp`, losing an `-I` the header actually needed. `_best_explicit_match` now prefers a TU whose filename stem matches the header's before falling back to breadth
+
 <!-- insertion marker -->
 ## [0.13.2](https://github.com/repo/owner/releases/tag/0.13.2) - 2026-10-26
 

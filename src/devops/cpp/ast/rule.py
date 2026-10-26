@@ -247,23 +247,42 @@ def _best_explicit_match(
 
     The most specific matching directory wins. Several TUs often tie on that
     specificity (e.g. many test ``.cpp`` files all have the same shared
-    test-fixture directory on their path) while differing wildly in how many
-    *other* directories they can reach, so ties are broken by preferring the
-    TU with the most include directories overall — the one least likely to
-    be missing something the header needs — and only then by file name (via
-    `entries` already being sorted), so the result stays deterministic.
+    test-fixture directory on their path), so ties are broken by preferring,
+    first, a TU whose own filename stem matches the header's — the common
+    ``testFoo.hpp`` / ``testFoo.cpp`` pairing, where that TU is the one
+    actually written to exercise the header, rather than a sibling that
+    merely happens to share the fixture directory — and otherwise by
+    preferring the TU with the most include directories overall, the one
+    least likely to be missing something the header needs. Remaining ties
+    fall back to file name (via `entries` already being sorted), so the
+    result stays deterministic.
     """
     best: _CompileEntry | None = None
     best_depth = -1
+    best_stem_match = False
     best_breadth = -1
+    header_stem = header.stem
     for entry in entries:
         for inc in entry.include_dirs:
             if not header.is_relative_to(inc):
                 continue
             depth = len(inc.parts)
+            stem_match = Path(entry.file).stem == header_stem
             breadth = len(entry.include_dirs)
-            if depth > best_depth or (depth == best_depth and breadth > best_breadth):
-                best, best_depth, best_breadth = entry, depth, breadth
+            better = depth > best_depth or (
+                depth == best_depth
+                and (
+                    (stem_match and not best_stem_match)
+                    or (stem_match == best_stem_match and breadth > best_breadth)
+                )
+            )
+            if better:
+                best, best_depth, best_stem_match, best_breadth = (
+                    entry,
+                    depth,
+                    stem_match,
+                    breadth,
+                )
     return best
 
 

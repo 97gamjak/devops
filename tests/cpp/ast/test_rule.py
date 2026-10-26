@@ -403,6 +403,54 @@ class TestHeaderCompileArgs:
         assert args is not None
         assert "-DBROAD" not in args
 
+    def test_stem_match_wins_over_broader_sibling_on_tied_depth(
+        self, tmp_path: Path
+    ) -> None:
+        """A same-named TU wins a depth tie even with fewer include dirs.
+
+        Mirrors a real-world shared test-fixture header: many ``.cpp`` files
+        put the same directory on their ``-I`` path (tying on depth), but
+        only the header's own same-named TU actually has the dependency it
+        needs on its path. A breadth-only tie-break would instead pick a
+        "richer" sibling that ties on depth but lacks that dependency.
+        """
+        (tmp_path / "include/foo").mkdir(parents=True)
+        (tmp_path / "include/other").mkdir()
+        (tmp_path / "include/third").mkdir()
+        dep_inc = tmp_path / "external/dep/include"
+        (dep_inc / "dep").mkdir(parents=True)
+        (dep_inc / "dep/dep.hpp").write_text("#define DEP 1\n")
+        header = tmp_path / "include/foo/foo.hpp"
+        header.write_text("#pragma once\n#include <dep/dep.hpp>\nint v = DEP;\n")
+        (tmp_path / "src").mkdir()
+        own_tu = tmp_path / "src/foo.cpp"
+        own_tu.write_text('#include "foo/foo.hpp"\n')
+        richer_tu = tmp_path / "src/bar.cpp"
+        richer_tu.write_text("")
+        entries = [
+            {
+                "directory": str(tmp_path),
+                "file": str(own_tu),
+                "command": f"/usr/bin/clang++ -std=c++23 -I{tmp_path}/include "
+                f"-isystem {dep_inc} -c {own_tu}",
+            },
+            {
+                "directory": str(tmp_path),
+                "file": str(richer_tu),
+                "command": f"/usr/bin/clang++ -std=c++23 -I{tmp_path}/include "
+                f"-I{tmp_path}/include/other -I{tmp_path}/include/third "
+                f"-DRICHER -c {richer_tu}",
+            },
+        ]
+        (tmp_path / "compile_commands.json").write_text(json.dumps(entries))
+        db = clang.CompilationDatabase.fromDirectory(str(tmp_path))
+
+        args = _args_for_header(_load_entries(db), header)
+
+        assert args is not None
+        assert "-DRICHER" not in args
+        assert str(dep_inc) in args
+
     def test_none_when_no_tu_reaches_header(self, tmp_path: Path) -> None:
         """A header outside every include path gets no borrowed flags."""
         self._project(tmp_path)
