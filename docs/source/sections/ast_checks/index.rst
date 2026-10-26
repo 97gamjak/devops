@@ -111,6 +111,10 @@ Available checks
      - A template type parameter introduced with ``class`` instead of
        ``typename``.
      - None
+   * - :doc:`enforceSystemHeaderLibs <enforce_system_header_libs>`
+     - A quoted ``#include "lib/..."`` for a configured library that must be
+       included as a system header.
+     - Required (``libs``)
 
 .. toctree::
    :maxdepth: 1
@@ -130,3 +134,4 @@ Available checks
    no_clang_format_toggle
    no_final_keyword
    enforce_typename_over_class
+   enforce_system_header_libs
