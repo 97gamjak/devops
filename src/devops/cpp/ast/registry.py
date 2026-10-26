@@ -20,6 +20,7 @@ from devops.cpp.ast.checks.enforce_no_public_leading_underscore import (
     EnforceNoPublicLeadingUnderscore,
 )
 from devops.cpp.ast.checks.enforce_param_name_for_type import EnforceParamNameForType
+from devops.cpp.ast.checks.enforce_system_header_libs import EnforceSystemHeaderLibs
 from devops.cpp.ast.checks.enforce_typename_over_class import EnforceTypenameOverClass
 from devops.cpp.ast.checks.include_iwyu_pragma_only import IncludeIwyuPragmaOnly
 from devops.cpp.ast.checks.macro_replacement import MacroReplacement
@@ -45,6 +46,7 @@ ALL_CHECKS: list[Check] = [
     EnforceMemberLeadingUnderscore(),
     EnforceNoPublicLeadingUnderscore(),
     EnforceParamNameForType(),
+    EnforceSystemHeaderLibs(),
     EnforceTypenameOverClass(),
     IncludeIwyuPragmaOnly(),
     MacroReplacement(),

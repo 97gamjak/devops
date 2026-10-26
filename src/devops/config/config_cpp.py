@@ -172,6 +172,8 @@ class CppConfig:
             'ASSERT_THROW = "ASSERT_THROW_MSG" }\n'
             "#[cpp.ast_check_config.includeIwyuPragmaOnly]\n"
             '#allowed_pragmas = ["export", "keep"]\n'
+            "#[cpp.ast_check_config.enforceSystemHeaderLibs]\n"
+            '#libs = ["mstd"]\n'
         )
 
         isf = (

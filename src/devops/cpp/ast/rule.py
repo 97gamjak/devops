@@ -247,45 +247,95 @@ def _best_explicit_match(
 
     The most specific matching directory wins. Several TUs often tie on that
     specificity (e.g. many test ``.cpp`` files all have the same shared
-    test-fixture directory on their path) while differing wildly in how many
-    *other* directories they can reach, so ties are broken by preferring the
-    TU with the most include directories overall — the one least likely to
-    be missing something the header needs — and only then by file name (via
-    `entries` already being sorted), so the result stays deterministic.
+    test-fixture directory on their path), so ties are broken by preferring,
+    first, a TU whose own filename stem matches the header's — the common
+    ``testFoo.hpp`` / ``testFoo.cpp`` pairing, where that TU is the one
+    actually written to exercise the header, rather than a sibling that
+    merely happens to share the fixture directory — and otherwise by
+    preferring the TU with the most include directories overall, the one
+    least likely to be missing something the header needs. Remaining ties
+    fall back to file name (via `entries` already being sorted), so the
+    result stays deterministic.
     """
     best: _CompileEntry | None = None
     best_depth = -1
+    best_stem_match = False
     best_breadth = -1
+    header_stem = header.stem
     for entry in entries:
         for inc in entry.include_dirs:
             if not header.is_relative_to(inc):
                 continue
             depth = len(inc.parts)
+            stem_match = Path(entry.file).stem == header_stem
             breadth = len(entry.include_dirs)
-            if depth > best_depth or (depth == best_depth and breadth > best_breadth):
-                best, best_depth, best_breadth = entry, depth, breadth
+            better = depth > best_depth or (
+                depth == best_depth
+                and (
+                    (stem_match and not best_stem_match)
+                    or (stem_match == best_stem_match and breadth > best_breadth)
+                )
+            )
+            if better:
+                best, best_depth, best_stem_match, best_breadth = (
+                    entry,
+                    depth,
+                    stem_match,
+                    breadth,
+                )
     return best
 
 
 def _best_same_dir_match(
     entries: list[_CompileEntry], header: Path
 ) -> _CompileEntry | None:
-    """Return the richest entry whose own source file sits next to *header*.
+    """Return the best entry whose own source file sits next to *header*.
 
     A compiler always searches a quote-included file's own directory first,
     with no ``-I`` needed for it — so a header that merely sits beside its
     ``.cpp`` (e.g. in ``benchmarks/perf`` or a ``src/`` subtree that mirrors
     no ``include/`` root) is reachable from that TU even though the
-    directory never appears as an explicit ``-I``. This is only consulted
-    when no entry's *explicit* include path reaches the header
-    (`_best_explicit_match` returned None): unlike an explicit ``-I``, "sits
-    in the same folder" is true of every sibling file, so it is too weak a
-    signal to let it outrank a genuine, intentional ``-I`` match.
+    directory never appears as an explicit ``-I``. Ties are broken the same
+    way as `_best_explicit_match`: a filename-stem match first, then the
+    most include directories overall.
     """
     same_dir = [e for e in entries if Path(e.file).parent == header.parent]
     if not same_dir:
         return None
-    return max(same_dir, key=lambda e: len(e.include_dirs))
+    header_stem = header.stem
+    return max(
+        same_dir,
+        key=lambda e: (Path(e.file).stem == header_stem, len(e.include_dirs)),
+    )
+
+
+def _best_match(entries: list[_CompileEntry], header: Path) -> _CompileEntry | None:
+    """Return the entry best positioned to reach *header*.
+
+    An explicit ``-I``/``-isystem`` match is a deliberate, intentional path
+    and so normally outranks a same-directory match, which is true of every
+    sibling file and therefore a much weaker signal on its own (see
+    `_best_same_dir_match`). But a single explicit match is not always a
+    *good* one: a TU that merely happens to put a broad ancestor directory
+    (e.g. a whole ``apps/`` tree) on its path reaches the header too, yet
+    may be otherwise unrelated and missing dependencies the header needs.
+    When that happens to be the only (or best) explicit match, and a
+    same-directory sibling's filename stem matches the header's — the
+    strongest available signal that *that* TU is the one actually written
+    to exercise this header — the stem match wins instead.
+    """
+    explicit = _best_explicit_match(entries, header)
+    same_dir = _best_same_dir_match(entries, header)
+    header_stem = header.stem
+    explicit_stem_match = explicit is not None and Path(explicit.file).stem == (
+        header_stem
+    )
+    same_dir_stem_match = same_dir is not None and Path(same_dir.file).stem == (
+        header_stem
+    )
+    if same_dir_stem_match and not explicit_stem_match:
+        return same_dir
+    return explicit or same_dir
 
 
 def _args_for_header(entries: list[_CompileEntry], header: Path) -> list[str] | None:
@@ -294,13 +344,10 @@ def _args_for_header(entries: list[_CompileEntry], header: Path) -> list[str] | 
     A header has no compile command of its own: it is always compiled as part
     of some translation unit, with that unit's flags. The unit's include
     search path decides which headers it can reach, so a unit that has one of
-    the header's parent directories on its ``-I`` / ``-isystem`` path is, by
-    the compiler's own lookup rules, one that can include it — see
-    `_best_explicit_match` for how the most specific such directory is
-    chosen. Failing that, `_best_same_dir_match` falls back to a TU whose own
-    source file merely sits beside the header, for the common case of a
-    header with no ``include/``-rooted directory on any TU's path at all
-    (e.g. one living next to its ``.cpp`` under ``benchmarks/`` or ``src/``).
+    the header's parent directories on its ``-I`` / ``-isystem`` path — or
+    whose own source file simply sits beside the header — is, by the
+    compiler's own lookup rules, one that can include it. See `_best_match`
+    for how the most specific such match is chosen.
 
     This deliberately does not use ``CompilationDatabase.getCompileCommands``
     for headers: libclang answers that call for files missing from the
@@ -328,9 +375,7 @@ def _args_for_header(entries: list[_CompileEntry], header: Path) -> list[str] | 
         if entry.file == str(header):  # a real entry for the header itself
             return _filter_compile_args(list(entry.raw))
 
-    best = _best_explicit_match(entries, header) or _best_same_dir_match(
-        entries, header
-    )
+    best = _best_match(entries, header)
     if best is None:
         return None
     cpp_check_logger.debug(
