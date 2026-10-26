@@ -451,6 +451,58 @@ class TestHeaderCompileArgs:
         assert "-DRICHER" not in args
         assert str(dep_inc) in args
 
+    def test_same_dir_stem_match_beats_weak_unrelated_explicit_match(
+        self, tmp_path: Path
+    ) -> None:
+        """A stem-matching sibling in the header's own dir beats a weak ``-I``.
+
+        Mirrors a header living directly in a shared directory (e.g.
+        ``apps/validation.hpp``) whose only *explicit* ``-I`` match is an
+        unrelated TU that happens to put that whole directory on its path
+        (e.g. ``-I apps``) without needing anything the header actually
+        depends on. Its same-directory, same-named sibling (``validation.cpp``)
+        has the real dependency and should win instead.
+        """
+        (tmp_path / "apps/commandLine").mkdir(parents=True)
+        (tmp_path / "apps/commandLine/args.hpp").write_text("#pragma once\n")
+        (tmp_path / "unrelated").mkdir()
+        header = tmp_path / "apps/validation.hpp"
+        header.write_text('#pragma once\n#include "args.hpp"\n')
+        own_tu = tmp_path / "apps/validation.cpp"
+        own_tu.write_text("")
+        other_tu = tmp_path / "apps/other.cpp"
+        other_tu.write_text("")
+        unrelated_tu = tmp_path / "unrelated/unrelated.cpp"
+        unrelated_tu.write_text("")
+        entries = [
+            {
+                "directory": str(tmp_path),
+                "file": str(own_tu),
+                "command": f"/usr/bin/clang++ -std=c++23 "
+                f"-I{tmp_path}/apps/commandLine -c {own_tu}",
+            },
+            {
+                "directory": str(tmp_path),
+                "file": str(other_tu),
+                "command": f"/usr/bin/clang++ -std=c++23 "
+                f"-I{tmp_path}/apps/commandLine -c {other_tu}",
+            },
+            {
+                "directory": str(tmp_path),
+                "file": str(unrelated_tu),
+                "command": f"/usr/bin/clang++ -std=c++23 -I{tmp_path}/apps "
+                f"-DUNRELATED -c {unrelated_tu}",
+            },
+        ]
+        (tmp_path / "compile_commands.json").write_text(json.dumps(entries))
+        db = clang.CompilationDatabase.fromDirectory(str(tmp_path))
+
+        args = _args_for_header(_load_entries(db), header)
+
+        assert args is not None
+        assert "-DUNRELATED" not in args
+        assert any(str(tmp_path / "apps/commandLine") in a for a in args)
+
     def test_none_when_no_tu_reaches_header(self, tmp_path: Path) -> None:
         """A header outside every include path gets no borrowed flags."""
         self._project(tmp_path)

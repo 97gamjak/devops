@@ -15,6 +15,7 @@ All notable changes to this project will be documented in this file.
 #### CPP Checks
 
 - Fix spurious `'<header>.hpp' file not found` AST-check failures for a header shared by many test TUs (e.g. a fixture header under `tests/include/...`). When several TUs tied on the most specific matching `-I` directory, the previous breadth-based tie-break could pick a TU unrelated to the header instead of its own same-named `.cpp`, losing an `-I` the header actually needed. `_best_explicit_match` now prefers a TU whose filename stem matches the header's before falling back to breadth
+- Fix the same `file not found` failure for a header living directly in a directory several TUs compile from (e.g. `apps/validation.hpp`), where a single unrelated TU that happened to put that whole directory on its `-I` path (without needing anything the header depends on) blocked the fallback to its own same-named, same-directory sibling. `_best_match` now lets a same-directory, stem-matching sibling outrank such a weak explicit match
 
 <!-- insertion marker -->
 ## [0.13.2](https://github.com/repo/owner/releases/tag/0.13.2) - 2026-10-26
