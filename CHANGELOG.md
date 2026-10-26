@@ -4,13 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+<!-- insertion marker -->
+## [0.13.2](https://github.com/repo/owner/releases/tag/0.13.2) - 2026-10-26
+
 ### Fixes
 
 #### CPP Checks
 
 - Fix spurious `'<header>.hpp' file not found` AST-check failures when checking a header with no translation unit of its own on its include path (common when checking only header files changed since a base ref, since `.cpp` files always resolve to their own exact compile command). `_args_for_header` now falls back to a TU whose source file merely sits beside the header when no TU's declared `-I`/`-isystem` path reaches it, and breaks ties between TUs that share the same best-matching include directory by preferring the one with the most include directories overall instead of an arbitrary alphabetical pick
 
-<!-- insertion marker -->
 ## [0.13.1](https://github.com/repo/owner/releases/tag/0.13.1) - 2026-10-24
 
 ### Fixes
@@ -339,6 +341,7 @@ All notable changes to this project will be documented in this file.
 - Add automatic release CI for PRs to main (either via title or via hotfix/ branch)
 - Add overnight CI runs for pytest and ruff CIs
 - Add test coverage to pytest CI
+
 
 
 
