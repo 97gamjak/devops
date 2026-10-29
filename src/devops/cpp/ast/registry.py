@@ -31,7 +31,7 @@ from devops.cpp.ast.checks.no_global_using import NoGlobalUsing
 from devops.cpp.ast.checks.no_global_using_enum import NoGlobalUsingEnum
 from devops.cpp.ast.checks.no_new_in_gtest_setup import NoNewInGtestSetup
 from devops.cpp.ast.checks.no_throw_paren import NoThrowParen
-from devops.logger import cpp_check_logger
+from devops.config.base import ConfigError
 
 if typing.TYPE_CHECKING:
     from devops.cpp.ast.base import Check
@@ -87,18 +87,32 @@ def select_checks(
     list[Check]
         The filtered list of checks.
 
+    Raises
+    ------
+    ConfigError
+        If any id in `enabled_ids`/`disabled_ids` matches no known check —
+        typically a typo, or a check id that only exists in a newer devops
+        version than the one actually installed.
+
     """
     known_ids = {check.id for check in checks}
     enabled_ids = enabled_ids or []
     disabled_ids = disabled_ids or []
 
-    for check_id in [*enabled_ids, *disabled_ids]:
-        if check_id not in known_ids:
-            cpp_check_logger.warning(
-                f"Unknown AST check id '{check_id}' in "
-                "ast_check_enabled_ids/ast_check_disabled_ids. "
-                f"Known ids: {sorted(known_ids)}"
-            )
+    unknown_ids = sorted(
+        {
+            check_id
+            for check_id in [*enabled_ids, *disabled_ids]
+            if check_id not in known_ids
+        }
+    )
+    if unknown_ids:
+        msg = (
+            f"Unknown AST check id(s) {unknown_ids} in "
+            "ast_check_enabled_ids/ast_check_disabled_ids. "
+            f"Known ids: {sorted(known_ids)}"
+        )
+        raise ConfigError(msg)
 
     disabled = set(disabled_ids)
 
