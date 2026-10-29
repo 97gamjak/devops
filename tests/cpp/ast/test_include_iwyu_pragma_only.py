@@ -96,6 +96,58 @@ class TestIncludeIwyuPragmaOnlyAllowedPragmasConfig:
             check.configure({"allowed_pragmas": "export"})
 
 
+class TestIncludeIwyuPragmaOnlyRequiredReasonsConfig:
+    """The 'pragma_required_reasons' config requires a trailing reason."""
+
+    def test_pragma_with_matching_reason_passes(self, tmp_path: Path) -> None:
+        """Test pragma with matching reason passes."""
+        check = IncludeIwyuPragmaOnly()
+        check.configure(
+            {"pragma_required_reasons": {"keep": "-- for template specialization"}}
+        )
+        code = '#include "foo.h" // IWYU pragma: keep -- for template specialization\n'
+        assert _diags(code, tmp_path, check) == []
+
+    def test_pragma_missing_reason_flagged(self, tmp_path: Path) -> None:
+        """Test pragma missing reason flagged."""
+        check = IncludeIwyuPragmaOnly()
+        check.configure(
+            {"pragma_required_reasons": {"keep": "-- for template specialization"}}
+        )
+        code = '#include "foo.h" // IWYU pragma: keep\n'
+        diags = _diags(code, tmp_path, check)
+        assert len(diags) == 1
+        assert "requires the trailing reason" in diags[0]
+
+    def test_pragma_with_wrong_reason_flagged(self, tmp_path: Path) -> None:
+        """Test pragma with wrong reason flagged."""
+        check = IncludeIwyuPragmaOnly()
+        check.configure(
+            {"pragma_required_reasons": {"keep": "-- for template specialization"}}
+        )
+        code = '#include "foo.h" // IWYU pragma: keep -- because reasons\n'
+        diags = _diags(code, tmp_path, check)
+        assert len(diags) == 1
+        assert "requires the trailing reason" in diags[0]
+
+    def test_other_pragma_without_required_reason_unaffected(
+        self, tmp_path: Path
+    ) -> None:
+        """Test other pragma without required reason unaffected."""
+        check = IncludeIwyuPragmaOnly()
+        check.configure(
+            {"pragma_required_reasons": {"keep": "-- for template specialization"}}
+        )
+        code = '#include "foo.h" // IWYU pragma: export\n'
+        assert _diags(code, tmp_path, check) == []
+
+    def test_invalid_required_reasons_config_raises(self) -> None:
+        """Test invalid required reasons config raises."""
+        check = IncludeIwyuPragmaOnly()
+        with pytest.raises(ConfigError):
+            check.configure({"pragma_required_reasons": {"keep": 1}})
+
+
 class TestIncludeIwyuPragmaOnlyCheckId:
     """The check id is correct."""
 

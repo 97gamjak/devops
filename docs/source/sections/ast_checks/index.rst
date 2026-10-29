@@ -115,6 +115,11 @@ Available checks
      - A quoted ``#include "lib/..."`` for a configured library that must be
        included as a system header.
      - Required (``libs``)
+   * - :doc:`includeIwyuPragmaOnly <include_iwyu_pragma_only>`
+     - A trailing comment on an ``#include`` line that isn't an IWYU pragma,
+       an IWYU pragma keyword outside an allowlist, or a required pragma
+       missing its reason.
+     - Optional (``allowed_pragmas``, ``pragma_required_reasons``)
 
 .. toctree::
    :maxdepth: 1
@@ -135,3 +140,4 @@ Available checks
    no_final_keyword
    enforce_typename_over_class
    enforce_system_header_libs
+   include_iwyu_pragma_only

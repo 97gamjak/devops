@@ -172,6 +172,7 @@ class CppConfig:
             'ASSERT_THROW = "ASSERT_THROW_MSG" }\n'
             "#[cpp.ast_check_config.includeIwyuPragmaOnly]\n"
             '#allowed_pragmas = ["export", "keep"]\n'
+            '#pragma_required_reasons = { keep = "-- for template specialization" }\n'
             "#[cpp.ast_check_config.enforceSystemHeaderLibs]\n"
             '#libs = ["mstd"]\n'
         )

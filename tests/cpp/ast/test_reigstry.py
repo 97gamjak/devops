@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pytest
 
+from devops.config.base import ConfigError
 from devops.cpp.ast.base import Check
 from devops.cpp.ast.registry import configure_checks, select_checks
 
@@ -54,15 +55,15 @@ class TestSelectChecks:
         result = select_checks(checks, enabled_ids=[])
         assert [c.id for c in result] == ["a", "b", "c"]
 
-    def test_unknown_id_logs_warning(
-        self, checks: list[Check], caplog: pytest.LogCaptureFixture
-    ) -> None:
-        """An id that matches no known check logs a warning."""
-        select_checks(checks, disabled_ids=["does-not-exist"])
+    def test_unknown_disabled_id_raises(self, checks: list[Check]) -> None:
+        """An id that matches no known check raises ConfigError."""
+        with pytest.raises(ConfigError, match="Unknown AST check id"):
+            select_checks(checks, disabled_ids=["does-not-exist"])
 
-        assert any(
-            "Unknown AST check id" in record.message for record in caplog.records
-        )
+    def test_unknown_enabled_id_raises(self, checks: list[Check]) -> None:
+        """An unknown id in enabled_ids also raises ConfigError."""
+        with pytest.raises(ConfigError, match="Unknown AST check id"):
+            select_checks(checks, enabled_ids=["does-not-exist"])
 
 
 class TestConfigureChecks:

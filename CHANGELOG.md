@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+### Features
+
+#### CPP Rules
+
+- Add `pragma_required_reasons` option to the `includeIwyuPragmaOnly` AST check, allowing specific IWYU pragma keywords (e.g. `keep`) only when followed by a required trailing reason comment (e.g. `// IWYU pragma: keep -- for template specialization`)
+
+### Fixes
+
+#### CPP Checks
+
+- Fix spurious `'<header>.hpp' file not found`/libclang fatal-parse-error AST-check failures for a header whose include path (own or a fallback TU's) force-includes a CMake `target_precompile_headers()` PCH header (`-include cmake_pch.hxx`). GCC/Clang both silently auto-prefer the compiled `.gch`/`.pch` cache sitting next to that textual header over the header itself, and that cache — serialized by the project's own compiler — is generally incompatible with pip's bundled libclang, producing a fatal parse error. A plain `-include <file>` is now also dropped when such a compiled sibling exists, the same way `-include-pch` already was
+- An unknown id in `ast_check_enabled_ids`/`ast_check_disabled_ids` (a typo, or a check id that only exists in a newer devops version than the one actually installed) now raises a `ConfigError` instead of only logging a warning and silently ignoring it, so a stale/mismatched install can no longer run with fewer checks than configured without failing loudly
+
 <!-- insertion marker -->
 ## [0.14.0](https://github.com/repo/owner/releases/tag/0.14.0) - 2026-10-26
 

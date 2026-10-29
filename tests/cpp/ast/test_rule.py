@@ -191,6 +191,13 @@ class TestArgsFromCompileCommands:
        fresh/partial checkout) — while `-include-pch` (the compiled binary,
        generally incompatible with pip's bundled libclang regardless of
        whether it exists) is still always dropped.
+
+    3. The fix for (2) in turn missed that a *compiled* PCH cache
+       (`.gch`/`.pch`) sitting next to the plain `-include <file>` is
+       auto-detected and silently preferred by GCC/Clang themselves, even
+       without an explicit `-include-pch`. A plain `-include` is now also
+       dropped whenever such a sibling cache file exists, for the same
+       incompatibility reason as `-include-pch`.
     """
 
     def test_bare_include_dropped_when_file_missing(self, tmp_path: Path) -> None:
@@ -233,6 +240,39 @@ class TestArgsFromCompileCommands:
         assert args is not None
         idx = args.index("-include")
         assert args[idx + 1] == str(pch_header)
+
+    def test_bare_include_dropped_when_compiled_pch_sibling_exists(
+        self, tmp_path: Path
+    ) -> None:
+        """A plain `-include` is dropped when a compiled .pch/.gch sits beside it.
+
+        GCC/Clang both auto-detect and silently prefer a compiled cache next
+        to a plain `-include <file>` (`.gch` for GCC, `.pch` for Clang,
+        emitted together by CMake's `target_precompile_headers()`),
+        regardless of whether `-include-pch` was passed explicitly. That
+        compiled cache is serialized by the project's own compiler and is
+        generally incompatible with pip's bundled libclang, so keeping the
+        textual file here doesn't actually avoid the fatal parse error it
+        was kept to avoid.
+        """
+        db_dir = tmp_path
+        cpp_file = tmp_path / "foo.cpp"
+        cpp_file.write_text("void f() {}\n")
+        pch_header = tmp_path / "cmake_pch.hxx"
+        pch_header.write_text("#include <optional>\n")
+        (tmp_path / "cmake_pch.hxx.pch").write_bytes(b"not a real pch")
+        command = (
+            f"/usr/bin/g++-13 -Winvalid-pch -include {pch_header} "
+            f"-std=c++23 -o foo.o -c {cpp_file}"
+        )
+        _write_compile_commands(tmp_path, db_dir, cpp_file, command)
+
+        db = clang.CompilationDatabase.fromDirectory(str(db_dir))
+        args = _args_from_compile_commands(db, cpp_file)
+
+        assert args is not None
+        assert "-include" not in args
+        assert not any(a.endswith("cmake_pch.hxx") for a in args)
 
     def test_xclang_wrapped_include_pch_is_always_dropped(self, tmp_path: Path) -> None:
         """The compiled PCH binary is dropped even when the file exists."""
