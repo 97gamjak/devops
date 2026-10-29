@@ -76,9 +76,10 @@ def _has_compiled_pch_sibling(file_arg: str | None) -> bool:
         return False
     try:
         path = Path(file_arg)
-        return path.with_name(path.name + ".pch").is_file() or path.with_name(
-            path.name + ".gch"
-        ).is_file()
+        return (
+            path.with_name(path.name + ".pch").is_file()
+            or path.with_name(path.name + ".gch").is_file()
+        )
     except OSError:
         return False
 

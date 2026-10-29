@@ -247,6 +247,14 @@ Controls the checks run by :ref:`cpp_checks <cli-cpp_checks>`.
        codebase in a single pass. Can also be overridden at runtime with
        the ``--no-fail-fast`` CLI flag.
 
+An id in ``ast_check_enabled_ids``/``ast_check_disabled_ids`` that matches
+no known check — a typo, or a check that only exists in a newer devops
+version than the one actually installed — raises a ``ConfigError`` and
+stops the run, rather than silently running with fewer checks than
+configured. If you see this unexpectedly, check that ``cpp_checks`` is
+resolving to the devops install you expect (e.g. a project-local
+virtualenv), not a stale copy earlier on ``PATH``.
+
 .. code-block:: toml
 
    [cpp]

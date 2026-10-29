@@ -105,9 +105,7 @@ class TestIncludeIwyuPragmaOnlyRequiredReasonsConfig:
         check.configure(
             {"pragma_required_reasons": {"keep": "-- for template specialization"}}
         )
-        code = (
-            '#include "foo.h" // IWYU pragma: keep -- for template specialization\n'
-        )
+        code = '#include "foo.h" // IWYU pragma: keep -- for template specialization\n'
         assert _diags(code, tmp_path, check) == []
 
     def test_pragma_missing_reason_flagged(self, tmp_path: Path) -> None:

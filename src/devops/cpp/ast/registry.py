@@ -9,6 +9,7 @@ from __future__ import annotations
 import copy
 import typing
 
+from devops.config.base import ConfigError
 from devops.cpp.ast.checks.enforce_class_member_order import EnforceClassMemberOrder
 from devops.cpp.ast.checks.enforce_member_function_leading_underscore import (
     EnforceMemberFunctionLeadingUnderscore,
@@ -31,7 +32,6 @@ from devops.cpp.ast.checks.no_global_using import NoGlobalUsing
 from devops.cpp.ast.checks.no_global_using_enum import NoGlobalUsingEnum
 from devops.cpp.ast.checks.no_new_in_gtest_setup import NoNewInGtestSetup
 from devops.cpp.ast.checks.no_throw_paren import NoThrowParen
-from devops.config.base import ConfigError
 
 if typing.TYPE_CHECKING:
     from devops.cpp.ast.base import Check
