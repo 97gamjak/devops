@@ -60,6 +60,29 @@ def _include_file_exists(file_arg: str | None) -> bool:
         return False
 
 
+def _has_compiled_pch_sibling(file_arg: str | None) -> bool:
+    """Check whether a compiled PCH sits next to a plain ``-include``'s file.
+
+    CMake's ``target_precompile_headers()`` always emits the textual header
+    (``cmake_pch.hxx``) alongside a compiled cache next to it — ``.gch`` for
+    GCC, ``.pch`` for Clang. GCC/Clang both auto-detect and silently prefer
+    that sibling over the textual file whenever it's present, regardless of
+    whether it was requested explicitly via ``-include-pch``. Since it was
+    serialized by the project's own compiler invocation, it is generally
+    incompatible with pip's bundled libclang and triggers the same hard
+    parse failure ``-include-pch`` does.
+    """
+    if not file_arg:
+        return False
+    try:
+        path = Path(file_arg)
+        return path.with_name(path.name + ".pch").is_file() or path.with_name(
+            path.name + ".gch"
+        ).is_file()
+    except OSError:
+        return False
+
+
 def _consume_include(it: typing.Iterator[str], result: list[str], flag: str) -> None:
     """Handle the file argument of an already-consumed ``-include``/``-include-pch``.
 
@@ -76,7 +99,11 @@ def _consume_include(it: typing.Iterator[str], result: list[str], flag: str) -> 
     they don't include themselves, so dropping it unconditionally produces
     a cascade of unrelated "no member"/"too many errors" failures. It's
     dropped, like ``-include-pch``, when the file is missing (e.g. a
-    fresh/partial checkout), to avoid a "file not found" fatal error.
+    fresh/partial checkout), to avoid a "file not found" fatal error — and
+    also when a compiled PCH (``.pch``/``.gch``) sits next to it, since the
+    compiler auto-prefers that sibling over the textual file and hits the
+    same incompatible-PCH fatal error ``-include-pch`` would (see
+    `_has_compiled_pch_sibling`).
 
     The file argument may itself be wrapped in another ``-Xclang``
     (``-Xclang -include(-pch) -Xclang <file>``) or bare
@@ -96,7 +123,12 @@ def _consume_include(it: typing.Iterator[str], result: list[str], flag: str) -> 
     """
     following = next(it, None)  # the file, bare or another -Xclang
     file_arg = next(it, None) if following == "-Xclang" else following
-    if flag == "-include" and file_arg is not None and _include_file_exists(file_arg):
+    if (
+        flag == "-include"
+        and file_arg is not None
+        and _include_file_exists(file_arg)
+        and not _has_compiled_pch_sibling(file_arg)
+    ):
         result.append("-include")
         result.append(file_arg)
 
