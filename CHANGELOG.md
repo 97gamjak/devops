@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 ## Next Release
 
 <!-- insertion marker -->
+
+### Features
+
+#### CPP Rules
+
+- Add `pragma_required_reasons` option to the `includeIwyuPragmaOnly` AST check, allowing specific IWYU pragma keywords (e.g. `keep`) only when followed by a required trailing reason comment (e.g. `// IWYU pragma: keep -- for template specialization`)
+
 ## [0.14.0](https://github.com/repo/owner/releases/tag/0.14.0) - 2026-10-26
 
 ### Features

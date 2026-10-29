@@ -20,6 +20,17 @@ default of allowing all of them::
 
     [cpp.ast_check_config.includeIwyuPragmaOnly]
     allowed_pragmas = ["export", "keep"]
+
+Some pragma keywords can additionally be required to carry a specific
+trailing reason, e.g. only allowing ``keep`` when it documents why::
+
+    [cpp.ast_check_config.includeIwyuPragmaOnly]
+    allowed_pragmas = ["export", "keep"]
+    pragma_required_reasons = { keep = "-- for template specialization" }
+
+With the above, ``// IWYU pragma: keep -- for template specialization`` is
+allowed, but a bare ``// IWYU pragma: keep`` (or one with a different
+trailing reason) is flagged.
 """
 
 from __future__ import annotations
@@ -31,7 +42,7 @@ import clang.cindex as clang
 from devops.config.base import ConfigError
 from devops.cpp.ast.base import Check, Diagnostic
 
-_IWYU_PRAGMA_RE = re.compile(r"^/[/*]\s*IWYU pragma:\s*(\S+)")
+_IWYU_PRAGMA_RE = re.compile(r"^/[/*]\s*IWYU pragma:\s*(\S+)(.*)$")
 
 
 class IncludeIwyuPragmaOnly(Check):
@@ -42,6 +53,7 @@ class IncludeIwyuPragmaOnly(Check):
     def __init__(self) -> None:
         """Initialize with no pragma restriction (every IWYU pragma is allowed)."""
         self.allowed_pragmas: frozenset[str] = frozenset()
+        self.pragma_required_reasons: dict[str, str] = {}
 
     def configure(self, config: dict) -> None:
         """Load the allowed IWYU pragma keywords from the check's TOML config block.
@@ -49,13 +61,18 @@ class IncludeIwyuPragmaOnly(Check):
         Parameters
         ----------
         config: dict
-            Expected shape: ``{"allowed_pragmas": ["export", "keep"]}``. When
-            absent or empty, every IWYU pragma keyword is allowed.
+            Expected shape: ``{"allowed_pragmas": ["export", "keep"],
+            "pragma_required_reasons": {"keep": "-- for template specialization"}}``.
+            When ``allowed_pragmas`` is absent or empty, every IWYU pragma
+            keyword is allowed. When ``pragma_required_reasons`` is absent or
+            empty, no pragma requires a trailing reason.
 
         Raises
         ------
         ConfigError
-            If ``allowed_pragmas`` is present but is not a list of strings.
+            If ``allowed_pragmas`` is present but is not a list of strings,
+            or if ``pragma_required_reasons`` is present but is not a dict
+            of strings to strings.
 
         """
         raw = config.get("allowed_pragmas", [])
@@ -66,6 +83,18 @@ class IncludeIwyuPragmaOnly(Check):
             )
             raise ConfigError(msg)
         self.allowed_pragmas = frozenset(raw)
+
+        reasons = config.get("pragma_required_reasons", {})
+        if not isinstance(reasons, dict) or not all(
+            isinstance(k, str) and isinstance(v, str) for k, v in reasons.items()
+        ):
+            msg = (
+                f"{self.id}: 'pragma_required_reasons' in "
+                f"[cpp.ast_check_config.{self.id}] must be a table of "
+                "string keys to string values"
+            )
+            raise ConfigError(msg)
+        self.pragma_required_reasons = dict(reasons)
 
     def visit(self, cursor: clang.Cursor, filename: str) -> list[Diagnostic]:
         """Flag the cursor's trailing comment if it is a disallowed one.
@@ -126,6 +155,28 @@ class IncludeIwyuPragmaOnly(Check):
                     severity="style",
                 )
             ]
+
+        required_reason = self.pragma_required_reasons.get(pragma)
+        if required_reason is not None:
+            rest = match.group(2).strip()
+            if comment.startswith("/*"):
+                rest = rest.removesuffix("*/").strip()
+            if rest != required_reason:
+                return [
+                    Diagnostic(
+                        file=filename,
+                        line=loc.line,
+                        column=loc.column,
+                        message=(
+                            f"#include '{cursor.spelling}' uses IWYU pragma "
+                            f"'{pragma}', which requires the trailing reason "
+                            f"'{required_reason}' (e.g. '// IWYU pragma: "
+                            f"{pragma} {required_reason}')"
+                        ),
+                        check_id=self.id,
+                        severity="style",
+                    )
+                ]
 
         return []
 
