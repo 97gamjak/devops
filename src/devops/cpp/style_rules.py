@@ -10,6 +10,8 @@ from devops.rules import ResultType, ResultTypeEnum, Rule, RuleInputType, RuleTy
 from devops.utils import check_key_sequence_ordered
 
 if typing.TYPE_CHECKING:
+    from pathlib import Path
+
     from devops.rules import FileRuleInput
 
 
@@ -119,6 +121,56 @@ def find_header_guard(lines: list[str]) -> str:
     return macro
 
 
+_DEFAULT_HEADER_GUARD_PATTERN = "__{path}_{ext}__"
+
+
+def expected_header_guard_macro(path: Path, pattern: str | None) -> str:
+    """Compute the expected header guard macro name for a file path.
+
+    Parameters
+    ----------
+    path: Path
+        The file path to derive the macro name from.
+    pattern: str or None
+        A format string with ``{path}`` and ``{ext}`` placeholders used to
+        build the macro name, or None to use the default
+        ``__{path}_{ext}__`` pattern. ``{path}`` is the upper-cased path
+        with any ``INCLUDE/``, ``TEST/`` or ``SRC/`` prefix removed, its
+        extension stripped, and ``/`` replaced with ``__``. ``{ext}`` is
+        the upper-cased extension (``HPP``, ``IMPL_HPP``, ``TPP`` or
+        ``H``).
+
+    Returns
+    -------
+    str
+        The expected header guard macro name.
+
+    """
+    macro_path = str(path).upper()
+    macro_path = macro_path.removeprefix("INCLUDE/")
+    macro_path = macro_path.removeprefix("TEST/")
+    macro_path = macro_path.removeprefix("SRC/")
+    macro_path = macro_path.replace("/", "__")
+
+    if macro_path.endswith(".IMPL.HPP"):
+        macro_path = macro_path.removesuffix(".IMPL.HPP")
+        ext = "IMPL_HPP"
+    elif macro_path.endswith(".HPP"):
+        macro_path = macro_path.removesuffix(".HPP")
+        ext = "HPP"
+    elif macro_path.endswith(".TPP"):
+        macro_path = macro_path.removesuffix(".TPP")
+        ext = "TPP"
+    elif macro_path.endswith(".H"):
+        macro_path = macro_path.removesuffix(".H")
+        ext = "H"
+    else:
+        return macro_path
+
+    pattern = pattern or _DEFAULT_HEADER_GUARD_PATTERN
+    return pattern.format(path=macro_path, ext=ext)
+
+
 def check_header_guards(file_rule_input: FileRuleInput) -> ResultType:
     """Check if the C++ header file has proper header guards.
 
@@ -142,24 +194,9 @@ def check_header_guards(file_rule_input: FileRuleInput) -> ResultType:
         return ResultType(ResultTypeEnum.Error, str(e))
 
     if __GLOBAL_CONFIG__.cpp.header_guards_according_to_filepath and path is not None:
-        expected_macro = str(path).upper()
-        expected_macro = expected_macro.removeprefix("INCLUDE/")
-        expected_macro = expected_macro.removeprefix("TEST/")
-        expected_macro = expected_macro.removeprefix("SRC/")
-        expected_macro = expected_macro.replace("/", "__")
-
-        if expected_macro.endswith(".IMPL.HPP"):
-            expected_macro = expected_macro.removesuffix(".IMPL.HPP")
-            expected_macro = "__" + expected_macro + "_IMPL_HPP__"
-        elif expected_macro.endswith(".HPP"):
-            expected_macro = expected_macro.removesuffix(".HPP")
-            expected_macro = "__" + expected_macro + "_HPP__"
-        elif expected_macro.endswith(".TPP"):
-            expected_macro = expected_macro.removesuffix(".TPP")
-            expected_macro = "__" + expected_macro + "_TPP__"
-        elif expected_macro.endswith(".H"):
-            expected_macro = expected_macro.removesuffix(".H")
-            expected_macro = "__" + expected_macro + "_H__"
+        expected_macro = expected_header_guard_macro(
+            path, __GLOBAL_CONFIG__.cpp.header_guard_pattern
+        )
 
         if guard_macro != expected_macro:
             msg = (

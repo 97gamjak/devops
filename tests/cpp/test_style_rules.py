@@ -13,6 +13,7 @@ from devops.cpp.style_rules import (
     HeaderGuardError,
     check_header_guards,
     cpp_style_rules,
+    expected_header_guard_macro,
     find_define_macro,
     find_header_guard,
     rule01,
@@ -545,6 +546,7 @@ class MyClass {};
 """
         with patch("devops.cpp.style_rules.__GLOBAL_CONFIG__") as mock_config:
             mock_config.cpp.header_guards_according_to_filepath = True
+            mock_config.cpp.header_guard_pattern = None
             result = check_header_guards(
                 FileRuleInput(
                     file_content=file_content, path=Path("include/myfile.hpp")
@@ -563,6 +565,7 @@ class MyClass {};
 """
         with patch("devops.cpp.style_rules.__GLOBAL_CONFIG__") as mock_config:
             mock_config.cpp.header_guards_according_to_filepath = True
+            mock_config.cpp.header_guard_pattern = None
             result = check_header_guards(
                 FileRuleInput(
                     file_content=file_content, path=Path("include/myfile.hpp")
@@ -583,6 +586,7 @@ class Helper {};
 """
         with patch("devops.cpp.style_rules.__GLOBAL_CONFIG__") as mock_config:
             mock_config.cpp.header_guards_according_to_filepath = True
+            mock_config.cpp.header_guard_pattern = None
             result = check_header_guards(
                 FileRuleInput(
                     file_content=file_content, path=Path("INCLUDE/utils/helper.hpp")
@@ -601,6 +605,7 @@ class MockClass {};
 """
         with patch("devops.cpp.style_rules.__GLOBAL_CONFIG__") as mock_config:
             mock_config.cpp.header_guards_according_to_filepath = True
+            mock_config.cpp.header_guard_pattern = None
             result = check_header_guards(
                 FileRuleInput(
                     file_content=file_content, path=Path("TEST/mocks/mock_class.hpp")
@@ -619,6 +624,7 @@ void myFunction();
 """
         with patch("devops.cpp.style_rules.__GLOBAL_CONFIG__") as mock_config:
             mock_config.cpp.header_guards_according_to_filepath = True
+            mock_config.cpp.header_guard_pattern = None
             result = check_header_guards(
                 FileRuleInput(
                     file_content=file_content, path=Path("include/myheader.h")
@@ -637,6 +643,7 @@ class MyClass {};
 """
         with patch("devops.cpp.style_rules.__GLOBAL_CONFIG__") as mock_config:
             mock_config.cpp.header_guards_according_to_filepath = True
+            mock_config.cpp.header_guard_pattern = None
             result = check_header_guards(FileRuleInput(file_content=file_content))
             assert result.value == ResultTypeEnum.Ok
 
@@ -651,6 +658,7 @@ class File {};
 """
         with patch("devops.cpp.style_rules.__GLOBAL_CONFIG__") as mock_config:
             mock_config.cpp.header_guards_according_to_filepath = True
+            mock_config.cpp.header_guard_pattern = None
             result = check_header_guards(
                 FileRuleInput(
                     file_content=file_content, path=Path("include/a/b/c/d/file.hpp")
@@ -714,3 +722,67 @@ class MyClass {};
         ]
         assert len(header_guard_rules) == 1
         assert header_guard_rules[0] == rule02
+
+
+class TestExpectedHeaderGuardMacro:
+    """Tests for expected_header_guard_macro function."""
+
+    def test_default_pattern_hpp(self) -> None:
+        """Test the default pattern for a .hpp file."""
+        result = expected_header_guard_macro(Path("include/myfile.hpp"), None)
+        assert result == "__MYFILE_HPP__"
+
+    def test_default_pattern_impl_hpp(self) -> None:
+        """Test the default pattern for a .impl.hpp file."""
+        result = expected_header_guard_macro(Path("include/myfile.impl.hpp"), None)
+        assert result == "__MYFILE_IMPL_HPP__"
+
+    def test_default_pattern_tpp(self) -> None:
+        """Test the default pattern for a .tpp file."""
+        result = expected_header_guard_macro(Path("include/myfile.tpp"), None)
+        assert result == "__MYFILE_TPP__"
+
+    def test_default_pattern_h(self) -> None:
+        """Test the default pattern for a .h file."""
+        result = expected_header_guard_macro(Path("include/myfile.h"), None)
+        assert result == "__MYFILE_H__"
+
+    def test_custom_pattern(self) -> None:
+        """Test a custom pattern using both placeholders."""
+        result = expected_header_guard_macro(
+            Path("include/myfile.hpp"), "{path}_{ext}_GUARD"
+        )
+        assert result == "MYFILE_HPP_GUARD"
+
+    def test_custom_pattern_without_ext_placeholder(self) -> None:
+        """Test a custom pattern that only uses the path placeholder."""
+        result = expected_header_guard_macro(
+            Path("include/myfile.hpp"), "GUARD_{path}"
+        )
+        assert result == "GUARD_MYFILE"
+
+    def test_custom_pattern_nested_path(self) -> None:
+        """Test a custom pattern with a nested directory path."""
+        result = expected_header_guard_macro(
+            Path("include/a/b/myfile.hpp"), "{path}_{ext}_GUARD"
+        )
+        assert result == "A__B__MYFILE_HPP_GUARD"
+
+    def test_check_header_guards_with_custom_pattern(self) -> None:
+        """Test check_header_guards end-to-end with a custom pattern."""
+        file_content = """#ifndef MYFILE_HPP_GUARD
+#define MYFILE_HPP_GUARD
+
+class MyClass {};
+
+#endif
+"""
+        with patch("devops.cpp.style_rules.__GLOBAL_CONFIG__") as mock_config:
+            mock_config.cpp.header_guards_according_to_filepath = True
+            mock_config.cpp.header_guard_pattern = "{path}_{ext}_GUARD"
+            result = check_header_guards(
+                FileRuleInput(
+                    file_content=file_content, path=Path("include/myfile.hpp")
+                )
+            )
+            assert result.value == ResultTypeEnum.Ok

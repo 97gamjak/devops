@@ -191,6 +191,17 @@ Controls the checks run by :ref:`cpp_checks <cli-cpp_checks>`.
      - ``false``
      - Additionally require the header guard macro name to match a name
        derived from the file's path, not just be present.
+   * - ``header_guard_pattern``
+     - string or unset
+     - unset
+     - Format string used to build the expected header guard macro name
+       when ``header_guards_according_to_filepath`` is enabled, in place
+       of the tool's default ``"__{path}_{ext}__"`` pattern. Must contain
+       the ``{path}`` placeholder (the upper-cased, path-derived macro
+       stem, with any ``INCLUDE/``, ``TEST/`` or ``SRC/`` prefix removed
+       and ``/`` replaced with ``__``) and may also use ``{ext}`` (the
+       upper-cased extension: ``HPP``, ``IMPL_HPP``, ``TPP`` or ``H``).
+       Raises a ``ConfigError`` at load time if set without ``{path}``.
    * - ``ast_checks``
      - boolean
      - ``true``
@@ -265,6 +276,7 @@ virtualenv), not a stale copy earlier on ``PATH``.
    check_dirs = ["src", "include", "tests"]
    exclude_dirs = ["build", ".build"]
    header_guards_according_to_filepath = true
+   header_guard_pattern = "{path}_{ext}_GUARD"
    ast_checks = true
    ast_check_compile_commands_db = ".build"
    incremental_state_file = "build/.cpp_check_state.json"
