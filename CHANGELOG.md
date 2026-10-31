@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file.
 #### CPP Rules
 
 - Add `header_guard_pattern` option allowing a custom format string (with `{path}`/`{ext}` placeholders) for the expected header guard macro name, instead of the hard-coded `__{path}_{ext}__` pattern (Fixes #177)
+- The header guard check now requires `#define` to immediately follow `#ifndef` with no blank line or comment in between
 
 <!-- insertion marker -->
 ## [0.14.1](https://github.com/repo/owner/releases/tag/0.14.1) - 2026-10-29

@@ -87,6 +87,7 @@ def find_header_guard(lines: list[str]) -> str:
 
     """
     macro = None
+    ifndef_idx = None
     # Search for the header guard macro near the beginning of the file.
     # Limit the search to the first N lines to avoid picking up feature-detection
     # or other conditional macros that appear later in the file.
@@ -100,6 +101,7 @@ def find_header_guard(lines: list[str]) -> str:
             if len(parts) <= 1:
                 continue
             macro = parts[1]
+            ifndef_idx = idx
             # Assume the first valid #ifndef within the search window is the
             # header guard and stop searching to avoid later #ifndef directives.
             break
@@ -112,6 +114,14 @@ def find_header_guard(lines: list[str]) -> str:
 
     if not is_defined:
         msg = "Header guard macro not defined with #define."
+        raise HeaderGuardError(msg)
+
+    next_line = lines[ifndef_idx + 1].strip() if ifndef_idx + 1 < len(lines) else ""
+    if next_line != f"#define {macro}":
+        msg = (
+            "Header guard '#define' must immediately follow '#ifndef' with no "
+            "blank line or other content in between."
+        )
         raise HeaderGuardError(msg)
 
     if not any(line.lstrip().startswith("#endif") for line in lines):

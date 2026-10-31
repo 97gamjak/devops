@@ -454,6 +454,56 @@ class TestFindHeaderGuard:
         ):
             find_header_guard(lines)
 
+    def test_find_header_guard_blank_line_between_ifndef_and_define(self) -> None:
+        """Test that a blank line between #ifndef and #define is rejected."""
+        lines = [
+            "#ifndef MY_HEADER_HPP",
+            "",
+            "#define MY_HEADER_HPP",
+            "",
+            "// code here",
+            "#endif",
+        ]
+        with pytest.raises(
+            HeaderGuardError,
+            match="Header guard '#define' must immediately follow '#ifndef'",
+        ):
+            find_header_guard(lines)
+
+    def test_find_header_guard_comment_between_ifndef_and_define(self) -> None:
+        """Test that a comment between #ifndef and #define is rejected."""
+        lines = [
+            "#ifndef MY_HEADER_HPP",
+            "// a comment",
+            "#define MY_HEADER_HPP",
+            "#endif",
+        ]
+        with pytest.raises(
+            HeaderGuardError,
+            match="Header guard '#define' must immediately follow '#ifndef'",
+        ):
+            find_header_guard(lines)
+
+    def test_find_header_guard_define_immediately_after_ifndef(self) -> None:
+        """Test that #define directly after #ifndef is accepted."""
+        lines = [
+            "#ifndef MY_HEADER_HPP",
+            "#define MY_HEADER_HPP",
+            "",
+            "// code here",
+            "#endif",
+        ]
+        result = find_header_guard(lines)
+        assert result == "MY_HEADER_HPP"
+
+    def test_find_header_guard_ifndef_is_last_line(self) -> None:
+        """Test that #ifndef with nothing after it is rejected."""
+        lines = ["#ifndef MY_HEADER_HPP"]
+        with pytest.raises(
+            HeaderGuardError, match="Header guard macro not defined with #define"
+        ):
+            find_header_guard(lines)
+
 
 class TestCheckHeaderGuards:
     """Tests for check_header_guards function."""
