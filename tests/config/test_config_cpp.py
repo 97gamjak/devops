@@ -1,5 +1,8 @@
 """Tests for C++ configuration parsing."""
 
+import pytest
+
+from devops.config.base import ConfigError
 from devops.config.config_cpp import CppConfig, parse_cpp_config
 
 
@@ -144,3 +147,36 @@ class TestParseCppConfig:
             raw_config = {"cpp": {"license_header": path}}
             config = parse_cpp_config(raw_config)
             assert config.license_header == path
+
+
+class TestHeaderGuardPattern:
+    """Tests for the header_guard_pattern config option."""
+
+    def test_default_is_none(self) -> None:
+        """Test that header_guard_pattern defaults to None."""
+        config = CppConfig()
+        assert config.header_guard_pattern is None
+
+    def test_parse_custom_pattern(self) -> None:
+        """Test parsing a custom header_guard_pattern."""
+        raw_config = {"cpp": {"header_guard_pattern": "{path}_{ext}_GUARD"}}
+        config = parse_cpp_config(raw_config)
+        assert config.header_guard_pattern == "{path}_{ext}_GUARD"
+
+    def test_parse_missing_pattern_defaults_to_none(self) -> None:
+        """Test that an unset header_guard_pattern parses to None."""
+        raw_config = {"cpp": {}}
+        config = parse_cpp_config(raw_config)
+        assert config.header_guard_pattern is None
+
+    def test_parse_empty_string_pattern_defaults_to_none(self) -> None:
+        """Test that an empty header_guard_pattern string parses to None."""
+        raw_config = {"cpp": {"header_guard_pattern": ""}}
+        config = parse_cpp_config(raw_config)
+        assert config.header_guard_pattern is None
+
+    def test_parse_pattern_without_path_placeholder_raises(self) -> None:
+        """Test that a pattern missing '{path}' raises ConfigError."""
+        raw_config = {"cpp": {"header_guard_pattern": "{ext}_GUARD"}}
+        with pytest.raises(ConfigError, match="header_guard_pattern"):
+            parse_cpp_config(raw_config)

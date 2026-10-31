@@ -18,9 +18,17 @@ The ``cpp`` subsystem builds a set of rules from the ``[cpp]`` configuration
 and runs them against a project's C++ sources:
 
 - **Header guards** — every ``.h``, ``.hpp``, ``.tpp`` and ``.impl.hpp`` file
-  must contain a proper ``#ifndef`` / ``#define`` / ``#endif`` guard. If
-  ``header_guards_according_to_filepath`` is enabled, the guard macro name is
-  also checked against a name derived from the file's path.
+  must contain a proper ``#ifndef`` / ``#define`` / ``#endif`` guard, with the
+  ``#define`` immediately following the ``#ifndef`` line (no blank line or
+  comment in between). If ``header_guards_according_to_filepath`` is
+  enabled, the guard macro name is also checked against a name derived from
+  the file's path — each directory and the file stem is converted from
+  camelCase/PascalCase to SNAKE_CASE (e.g. ``velocityVerlet.hpp`` expects
+  ``VELOCITY_VERLET``, not ``VELOCITYVERLET``) — using the default
+  ``__{path}_{ext}__`` pattern or a custom one set via
+  ``header_guard_pattern``. Every problem found with a file's header guard
+  (structural issues and a path-derived name mismatch) is reported together
+  in a single error instead of one at a time across repeated runs.
 - **Key sequence order** — flags keyword sequences such as
   ``static inline constexpr`` that are written out of the expected order.
 - **License headers** — verifies that source and header files start with the
