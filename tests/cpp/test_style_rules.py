@@ -806,9 +806,7 @@ class TestExpectedHeaderGuardMacro:
 
     def test_custom_pattern_without_ext_placeholder(self) -> None:
         """Test a custom pattern that only uses the path placeholder."""
-        result = expected_header_guard_macro(
-            Path("include/myfile.hpp"), "GUARD_{path}"
-        )
+        result = expected_header_guard_macro(Path("include/myfile.hpp"), "GUARD_{path}")
         assert result == "GUARD_MYFILE"
 
     def test_custom_pattern_nested_path(self) -> None:
