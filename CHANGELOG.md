@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+<!-- insertion marker -->
+## [0.15.0](https://github.com/repo/owner/releases/tag/0.15.0) - 2026-10-31
+
 ### Features
 
 #### CPP Rules
@@ -13,7 +16,6 @@ All notable changes to this project will be documented in this file.
 - Path-derived header guard macro names now split camelCase/PascalCase directory and file names into words (e.g. `velocityVerlet.hpp` expects `VELOCITY_VERLET`, not `VELOCITYVERLET`) instead of flattening them with a plain uppercase
 - All problems found with a file's header guard (structural issues and a path-derived name mismatch) are now reported together in a single error instead of one at a time across repeated runs
 
-<!-- insertion marker -->
 ## [0.14.1](https://github.com/repo/owner/releases/tag/0.14.1) - 2026-10-29
 
 ### Features
@@ -380,6 +382,7 @@ All notable changes to this project will be documented in this file.
 - Add automatic release CI for PRs to main (either via title or via hotfix/ branch)
 - Add overnight CI runs for pytest and ruff CIs
 - Add test coverage to pytest CI
+
 
 
 
