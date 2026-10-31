@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 
 from devops.logger import config_logger
 
-from .base import get_bool, get_int, get_str, get_str_list, get_table
+from .base import ConfigError, get_bool, get_int, get_str, get_str_list, get_table
 
 
 @dataclass
@@ -38,6 +38,13 @@ class CppConfig:
     # If True, enforce that header guards match the file path.
     # This helps ensure consistency and prevents duplicate header guards.
     header_guards_according_to_filepath: bool = False
+
+    # Format string used to build the expected header guard macro name when
+    # header_guards_according_to_filepath is enabled, or None to use the
+    # tool's default "__{path}_{ext}__" pattern. Must contain the "{path}"
+    # placeholder (the path-derived macro stem) and may contain "{ext}"
+    # (the file extension, e.g. HPP, IMPL_HPP, TPP, H).
+    header_guard_pattern: str | None = None
 
     # Enable or disable libclang AST-based checks (see devops.cpp.ast).
     # Requires the optional 'ast' extra (`pip install devops[ast]`).
@@ -129,6 +136,13 @@ class CppConfig:
             "#header_guards_according_to_filepath = "
             f"{str(self.header_guards_according_to_filepath).lower()}\n"
         )
+
+        pattern = (
+            f'"{self.header_guard_pattern}"'
+            if self.header_guard_pattern is not None
+            else '"__{path}_{ext}__"'
+        )
+        lines.append(f"#header_guard_pattern = {pattern}\n")
 
         lines.append(f"#ast_checks = {str(self.ast_checks).lower()}\n")
 
@@ -228,6 +242,15 @@ def parse_cpp_config(raw_config: dict) -> CppConfig:
         default=CppConfig.header_guards_according_to_filepath,
     )
 
+    header_guard_pattern = get_str(table, "header_guard_pattern") or None
+
+    if header_guard_pattern is not None and "{path}" not in header_guard_pattern:
+        msg = (
+            "header_guard_pattern must contain the '{path}' placeholder, "
+            f"got '{header_guard_pattern}'."
+        )
+        raise ConfigError(msg)
+
     ast_checks = get_bool(table, "ast_checks", default=CppConfig.ast_checks)
 
     ast_check_compile_args = get_str_list(
@@ -261,6 +284,7 @@ def parse_cpp_config(raw_config: dict) -> CppConfig:
         check_dirs=check_dirs,
         exclude_dirs=exclude_dirs,
         header_guards_according_to_filepath=header_guards_according_to_filepath,
+        header_guard_pattern=header_guard_pattern,
         ast_checks=ast_checks,
         ast_check_compile_args=ast_check_compile_args,
         ast_check_compile_commands_db=ast_check_compile_commands_db,

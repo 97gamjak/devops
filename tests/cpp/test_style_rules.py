@@ -13,6 +13,7 @@ from devops.cpp.style_rules import (
     HeaderGuardError,
     check_header_guards,
     cpp_style_rules,
+    expected_header_guard_macro,
     find_define_macro,
     find_header_guard,
     rule01,
@@ -453,6 +454,56 @@ class TestFindHeaderGuard:
         ):
             find_header_guard(lines)
 
+    def test_find_header_guard_blank_line_between_ifndef_and_define(self) -> None:
+        """Test that a blank line between #ifndef and #define is rejected."""
+        lines = [
+            "#ifndef MY_HEADER_HPP",
+            "",
+            "#define MY_HEADER_HPP",
+            "",
+            "// code here",
+            "#endif",
+        ]
+        with pytest.raises(
+            HeaderGuardError,
+            match="Header guard '#define' must immediately follow '#ifndef'",
+        ):
+            find_header_guard(lines)
+
+    def test_find_header_guard_comment_between_ifndef_and_define(self) -> None:
+        """Test that a comment between #ifndef and #define is rejected."""
+        lines = [
+            "#ifndef MY_HEADER_HPP",
+            "// a comment",
+            "#define MY_HEADER_HPP",
+            "#endif",
+        ]
+        with pytest.raises(
+            HeaderGuardError,
+            match="Header guard '#define' must immediately follow '#ifndef'",
+        ):
+            find_header_guard(lines)
+
+    def test_find_header_guard_define_immediately_after_ifndef(self) -> None:
+        """Test that #define directly after #ifndef is accepted."""
+        lines = [
+            "#ifndef MY_HEADER_HPP",
+            "#define MY_HEADER_HPP",
+            "",
+            "// code here",
+            "#endif",
+        ]
+        result = find_header_guard(lines)
+        assert result == "MY_HEADER_HPP"
+
+    def test_find_header_guard_ifndef_is_last_line(self) -> None:
+        """Test that #ifndef with nothing after it is rejected."""
+        lines = ["#ifndef MY_HEADER_HPP"]
+        with pytest.raises(
+            HeaderGuardError, match="Header guard macro not defined with #define"
+        ):
+            find_header_guard(lines)
+
 
 class TestCheckHeaderGuards:
     """Tests for check_header_guards function."""
@@ -545,6 +596,7 @@ class MyClass {};
 """
         with patch("devops.cpp.style_rules.__GLOBAL_CONFIG__") as mock_config:
             mock_config.cpp.header_guards_according_to_filepath = True
+            mock_config.cpp.header_guard_pattern = None
             result = check_header_guards(
                 FileRuleInput(
                     file_content=file_content, path=Path("include/myfile.hpp")
@@ -563,6 +615,7 @@ class MyClass {};
 """
         with patch("devops.cpp.style_rules.__GLOBAL_CONFIG__") as mock_config:
             mock_config.cpp.header_guards_according_to_filepath = True
+            mock_config.cpp.header_guard_pattern = None
             result = check_header_guards(
                 FileRuleInput(
                     file_content=file_content, path=Path("include/myfile.hpp")
@@ -583,6 +636,7 @@ class Helper {};
 """
         with patch("devops.cpp.style_rules.__GLOBAL_CONFIG__") as mock_config:
             mock_config.cpp.header_guards_according_to_filepath = True
+            mock_config.cpp.header_guard_pattern = None
             result = check_header_guards(
                 FileRuleInput(
                     file_content=file_content, path=Path("INCLUDE/utils/helper.hpp")
@@ -601,6 +655,7 @@ class MockClass {};
 """
         with patch("devops.cpp.style_rules.__GLOBAL_CONFIG__") as mock_config:
             mock_config.cpp.header_guards_according_to_filepath = True
+            mock_config.cpp.header_guard_pattern = None
             result = check_header_guards(
                 FileRuleInput(
                     file_content=file_content, path=Path("TEST/mocks/mock_class.hpp")
@@ -619,6 +674,7 @@ void myFunction();
 """
         with patch("devops.cpp.style_rules.__GLOBAL_CONFIG__") as mock_config:
             mock_config.cpp.header_guards_according_to_filepath = True
+            mock_config.cpp.header_guard_pattern = None
             result = check_header_guards(
                 FileRuleInput(
                     file_content=file_content, path=Path("include/myheader.h")
@@ -637,6 +693,7 @@ class MyClass {};
 """
         with patch("devops.cpp.style_rules.__GLOBAL_CONFIG__") as mock_config:
             mock_config.cpp.header_guards_according_to_filepath = True
+            mock_config.cpp.header_guard_pattern = None
             result = check_header_guards(FileRuleInput(file_content=file_content))
             assert result.value == ResultTypeEnum.Ok
 
@@ -651,6 +708,7 @@ class File {};
 """
         with patch("devops.cpp.style_rules.__GLOBAL_CONFIG__") as mock_config:
             mock_config.cpp.header_guards_according_to_filepath = True
+            mock_config.cpp.header_guard_pattern = None
             result = check_header_guards(
                 FileRuleInput(
                     file_content=file_content, path=Path("include/a/b/c/d/file.hpp")
@@ -714,3 +772,149 @@ class MyClass {};
         ]
         assert len(header_guard_rules) == 1
         assert header_guard_rules[0] == rule02
+
+
+class TestExpectedHeaderGuardMacro:
+    """Tests for expected_header_guard_macro function."""
+
+    def test_default_pattern_hpp(self) -> None:
+        """Test the default pattern for a .hpp file."""
+        result = expected_header_guard_macro(Path("include/myfile.hpp"), None)
+        assert result == "__MYFILE_HPP__"
+
+    def test_default_pattern_impl_hpp(self) -> None:
+        """Test the default pattern for a .impl.hpp file."""
+        result = expected_header_guard_macro(Path("include/myfile.impl.hpp"), None)
+        assert result == "__MYFILE_IMPL_HPP__"
+
+    def test_default_pattern_tpp(self) -> None:
+        """Test the default pattern for a .tpp file."""
+        result = expected_header_guard_macro(Path("include/myfile.tpp"), None)
+        assert result == "__MYFILE_TPP__"
+
+    def test_default_pattern_h(self) -> None:
+        """Test the default pattern for a .h file."""
+        result = expected_header_guard_macro(Path("include/myfile.h"), None)
+        assert result == "__MYFILE_H__"
+
+    def test_custom_pattern(self) -> None:
+        """Test a custom pattern using both placeholders."""
+        result = expected_header_guard_macro(
+            Path("include/myfile.hpp"), "{path}_{ext}_GUARD"
+        )
+        assert result == "MYFILE_HPP_GUARD"
+
+    def test_custom_pattern_without_ext_placeholder(self) -> None:
+        """Test a custom pattern that only uses the path placeholder."""
+        result = expected_header_guard_macro(Path("include/myfile.hpp"), "GUARD_{path}")
+        assert result == "GUARD_MYFILE"
+
+    def test_custom_pattern_nested_path(self) -> None:
+        """Test a custom pattern with a nested directory path."""
+        result = expected_header_guard_macro(
+            Path("include/a/b/myfile.hpp"), "{path}_{ext}_GUARD"
+        )
+        assert result == "A__B__MYFILE_HPP_GUARD"
+
+    def test_check_header_guards_with_custom_pattern(self) -> None:
+        """Test check_header_guards end-to-end with a custom pattern."""
+        file_content = """#ifndef MYFILE_HPP_GUARD
+#define MYFILE_HPP_GUARD
+
+class MyClass {};
+
+#endif
+"""
+        with patch("devops.cpp.style_rules.__GLOBAL_CONFIG__") as mock_config:
+            mock_config.cpp.header_guards_according_to_filepath = True
+            mock_config.cpp.header_guard_pattern = "{path}_{ext}_GUARD"
+            result = check_header_guards(
+                FileRuleInput(
+                    file_content=file_content, path=Path("include/myfile.hpp")
+                )
+            )
+            assert result.value == ResultTypeEnum.Ok
+
+    def test_camel_case_filename_is_split_into_words(self) -> None:
+        """Test that a camelCase filename is split into SNAKE_CASE words."""
+        result = expected_header_guard_macro(
+            Path("include/integrator/velocityVerlet.hpp"), None
+        )
+        assert result == "__INTEGRATOR__VELOCITY_VERLET_HPP__"
+
+    def test_camel_case_directory_is_split_into_words(self) -> None:
+        """Test that a camelCase directory name is split into SNAKE_CASE words."""
+        result = expected_header_guard_macro(
+            Path("include/maxwellBoltzmann/maxwellBoltzmann.hpp"), None
+        )
+        assert result == "__MAXWELL_BOLTZMANN__MAXWELL_BOLTZMANN_HPP__"
+
+    def test_pascal_case_filename_is_split_into_words(self) -> None:
+        """Test that a PascalCase filename is split into SNAKE_CASE words."""
+        result = expected_header_guard_macro(Path("include/MyClass.hpp"), None)
+        assert result == "__MY_CLASS_HPP__"
+
+    def test_snake_case_filename_is_left_unchanged(self) -> None:
+        """Test that an already snake_case filename is just upper-cased."""
+        result = expected_header_guard_macro(Path("include/my_file.hpp"), None)
+        assert result == "__MY_FILE_HPP__"
+
+    def test_check_header_guards_with_camel_case_path(self) -> None:
+        """Test check_header_guards end-to-end with a camelCase file path."""
+        file_content = """#ifndef __INTEGRATOR__VELOCITY_VERLET_HPP__
+#define __INTEGRATOR__VELOCITY_VERLET_HPP__
+
+class VelocityVerlet {};
+
+#endif
+"""
+        with patch("devops.cpp.style_rules.__GLOBAL_CONFIG__") as mock_config:
+            mock_config.cpp.header_guards_according_to_filepath = True
+            mock_config.cpp.header_guard_pattern = None
+            result = check_header_guards(
+                FileRuleInput(
+                    file_content=file_content,
+                    path=Path("include/integrator/velocityVerlet.hpp"),
+                )
+            )
+            assert result.value == ResultTypeEnum.Ok
+
+
+class TestCombinedHeaderGuardErrors:
+    """Tests that multiple header guard problems are reported together."""
+
+    def test_find_header_guard_reports_blank_line_and_missing_endif(self) -> None:
+        """Test that a blank line and a missing #endif are both reported."""
+        lines = [
+            "#ifndef MY_HEADER_HPP",
+            "",
+            "#define MY_HEADER_HPP",
+            "",
+            "// code here",
+        ]
+        with pytest.raises(HeaderGuardError) as exc_info:
+            find_header_guard(lines)
+        message = str(exc_info.value)
+        assert "must immediately follow '#ifndef'" in message
+        assert "missing closing #endif" in message
+
+    def test_check_header_guards_reports_structural_and_path_errors_together(
+        self,
+    ) -> None:
+        """Test that a missing #endif and a path mismatch are both reported."""
+        file_content = """#ifndef WRONG_MACRO_NAME
+#define WRONG_MACRO_NAME
+
+class MyClass {};
+"""
+        with patch("devops.cpp.style_rules.__GLOBAL_CONFIG__") as mock_config:
+            mock_config.cpp.header_guards_according_to_filepath = True
+            mock_config.cpp.header_guard_pattern = None
+            result = check_header_guards(
+                FileRuleInput(
+                    file_content=file_content, path=Path("include/myfile.hpp")
+                )
+            )
+            assert result.value == ResultTypeEnum.Error
+            assert "missing closing #endif" in result.description
+            assert "does not match expected macro" in result.description
