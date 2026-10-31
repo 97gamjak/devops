@@ -10,6 +10,8 @@ All notable changes to this project will be documented in this file.
 
 - Add `header_guard_pattern` option allowing a custom format string (with `{path}`/`{ext}` placeholders) for the expected header guard macro name, instead of the hard-coded `__{path}_{ext}__` pattern (Fixes #177)
 - The header guard check now requires `#define` to immediately follow `#ifndef` with no blank line or comment in between
+- Path-derived header guard macro names now split camelCase/PascalCase directory and file names into words (e.g. `velocityVerlet.hpp` expects `VELOCITY_VERLET`, not `VELOCITYVERLET`) instead of flattening them with a plain uppercase
+- All problems found with a file's header guard (structural issues and a path-derived name mismatch) are now reported together in a single error instead of one at a time across repeated runs
 
 <!-- insertion marker -->
 ## [0.14.1](https://github.com/repo/owner/releases/tag/0.14.1) - 2026-10-29

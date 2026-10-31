@@ -836,3 +836,87 @@ class MyClass {};
                 )
             )
             assert result.value == ResultTypeEnum.Ok
+
+    def test_camel_case_filename_is_split_into_words(self) -> None:
+        """Test that a camelCase filename is split into SNAKE_CASE words."""
+        result = expected_header_guard_macro(
+            Path("include/integrator/velocityVerlet.hpp"), None
+        )
+        assert result == "__INTEGRATOR__VELOCITY_VERLET_HPP__"
+
+    def test_camel_case_directory_is_split_into_words(self) -> None:
+        """Test that a camelCase directory name is split into SNAKE_CASE words."""
+        result = expected_header_guard_macro(
+            Path("include/maxwellBoltzmann/maxwellBoltzmann.hpp"), None
+        )
+        assert result == "__MAXWELL_BOLTZMANN__MAXWELL_BOLTZMANN_HPP__"
+
+    def test_pascal_case_filename_is_split_into_words(self) -> None:
+        """Test that a PascalCase filename is split into SNAKE_CASE words."""
+        result = expected_header_guard_macro(Path("include/MyClass.hpp"), None)
+        assert result == "__MY_CLASS_HPP__"
+
+    def test_snake_case_filename_is_left_unchanged(self) -> None:
+        """Test that an already snake_case filename is just upper-cased."""
+        result = expected_header_guard_macro(Path("include/my_file.hpp"), None)
+        assert result == "__MY_FILE_HPP__"
+
+    def test_check_header_guards_with_camel_case_path(self) -> None:
+        """Test check_header_guards end-to-end with a camelCase file path."""
+        file_content = """#ifndef __INTEGRATOR__VELOCITY_VERLET_HPP__
+#define __INTEGRATOR__VELOCITY_VERLET_HPP__
+
+class VelocityVerlet {};
+
+#endif
+"""
+        with patch("devops.cpp.style_rules.__GLOBAL_CONFIG__") as mock_config:
+            mock_config.cpp.header_guards_according_to_filepath = True
+            mock_config.cpp.header_guard_pattern = None
+            result = check_header_guards(
+                FileRuleInput(
+                    file_content=file_content,
+                    path=Path("include/integrator/velocityVerlet.hpp"),
+                )
+            )
+            assert result.value == ResultTypeEnum.Ok
+
+
+class TestCombinedHeaderGuardErrors:
+    """Tests that multiple header guard problems are reported together."""
+
+    def test_find_header_guard_reports_blank_line_and_missing_endif(self) -> None:
+        """Test that a blank line and a missing #endif are both reported."""
+        lines = [
+            "#ifndef MY_HEADER_HPP",
+            "",
+            "#define MY_HEADER_HPP",
+            "",
+            "// code here",
+        ]
+        with pytest.raises(HeaderGuardError) as exc_info:
+            find_header_guard(lines)
+        message = str(exc_info.value)
+        assert "must immediately follow '#ifndef'" in message
+        assert "missing closing #endif" in message
+
+    def test_check_header_guards_reports_structural_and_path_errors_together(
+        self,
+    ) -> None:
+        """Test that a missing #endif and a path mismatch are both reported."""
+        file_content = """#ifndef WRONG_MACRO_NAME
+#define WRONG_MACRO_NAME
+
+class MyClass {};
+"""
+        with patch("devops.cpp.style_rules.__GLOBAL_CONFIG__") as mock_config:
+            mock_config.cpp.header_guards_according_to_filepath = True
+            mock_config.cpp.header_guard_pattern = None
+            result = check_header_guards(
+                FileRuleInput(
+                    file_content=file_content, path=Path("include/myfile.hpp")
+                )
+            )
+            assert result.value == ResultTypeEnum.Error
+            assert "missing closing #endif" in result.description
+            assert "does not match expected macro" in result.description

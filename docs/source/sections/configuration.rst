@@ -197,11 +197,13 @@ Controls the checks run by :ref:`cpp_checks <cli-cpp_checks>`.
      - Format string used to build the expected header guard macro name
        when ``header_guards_according_to_filepath`` is enabled, in place
        of the tool's default ``"__{path}_{ext}__"`` pattern. Must contain
-       the ``{path}`` placeholder (the upper-cased, path-derived macro
-       stem, with any ``INCLUDE/``, ``TEST/`` or ``SRC/`` prefix removed
-       and ``/`` replaced with ``__``) and may also use ``{ext}`` (the
-       upper-cased extension: ``HPP``, ``IMPL_HPP``, ``TPP`` or ``H``).
-       Raises a ``ConfigError`` at load time if set without ``{path}``.
+       the ``{path}`` placeholder (the path-derived macro stem, with any
+       leading ``include/``, ``test/`` or ``src/`` directory removed; each
+       remaining directory and the file stem is converted from
+       camelCase/PascalCase to SNAKE_CASE and joined with ``__``) and may
+       also use ``{ext}`` (the upper-cased extension: ``HPP``,
+       ``IMPL_HPP``, ``TPP`` or ``H``). Raises a ``ConfigError`` at load
+       time if set without ``{path}``.
    * - ``ast_checks``
      - boolean
      - ``true``

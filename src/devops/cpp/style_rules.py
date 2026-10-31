@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import typing
 
 from devops import __GLOBAL_CONFIG__
@@ -67,8 +68,13 @@ def find_define_macro(lines: list[str], macro: str) -> bool:
     return False
 
 
-def find_header_guard(lines: list[str]) -> str:
-    """Find the header guard macro in the given lines.
+def collect_header_guard_errors(lines: list[str]) -> tuple[str | None, list[str]]:
+    """Find the header guard macro and collect all structural guard errors.
+
+    Unlike raising on the first problem found, this gathers every applicable
+    structural issue (missing ``#define``, a ``#define`` that doesn't
+    immediately follow ``#ifndef``, a missing ``#endif``) so callers can
+    report them all together instead of one at a time across repeated runs.
 
     Parameters
     ----------
@@ -77,13 +83,10 @@ def find_header_guard(lines: list[str]) -> str:
 
     Returns
     -------
-    str
-        The header guard macro if found.
-
-    Raises
-    ------
-    HeaderGuardError
-        If the header guard is not properly defined.
+    tuple[str | None, list[str]]
+        The header guard macro if an ``#ifndef`` was found (else None), and
+        the list of error messages describing every structural problem
+        found. An empty list means the header guard is well-formed.
 
     """
     macro = None
@@ -107,31 +110,94 @@ def find_header_guard(lines: list[str]) -> str:
             break
 
     if macro is None:
-        msg = "Header guard macro not found with #ifndef."
-        raise HeaderGuardError(msg)
+        return None, ["Header guard macro not found with #ifndef."]
+
+    errors = []
 
     is_defined = find_define_macro(lines, macro)
-
-    if not is_defined:
-        msg = "Header guard macro not defined with #define."
-        raise HeaderGuardError(msg)
-
     next_line = lines[ifndef_idx + 1].strip() if ifndef_idx + 1 < len(lines) else ""
     if next_line != f"#define {macro}":
-        msg = (
-            "Header guard '#define' must immediately follow '#ifndef' with no "
-            "blank line or other content in between."
-        )
-        raise HeaderGuardError(msg)
+        if is_defined:
+            errors.append(
+                "Header guard '#define' must immediately follow '#ifndef' with "
+                "no blank line or other content in between."
+            )
+        else:
+            errors.append("Header guard macro not defined with #define.")
 
     if not any(line.lstrip().startswith("#endif") for line in lines):
-        msg = "Header guard missing closing #endif."
-        raise HeaderGuardError(msg)
+        errors.append("Header guard missing closing #endif.")
 
-    return macro
+    return macro, errors
+
+
+def find_header_guard(lines: list[str]) -> str:
+    """Find the header guard macro in the given lines.
+
+    Parameters
+    ----------
+    lines: list[str]
+        The lines of the header file.
+
+    Returns
+    -------
+    str
+        The header guard macro if found.
+
+    Raises
+    ------
+    HeaderGuardError
+        If the header guard is not properly defined. If more than one
+        structural problem is present, all of them are reported together
+        in a single error message.
+
+    """
+    macro, errors = collect_header_guard_errors(lines)
+
+    if errors:
+        raise HeaderGuardError(" ".join(errors))
+
+    return typing.cast("str", macro)
 
 
 _DEFAULT_HEADER_GUARD_PATTERN = "__{path}_{ext}__"
+
+_PATH_PREFIXES_TO_STRIP = ("include/", "test/", "src/")
+
+_KNOWN_EXTENSIONS = (
+    (".impl.hpp", "IMPL_HPP"),
+    (".hpp", "HPP"),
+    (".tpp", "TPP"),
+    (".h", "H"),
+)
+
+_CAMEL_WORD_BOUNDARY_1 = re.compile(r"(.)([A-Z][a-z]+)")
+_CAMEL_WORD_BOUNDARY_2 = re.compile(r"([a-z0-9])([A-Z])")
+
+
+def _camel_to_snake(name: str) -> str:
+    """Convert a camelCase/PascalCase path segment to upper SNAKE_CASE.
+
+    Word boundaries (lower-to-upper transitions) get an underscore inserted
+    so e.g. ``velocityVerlet`` becomes ``VELOCITY_VERLET`` instead of being
+    flattened to ``VELOCITYVERLET`` by a plain ``.upper()``. Segments that
+    already use snake_case or are a single word are left as-is other than
+    the case change.
+
+    Parameters
+    ----------
+    name: str
+        The path segment (directory name or file stem) to convert.
+
+    Returns
+    -------
+    str
+        The upper SNAKE_CASE form of the segment.
+
+    """
+    snake = _CAMEL_WORD_BOUNDARY_1.sub(r"\1_\2", name)
+    snake = _CAMEL_WORD_BOUNDARY_2.sub(r"\1_\2", snake)
+    return snake.upper()
 
 
 def expected_header_guard_macro(path: Path, pattern: str | None) -> str:
@@ -144,11 +210,13 @@ def expected_header_guard_macro(path: Path, pattern: str | None) -> str:
     pattern: str or None
         A format string with ``{path}`` and ``{ext}`` placeholders used to
         build the macro name, or None to use the default
-        ``__{path}_{ext}__`` pattern. ``{path}`` is the upper-cased path
-        with any ``INCLUDE/``, ``TEST/`` or ``SRC/`` prefix removed, its
-        extension stripped, and ``/`` replaced with ``__``. ``{ext}`` is
-        the upper-cased extension (``HPP``, ``IMPL_HPP``, ``TPP`` or
-        ``H``).
+        ``__{path}_{ext}__`` pattern. ``{path}`` is built from the path
+        with any leading ``include/``, ``test/`` or ``src/`` directory
+        removed and its extension stripped: each remaining directory and
+        the file stem is converted from camelCase/PascalCase to
+        SNAKE_CASE (so ``velocityVerlet`` becomes ``VELOCITY_VERLET``, not
+        ``VELOCITYVERLET``), then joined with ``__``. ``{ext}`` is the
+        upper-cased extension (``HPP``, ``IMPL_HPP``, ``TPP`` or ``H``).
 
     Returns
     -------
@@ -156,26 +224,28 @@ def expected_header_guard_macro(path: Path, pattern: str | None) -> str:
         The expected header guard macro name.
 
     """
-    macro_path = str(path).upper()
-    macro_path = macro_path.removeprefix("INCLUDE/")
-    macro_path = macro_path.removeprefix("TEST/")
-    macro_path = macro_path.removeprefix("SRC/")
-    macro_path = macro_path.replace("/", "__")
+    raw_path = str(path).replace("\\", "/")
+    lowered = raw_path.lower()
+    for prefix in _PATH_PREFIXES_TO_STRIP:
+        if lowered.startswith(prefix):
+            raw_path = raw_path[len(prefix) :]
+            break
 
-    if macro_path.endswith(".IMPL.HPP"):
-        macro_path = macro_path.removesuffix(".IMPL.HPP")
-        ext = "IMPL_HPP"
-    elif macro_path.endswith(".HPP"):
-        macro_path = macro_path.removesuffix(".HPP")
-        ext = "HPP"
-    elif macro_path.endswith(".TPP"):
-        macro_path = macro_path.removesuffix(".TPP")
-        ext = "TPP"
-    elif macro_path.endswith(".H"):
-        macro_path = macro_path.removesuffix(".H")
-        ext = "H"
-    else:
-        return macro_path
+    *dir_parts, filename = raw_path.split("/")
+
+    ext = None
+    stem = filename
+    lowered_filename = filename.lower()
+    for suffix, suffix_ext in _KNOWN_EXTENSIONS:
+        if lowered_filename.endswith(suffix):
+            stem = filename[: -len(suffix)]
+            ext = suffix_ext
+            break
+
+    if ext is None:
+        return "__".join(_camel_to_snake(part) for part in [*dir_parts, filename])
+
+    macro_path = "__".join(_camel_to_snake(part) for part in [*dir_parts, stem])
 
     pattern = pattern or _DEFAULT_HEADER_GUARD_PATTERN
     return pattern.format(path=macro_path, ext=ext)
@@ -198,22 +268,25 @@ def check_header_guards(file_rule_input: FileRuleInput) -> ResultType:
     path = file_rule_input.path
 
     lines = file_content.splitlines()
-    try:
-        guard_macro = find_header_guard(lines)
-    except HeaderGuardError as e:
-        return ResultType(ResultTypeEnum.Error, str(e))
+    guard_macro, errors = collect_header_guard_errors(lines)
 
-    if __GLOBAL_CONFIG__.cpp.header_guards_according_to_filepath and path is not None:
+    if (
+        guard_macro is not None
+        and __GLOBAL_CONFIG__.cpp.header_guards_according_to_filepath
+        and path is not None
+    ):
         expected_macro = expected_header_guard_macro(
             path, __GLOBAL_CONFIG__.cpp.header_guard_pattern
         )
 
         if guard_macro != expected_macro:
-            msg = (
+            errors.append(
                 f"Header guard macro '{guard_macro}' does not match expected "
                 f"macro '{expected_macro}' according to file path."
             )
-            return ResultType(ResultTypeEnum.Error, msg)
+
+    if errors:
+        return ResultType(ResultTypeEnum.Error, " ".join(errors))
 
     return ResultType(ResultTypeEnum.Ok)
 
