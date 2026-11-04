@@ -84,3 +84,10 @@ configuration and is turned off the same way, via
 ``ast_check_disabled_ids = ["enforceCppOnlyInclude"]`` or an empty/unset
 ``libs`` list, but nothing else (not ``--base-ref``, not incremental
 caching, not ``check_dirs``) can silence it on its own.
+
+It runs *before* the normal check pipeline, and honors ``fail_fast`` (the
+default) the same way every other check does: on the first violation found,
+scanning stops and ``cpp_checks`` exits immediately without running the
+normal file/line/AST checks at all. With ``fail_fast = false`` (or
+``--no-fail-fast``), it instead scans every header and reports every
+violation before the normal pipeline still runs afterwards.

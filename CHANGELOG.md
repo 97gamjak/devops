@@ -9,8 +9,8 @@ All notable changes to this project will be documented in this file.
 
 #### CPP Rules
 
-- Add `enforceCppOnlyInclude` AST check (configured via `libs`) flagging a configured header `#include`d from another header instead of directly from a `.cpp` file (Fixes #183)
-- `enforceCppOnlyInclude` is additionally enforced by a whole-repository text-scan pre-check that always runs over every header, independent of `--base-ref`, `check_only_staged_files`, incremental caching, or `check_dirs`, so a violation in a file outside the current run's selection can no longer be missed (Fixes #183)
+- Add `enforceCppOnlyInclude` AST check (configured via `libs`, with an `exclude_paths` escape hatch for files allowed to include them anyway) flagging a configured header `#include`d from another header instead of directly from a `.cpp` file (Fixes #183)
+- `enforceCppOnlyInclude` is additionally enforced by a whole-repository text-scan pre-check that always runs over every header, independent of `--base-ref`, `check_only_staged_files`, incremental caching, or `check_dirs`, so a violation in a file outside the current run's selection can no longer be missed; it runs before the normal check pipeline and honors `fail_fast` like every other check, stopping immediately on the first violation instead of still running the full normal pass (Fixes #183)
 
 ## [0.15.1](https://github.com/repo/owner/releases/tag/0.15.1) - 2026-11-04
 

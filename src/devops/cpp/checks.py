@@ -271,6 +271,10 @@ def run_cpp_only_include_precheck(config: CppConfig) -> bool:
     incremental state file, or simply lives outside the configured
     ``check_dirs``, is still caught every single run.
 
+    Honors ``config.fail_fast`` the same way the rest of the pipeline does:
+    when set (the default), scanning stops at the first file with a
+    violation instead of walking every remaining header.
+
     Parameters
     ----------
     config: CppConfig
@@ -298,6 +302,8 @@ def run_cpp_only_include_precheck(config: CppConfig) -> bool:
         for diag in diags:
             cpp_check_logger.error(f"CPP check error: {diag.format()}")
             passed = False
+        if not passed and config.fail_fast:
+            break
     return passed
 
 
@@ -541,6 +547,8 @@ def run_cpp_checks(
     # `check_only_staged_files`/incremental state, so it can't be skipped by
     # narrowing this run's file selection.
     precheck_passed = run_cpp_only_include_precheck(config)
+    if not precheck_passed and config.fail_fast:
+        return False
 
     raw_files = _collect_cpp_files(config, dirs, base_ref)
     files = [f for f in raw_files if FileType.is_cpp_type(determine_file_type(f))]

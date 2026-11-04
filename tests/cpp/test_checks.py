@@ -1013,6 +1013,76 @@ class TestCppOnlyIncludePrecheck:
             config = self._config(check_only_staged_files=True)
             assert run_cpp_checks([rule], config) is False
 
+    def test_fail_fast_skips_the_rest_of_the_pipeline(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """With fail_fast (the default), a pre-check failure short-circuits the run.
+
+        The normal file/line-rule pipeline must never even run once the
+        pre-check has already failed — otherwise a failing pre-check still
+        pays for (and waits on) the full normal check pass before reporting
+        what it already knew.
+        """
+        monkeypatch.chdir(tmp_path)
+        src_dir = tmp_path / "src"
+        src_dir.mkdir()
+        (src_dir / "other.hpp").write_text('#include "foo_impl.hpp"\n')
+        changed = src_dir / "changed.cpp"
+        changed.write_text("int x;\n")
+
+        call_count = [0]
+
+        def counting_func(_line: str) -> ResultType:
+            call_count[0] += 1
+            return ResultType(ResultTypeEnum.Ok)
+
+        rule = Rule(
+            name="counting_rule",
+            func=counting_func,
+            rule_type=RuleType.CPP_STYLE,
+            rule_input_type=RuleInputType.LINE,
+        )
+
+        with patch("devops.cpp.checks.get_staged_files", return_value=[changed]):
+            config = self._config(check_only_staged_files=True, fail_fast=True)
+            assert run_cpp_checks([rule], config) is False
+
+        assert call_count[0] == 0
+
+    def test_no_fail_fast_still_runs_the_rest_of_the_pipeline(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """With fail_fast disabled, the normal pipeline still runs after a failure.
+
+        Preserves the "get a full picture in one pass" behavior fail_fast=False
+        already promises elsewhere.
+        """
+        monkeypatch.chdir(tmp_path)
+        src_dir = tmp_path / "src"
+        src_dir.mkdir()
+        (src_dir / "other.hpp").write_text('#include "foo_impl.hpp"\n')
+        changed = src_dir / "changed.cpp"
+        changed.write_text("int x;\n")
+
+        call_count = [0]
+
+        def counting_func(_line: str) -> ResultType:
+            call_count[0] += 1
+            return ResultType(ResultTypeEnum.Ok)
+
+        rule = Rule(
+            name="counting_rule",
+            func=counting_func,
+            rule_type=RuleType.CPP_STYLE,
+            rule_input_type=RuleInputType.LINE,
+        )
+
+        with patch("devops.cpp.checks.get_staged_files", return_value=[changed]):
+            config = self._config(check_only_staged_files=True, fail_fast=False)
+            assert run_cpp_checks([rule], config) is False
+
+        assert call_count[0] > 0
+
     def test_no_violation_passes(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
