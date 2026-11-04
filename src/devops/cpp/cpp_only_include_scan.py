@@ -63,14 +63,23 @@ def find_includes(content: str) -> list[tuple[int, str]]:
 def matches_cpp_only_header(include_path: str, headers: Iterable[str]) -> bool:
     """Return whether `include_path` matches a configured cpp-only header pattern.
 
+    Matching is against the ``#include`` path exactly as written in the
+    source — never against just its basename. This matters whenever two
+    different libraries happen to ship a same-named header: a pattern of
+    ``"units.hpp"`` matches a bare ``#include "units.hpp"``, but not
+    ``#include <mstd/units.hpp>`` — a distinct file from a different
+    library that merely shares the name. To match a header regardless of
+    which directory it's included from, write an explicit glob (`fnmatch`'s
+    ``*`` matches across ``/`` too), e.g. ``"*/units.hpp"`` or
+    ``"*_impl.hpp"``.
+
     Parameters
     ----------
     include_path: str
         The ``#include`` path exactly as written in the source.
     headers: Iterable[str]
-        `fnmatch` patterns (matched against both the full path and its
-        basename), as configured under
-        ``[cpp.ast_check_config.enforceCppOnlyInclude].headers``.
+        `fnmatch` patterns, as configured under
+        ``[cpp.ast_check_config.enforceCppOnlyInclude].libs``.
 
     Returns
     -------
@@ -78,11 +87,7 @@ def matches_cpp_only_header(include_path: str, headers: Iterable[str]) -> bool:
         True if `include_path` matches any pattern in `headers`.
 
     """
-    basename = include_path.rsplit("/", 1)[-1]
-    return any(
-        fnmatch.fnmatch(include_path, pattern) or fnmatch.fnmatch(basename, pattern)
-        for pattern in headers
-    )
+    return any(fnmatch.fnmatch(include_path, pattern) for pattern in headers)
 
 
 def scan_text_for_violations(

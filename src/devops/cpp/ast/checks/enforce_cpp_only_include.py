@@ -14,10 +14,13 @@ empty/unset list disables the check entirely::
     [cpp.ast_check_config.enforceCppOnlyInclude]
     libs = ["detail/foo_impl.hpp", "*_internal.hpp"]
 
-Patterns are matched with `fnmatch` rules (``*`` matches within a path
-component) against the ``#include`` path exactly as written in the source
-and against its basename, so both a full relative path and a bare filename
-pattern work.
+Patterns are matched with `fnmatch` rules against the ``#include`` path
+exactly as written in the source — never against just its basename, so a
+pattern of ``"units.hpp"`` matches a bare ``#include "units.hpp"`` but not
+``#include <mstd/units.hpp>``, a same-named header from a different
+library. `fnmatch`'s ``*`` matches across ``/`` too, so a pattern like
+``"*/units.hpp"`` or ``"*_impl.hpp"`` still matches regardless of
+directory.
 
 A header that itself wraps or defines a cpp-only header (and must
 therefore include it unconditionally) can be exempted via

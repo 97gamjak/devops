@@ -19,10 +19,17 @@ of exactly one ``.cpp``) and must never leak into other headers.
 Header matching
 ------------------
 
-Each configured pattern is matched with `fnmatch` rules (``*`` matches
-within a path component) against the ``#include`` path exactly as written
-in the source, and against its basename — so both a full relative path
-(``detail/foo_impl.hpp``) and a bare glob (``*_internal.hpp``) work.
+Each configured pattern is matched with `fnmatch` rules against the
+``#include`` path exactly as written in the source — **never** against
+just its basename. A pattern of ``"units.hpp"`` matches a bare
+``#include "units.hpp"``, but not ``#include <mstd/units.hpp>``: that's a
+distinct header from a different library that merely happens to share the
+name, and shouldn't be swept in just because the filenames match.
+
+`fnmatch`'s ``*`` matches across ``/`` too, so a glob still matches
+regardless of directory when that's what you want — e.g. ``"*_impl.hpp"``
+matches ``detail/foo_impl.hpp``, and ``"*/units.hpp"`` matches any
+``units.hpp`` one directory deep.
 
 Configuration
 --------------
