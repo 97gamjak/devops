@@ -22,12 +22,11 @@ pattern work.
 
 from __future__ import annotations
 
-import fnmatch
-
 import clang.cindex as clang
 
 from devops.config.base import ConfigError
 from devops.cpp.ast.base import Check, Diagnostic
+from devops.cpp.cpp_only_include_scan import matches_cpp_only_header
 from devops.files.files import FileType, determine_file_type
 
 
@@ -89,7 +88,7 @@ class EnforceCppOnlyInclude(Check):
             return []
 
         include_path = cursor.spelling
-        if not self._matches(include_path):
+        if not matches_cpp_only_header(include_path, self.headers):
             return []
 
         loc = cursor.location
@@ -106,11 +105,3 @@ class EnforceCppOnlyInclude(Check):
                 severity="style",
             )
         ]
-
-    def _matches(self, include_path: str) -> bool:
-        """Return whether `include_path` matches a configured header pattern."""
-        basename = include_path.rsplit("/", 1)[-1]
-        return any(
-            fnmatch.fnmatch(include_path, pattern) or fnmatch.fnmatch(basename, pattern)
-            for pattern in self.headers
-        )

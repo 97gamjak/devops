@@ -5,6 +5,8 @@ from pathlib import Path
 
 from devops import __GLOBAL_CONFIG__
 from devops.config import CppConfig
+from devops.cpp.cpp_only_include_scan import CHECK_ID as _CPP_ONLY_INCLUDE_ID
+from devops.cpp.cpp_only_include_scan import scan_text_for_violations
 from devops.cpp.state import (
     any_failed,
     compute_config_hash,
@@ -214,6 +216,84 @@ def _collect_cpp_files(
     all_dirs = get_dirs_in_dir()
     cpp_check_logger.debug(f"Checking directories: {[str(d) for d in all_dirs]}")
     return get_files_in_dirs(all_dirs, exclude_dirs=exclude)
+
+
+def _cpp_only_include_headers(config: CppConfig) -> list[str]:
+    """Return the configured `enforceCppOnlyInclude` header patterns, if active.
+
+    Honors the same on/off switches as the AST check itself
+    (``config.ast_checks``, ``ast_check_enabled_ids``/``ast_check_disabled_ids``)
+    so the pre-check can be turned off the normal way; returns an empty list
+    (meaning "nothing to check") whenever the check is disabled or has no
+    headers configured.
+    """
+    if not config.ast_checks:
+        return []
+    if _CPP_ONLY_INCLUDE_ID in (config.ast_check_disabled_ids or []):
+        return []
+    enabled_ids = config.ast_check_enabled_ids or []
+    if enabled_ids and _CPP_ONLY_INCLUDE_ID not in enabled_ids:
+        return []
+    return config.ast_check_config.get(_CPP_ONLY_INCLUDE_ID, {}).get("headers", [])
+
+
+def _collect_all_header_files(config: CppConfig) -> list[Path]:
+    """Collect every header file under the project's configured check scope.
+
+    Deliberately ignores every narrowing mechanism a normal run can apply
+    (CLI ``dirs``, ``--base-ref`` diffing, ``check_only_staged_files``,
+    incremental-state skipping): it always walks `config.check_dirs` (or the
+    whole repo, if unset) minus `config.exclude_dirs`, so the
+    `enforceCppOnlyInclude` pre-check (see `run_cpp_only_include_precheck`)
+    can never miss a violation just because the file containing it wasn't
+    part of the current run's selection.
+    """
+    exclude = config.exclude_dirs or []
+    dirs = _resolve_check_dirs(config.check_dirs) if config.check_dirs else (
+        get_dirs_in_dir()
+    )
+    files = get_files_in_dirs(dirs, exclude_dirs=exclude)
+    return [f for f in files if determine_file_type(f) == FileType.CPPHeader]
+
+
+def run_cpp_only_include_precheck(config: CppConfig) -> bool:
+    """Hard pre-check: scan every header in the project for cpp-only violations.
+
+    This is a text/regex scan (see `devops.cpp.cpp_only_include_scan`), not
+    the libclang-based `enforceCppOnlyInclude` AST check, and it always
+    covers the full project scope (`_collect_all_header_files`) rather than
+    whatever subset of files a given invocation happens to be scoped to.
+    That makes it independent of incremental caching and any git-diff-based
+    file selection (``--base-ref``, ``check_only_staged_files``): a
+    violation sitting in a header that wasn't touched in the current diff,
+    or that was already marked "passed" by the incremental state file, is
+    still caught every single run.
+
+    Parameters
+    ----------
+    config: CppConfig
+        The global C++ configuration. Reads the same
+        ``[cpp.ast_check_config.enforceCppOnlyInclude]`` block as the AST
+        check.
+
+    Returns
+    -------
+    bool
+        True if no violations were found (including when the check is
+        disabled or unconfigured), False otherwise.
+
+    """
+    headers = _cpp_only_include_headers(config)
+    if not headers:
+        return True
+
+    passed = True
+    for filename in _collect_all_header_files(config):
+        content = _read_file_content(filename)
+        for diag in scan_text_for_violations(str(filename), content, headers):
+            cpp_check_logger.error(f"CPP check error: {diag.format()}")
+            passed = False
+    return passed
 
 
 def _read_file_content(file: Path) -> str:
@@ -452,12 +532,17 @@ def run_cpp_checks(
         True if all checks pass, False if any check fails.
 
     """
+    # Always runs the full project, regardless of `dirs`/`base_ref`/
+    # `check_only_staged_files`/incremental state, so it can't be skipped by
+    # narrowing this run's file selection.
+    precheck_passed = run_cpp_only_include_precheck(config)
+
     raw_files = _collect_cpp_files(config, dirs, base_ref)
     files = [f for f in raw_files if FileType.is_cpp_type(determine_file_type(f))]
 
     if not files:
         cpp_check_logger.warning("No files to check.")
-        return True
+        return precheck_passed
 
     state: dict[str, dict] = {}
     if state_file is not None:
@@ -474,7 +559,7 @@ def run_cpp_checks(
         cpp_check_logger.info(
             "Incremental: all files already passed — nothing to check."
         )
-        return not any_failed(state)
+        return precheck_passed and not any_failed(state)
 
     file_rules = filter_file_rules(rules)
     line_rules = filter_line_rules(rules)
@@ -492,4 +577,4 @@ def run_cpp_checks(
     finally:
         passed = _finalize_run(state_file, state, rules, passed=passed)
 
-    return passed
+    return precheck_passed and passed

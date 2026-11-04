@@ -974,3 +974,91 @@ class TestRunCppChecksBaseRef:
         """An unresolvable ref surfaces as GitRefError."""
         with pytest.raises(GitRefError):
             run_cpp_checks([], CppConfig(), base_ref="does-not-exist-ref")
+
+
+class TestCppOnlyIncludePrecheck:
+    """The enforceCppOnlyInclude pre-check scans the whole project every run."""
+
+    @staticmethod
+    def _config(**kwargs: object) -> CppConfig:
+        return CppConfig(
+            ast_check_config={"enforceCppOnlyInclude": {"headers": ["foo_impl.hpp"]}},
+            **kwargs,
+        )
+
+    def test_violation_outside_selected_files_still_fails(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A violation in a header not part of this run's selection is still caught.
+
+        Simulates the exact gap the pre-check closes: `--base-ref`/staged-file
+        selection only returns `changed.cpp`, yet a *different*, untouched
+        header violates the configured rule and must still fail the run.
+        """
+        monkeypatch.chdir(tmp_path)
+        src_dir = tmp_path / "src"
+        src_dir.mkdir()
+        (src_dir / "other.hpp").write_text('#include "foo_impl.hpp"\n')
+        changed = src_dir / "changed.cpp"
+        changed.write_text("int x;\n")
+
+        rule = Rule(
+            name="ok_rule",
+            func=lambda _line: ResultType(ResultTypeEnum.Ok),
+            rule_type=RuleType.CPP_STYLE,
+            rule_input_type=RuleInputType.LINE,
+        )
+
+        with patch("devops.cpp.checks.get_staged_files", return_value=[changed]):
+            config = self._config(check_only_staged_files=True)
+            assert run_cpp_checks([rule], config) is False
+
+    def test_no_violation_passes(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A clean project with no violating #include passes the pre-check."""
+        monkeypatch.chdir(tmp_path)
+        src_dir = tmp_path / "src"
+        src_dir.mkdir()
+        (src_dir / "other.hpp").write_text('#include "bar.hpp"\n')
+        changed = src_dir / "changed.cpp"
+        changed.write_text("int x;\n")
+
+        rule = Rule(
+            name="ok_rule",
+            func=lambda _line: ResultType(ResultTypeEnum.Ok),
+            rule_type=RuleType.CPP_STYLE,
+            rule_input_type=RuleInputType.LINE,
+        )
+
+        with patch("devops.cpp.checks.get_staged_files", return_value=[changed]):
+            config = self._config(check_only_staged_files=True)
+            assert run_cpp_checks([rule], config) is True
+
+    def test_disabled_id_skips_precheck(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Disabling via ast_check_disabled_ids also skips the pre-check."""
+        monkeypatch.chdir(tmp_path)
+        src_dir = tmp_path / "src"
+        src_dir.mkdir()
+        (src_dir / "other.hpp").write_text('#include "foo_impl.hpp"\n')
+
+        config = self._config(
+            check_only_staged_files=True,
+            ast_check_disabled_ids=["enforceCppOnlyInclude"],
+        )
+        with patch("devops.cpp.checks.get_staged_files", return_value=[]):
+            assert run_cpp_checks([], config) is True
+
+    def test_unconfigured_is_a_noop(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """No headers configured means the pre-check never runs/flags anything."""
+        monkeypatch.chdir(tmp_path)
+        src_dir = tmp_path / "src"
+        src_dir.mkdir()
+        (src_dir / "other.hpp").write_text('#include "foo_impl.hpp"\n')
+
+        with patch("devops.cpp.checks.get_staged_files", return_value=[]):
+            assert run_cpp_checks([], CppConfig(check_only_staged_files=True)) is True
