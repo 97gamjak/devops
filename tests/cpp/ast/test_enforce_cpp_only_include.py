@@ -31,7 +31,7 @@ def _diags(
     p.write_text(code)
     check = EnforceCppOnlyInclude()
     check.configure(
-        {"headers": headers if headers is not None else ["detail/foo_impl.hpp"]}
+        {"libs": headers if headers is not None else ["detail/foo_impl.hpp"]}
     )
     args = [*_ARGS, f"-I{tmp_path}"]
     return [d.message for d in run_ast_checks(p, code, args, checks=[check])]
@@ -74,13 +74,13 @@ class TestEnforceCppOnlyIncludeAllowed:
 
 
 class TestEnforceCppOnlyIncludeConfig:
-    """Configuration validation for the 'headers' key."""
+    """Configuration validation for the 'libs' key."""
 
     def test_invalid_config_raises(self) -> None:
         """Test invalid config raises."""
         check = EnforceCppOnlyInclude()
         with pytest.raises(ConfigError):
-            check.configure({"headers": "detail/foo_impl.hpp"})
+            check.configure({"libs": "detail/foo_impl.hpp"})
 
 
 class TestEnforceCppOnlyIncludeCheckId:

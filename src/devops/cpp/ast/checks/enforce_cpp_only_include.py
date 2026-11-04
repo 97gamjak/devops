@@ -12,7 +12,7 @@ Configure which headers are cpp-only via the per-check table; an
 empty/unset list disables the check entirely::
 
     [cpp.ast_check_config.enforceCppOnlyInclude]
-    headers = ["detail/foo_impl.hpp", "*_internal.hpp"]
+    libs = ["detail/foo_impl.hpp", "*_internal.hpp"]
 
 Patterns are matched with `fnmatch` rules (``*`` matches within a path
 component) against the ``#include`` path exactly as written in the source
@@ -45,19 +45,19 @@ class EnforceCppOnlyInclude(Check):
         Parameters
         ----------
         config: dict
-            Expected shape: ``{"headers": ["detail/foo_impl.hpp"]}``. When
+            Expected shape: ``{"libs": ["detail/foo_impl.hpp"]}``. When
             absent or empty, this check never flags anything.
 
         Raises
         ------
         ConfigError
-            If ``headers`` is present but is not a list of strings.
+            If ``libs`` is present but is not a list of strings.
 
         """
-        raw = config.get("headers", [])
+        raw = config.get("libs", [])
         if not isinstance(raw, list) or not all(isinstance(h, str) for h in raw):
             msg = (
-                f"{self.id}: 'headers' in [cpp.ast_check_config.{self.id}] must be "
+                f"{self.id}: 'libs' in [cpp.ast_check_config.{self.id}] must be "
                 "a list of strings"
             )
             raise ConfigError(msg)

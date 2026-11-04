@@ -982,7 +982,7 @@ class TestCppOnlyIncludePrecheck:
     @staticmethod
     def _config(**kwargs: object) -> CppConfig:
         return CppConfig(
-            ast_check_config={"enforceCppOnlyInclude": {"headers": ["foo_impl.hpp"]}},
+            ast_check_config={"enforceCppOnlyInclude": {"libs": ["foo_impl.hpp"]}},
             **kwargs,
         )
 
@@ -1034,6 +1034,27 @@ class TestCppOnlyIncludePrecheck:
         with patch("devops.cpp.checks.get_staged_files", return_value=[changed]):
             config = self._config(check_only_staged_files=True)
             assert run_cpp_checks([rule], config) is True
+
+    def test_violation_outside_check_dirs_still_fails(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A violation outside `check_dirs` is still caught.
+
+        Reproduces a real failure: `check_dirs` narrows the *normal* checked
+        scope (e.g. to `apps`), but a violating header sitting in a
+        different, unscoped directory (e.g. `include`) must still fail the
+        pre-check, since cpp-only-header leakage isn't confined to whatever
+        subset of the project `check_dirs` happens to cover.
+        """
+        monkeypatch.chdir(tmp_path)
+        (tmp_path / "apps").mkdir()
+        (tmp_path / "apps" / "main.cpp").write_text("int main() {}\n")
+        include_dir = tmp_path / "include"
+        include_dir.mkdir()
+        (include_dir / "other.hpp").write_text('#include "foo_impl.hpp"\n')
+
+        config = self._config(check_dirs=["apps"])
+        assert run_cpp_checks([], config) is False
 
     def test_disabled_id_skips_precheck(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch

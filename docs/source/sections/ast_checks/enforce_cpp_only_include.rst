@@ -35,7 +35,7 @@ Configuration
      - Type
      - Default
      - Description
-   * - ``headers``
+   * - ``libs``
      - list of strings
      - ``[]``
      - Patterns identifying headers that may only be included from ``.cpp``
@@ -44,9 +44,9 @@ Configuration
 .. code-block:: toml
 
    [cpp.ast_check_config.enforceCppOnlyInclude]
-   headers = ["detail/foo_impl.hpp", "*_internal.hpp"]
+   libs = ["detail/foo_impl.hpp", "*_internal.hpp"]
 
-Like ``paramNameForType``, ``headers`` is required for the check to have
+Like ``paramNameForType``, ``libs`` is required for the check to have
 any effect — it is a no-op with an empty list, so it isn't meaningful to
 enable without configuring it.
 
@@ -62,17 +62,17 @@ Whole-project pre-check
 -------------------------
 
 Unlike every other AST check, ``enforceCppOnlyInclude`` is also enforced by
-a second, independent pass: a plain-text scan over **every** header file
-under ``check_dirs``/the whole project (minus ``exclude_dirs``), run on
-every invocation of ``cpp_checks`` regardless of ``--base-ref``,
-``check_only_staged_files``, or the incremental state file.
+a second, independent pass: a plain-text scan over **every** header file in
+the entire repository (minus ``exclude_dirs``), run on every invocation of
+``cpp_checks`` regardless of ``--base-ref``, ``check_only_staged_files``,
+the incremental state file, or even ``check_dirs``.
 
 This closes a gap the normal AST check can't: when a run is scoped to a
-git diff or an incremental cache, a violation sitting in a header that
-simply wasn't part of that subset would otherwise go unnoticed. The
-pre-check always walks the full project instead, so it cannot be bypassed
-by narrowing what a given run checks — it shares the same ``headers``
+git diff, an incremental cache, or a narrowed ``check_dirs``, a violation
+sitting in a header outside that scope would otherwise go unnoticed. The
+pre-check always walks the whole project instead, so it cannot be bypassed
+by narrowing what a given run checks — it shares the same ``libs``
 configuration and is turned off the same way, via
 ``ast_check_disabled_ids = ["enforceCppOnlyInclude"]`` or an empty/unset
-``headers`` list, but nothing else (not ``--base-ref``, not incremental
-caching) can silence it on its own.
+``libs`` list, but nothing else (not ``--base-ref``, not incremental
+caching, not ``check_dirs``) can silence it on its own.

@@ -123,7 +123,7 @@ Available checks
    * - :doc:`enforceCppOnlyInclude <enforce_cpp_only_include>`
      - A configured header ``#include``\ d from another header instead of
        directly from a ``.cpp`` file.
-     - Required (``headers``)
+     - Required (``libs``)
 
 .. toctree::
    :maxdepth: 1

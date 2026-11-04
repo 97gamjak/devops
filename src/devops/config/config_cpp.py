@@ -190,7 +190,7 @@ class CppConfig:
             "#[cpp.ast_check_config.enforceSystemHeaderLibs]\n"
             '#libs = ["mstd"]\n'
             "#[cpp.ast_check_config.enforceCppOnlyInclude]\n"
-            '#headers = ["detail/foo_impl.hpp", "*_internal.hpp"]\n'
+            '#libs = ["detail/foo_impl.hpp", "*_internal.hpp"]\n'
         )
 
         isf = (

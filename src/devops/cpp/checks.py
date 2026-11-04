@@ -234,25 +234,26 @@ def _cpp_only_include_headers(config: CppConfig) -> list[str]:
     enabled_ids = config.ast_check_enabled_ids or []
     if enabled_ids and _CPP_ONLY_INCLUDE_ID not in enabled_ids:
         return []
-    return config.ast_check_config.get(_CPP_ONLY_INCLUDE_ID, {}).get("headers", [])
+    return config.ast_check_config.get(_CPP_ONLY_INCLUDE_ID, {}).get("libs", [])
 
 
 def _collect_all_header_files(config: CppConfig) -> list[Path]:
-    """Collect every header file under the project's configured check scope.
+    """Collect every header file in the whole repository.
 
-    Deliberately ignores every narrowing mechanism a normal run can apply
-    (CLI ``dirs``, ``--base-ref`` diffing, ``check_only_staged_files``,
-    incremental-state skipping): it always walks `config.check_dirs` (or the
-    whole repo, if unset) minus `config.exclude_dirs`, so the
-    `enforceCppOnlyInclude` pre-check (see `run_cpp_only_include_precheck`)
-    can never miss a violation just because the file containing it wasn't
-    part of the current run's selection.
+    Deliberately ignores every narrowing mechanism a normal run can apply —
+    not just git/incremental selection (CLI ``dirs``, ``--base-ref``,
+    ``check_only_staged_files``, incremental-state skipping) but also
+    ``config.check_dirs`` itself: a header can leak a cpp-only include into
+    any other header project-wide, regardless of which directories are
+    configured for the project's regular style/AST checks. Only
+    `config.exclude_dirs` (e.g. vendored third-party code) is still
+    honored. This keeps the `enforceCppOnlyInclude` pre-check (see
+    `run_cpp_only_include_precheck`) from missing a violation just because
+    the file containing it sits outside `check_dirs` or wasn't part of the
+    current run's selection.
     """
     exclude = config.exclude_dirs or []
-    dirs = _resolve_check_dirs(config.check_dirs) if config.check_dirs else (
-        get_dirs_in_dir()
-    )
-    files = get_files_in_dirs(dirs, exclude_dirs=exclude)
+    files = get_files_in_dirs(get_dirs_in_dir(), exclude_dirs=exclude)
     return [f for f in files if determine_file_type(f) == FileType.CPPHeader]
 
 
@@ -261,13 +262,14 @@ def run_cpp_only_include_precheck(config: CppConfig) -> bool:
 
     This is a text/regex scan (see `devops.cpp.cpp_only_include_scan`), not
     the libclang-based `enforceCppOnlyInclude` AST check, and it always
-    covers the full project scope (`_collect_all_header_files`) rather than
+    covers the entire repository (`_collect_all_header_files`) rather than
     whatever subset of files a given invocation happens to be scoped to.
-    That makes it independent of incremental caching and any git-diff-based
-    file selection (``--base-ref``, ``check_only_staged_files``): a
-    violation sitting in a header that wasn't touched in the current diff,
-    or that was already marked "passed" by the incremental state file, is
-    still caught every single run.
+    That makes it independent of incremental caching, any git-diff-based
+    file selection (``--base-ref``, ``check_only_staged_files``), and even
+    ``config.check_dirs`` itself: a violation sitting in a header that
+    wasn't touched in the current diff, was already marked "passed" by the
+    incremental state file, or simply lives outside the configured
+    ``check_dirs``, is still caught every single run.
 
     Parameters
     ----------
