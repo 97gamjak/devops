@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 ## Next Release
 
 <!-- insertion marker -->
+### Features
+
+#### CPP Rules
+
+- Add `enforceCppOnlyInclude` AST check flagging a configured header `#include`d from another header instead of directly from a `.cpp` file (Fixes #183)
+
 ## [0.15.1](https://github.com/repo/owner/releases/tag/0.15.1) - 2026-11-04
 
 ### Fixes

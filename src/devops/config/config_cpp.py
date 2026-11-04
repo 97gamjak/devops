@@ -189,6 +189,8 @@ class CppConfig:
             '#pragma_required_reasons = { keep = "-- for template specialization" }\n'
             "#[cpp.ast_check_config.enforceSystemHeaderLibs]\n"
             '#libs = ["mstd"]\n'
+            "#[cpp.ast_check_config.enforceCppOnlyInclude]\n"
+            '#headers = ["detail/foo_impl.hpp", "*_internal.hpp"]\n'
         )
 
         isf = (

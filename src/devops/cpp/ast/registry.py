@@ -11,6 +11,7 @@ import typing
 
 from devops.config.base import ConfigError
 from devops.cpp.ast.checks.enforce_class_member_order import EnforceClassMemberOrder
+from devops.cpp.ast.checks.enforce_cpp_only_include import EnforceCppOnlyInclude
 from devops.cpp.ast.checks.enforce_member_function_leading_underscore import (
     EnforceMemberFunctionLeadingUnderscore,
 )
@@ -42,6 +43,7 @@ if typing.TYPE_CHECKING:
 # / ast_check_disabled_ids to turn it on or off from the input file.
 ALL_CHECKS: list[Check] = [
     EnforceClassMemberOrder(),
+    EnforceCppOnlyInclude(),
     EnforceMemberFunctionLeadingUnderscore(),
     EnforceMemberLeadingUnderscore(),
     EnforceNoPublicLeadingUnderscore(),
