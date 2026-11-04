@@ -931,9 +931,7 @@ class TestRunCppChecksBaseRef:
         config = CppConfig(check_dirs=["a"])
 
         with patch("devops.cpp.checks.get_changed_files", return_value=[in_a, in_b]):
-            run_cpp_checks(
-                [self._recording_rule(seen)], config, base_ref="x"
-            )
+            run_cpp_checks([self._recording_rule(seen)], config, base_ref="x")
 
         assert seen == ["int one;\n"]
 

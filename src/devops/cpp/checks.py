@@ -166,7 +166,7 @@ def _collect_changed_files(
     exclude: list[str],
     check_dirs: list[str] | None = None,
 ) -> list[Path]:
-    """Collect files changed since ``base_ref``, honoring dirs, check_dirs, exclude_dirs."""
+    """Collect files changed since ``base_ref``, honoring dirs/check_dirs/exclude."""
     cpp_check_logger.info(f"Running checks on files changed since '{base_ref}'...")
     changed = [f for f in get_changed_files(base_ref) if not _is_excluded(f, exclude)]
 
