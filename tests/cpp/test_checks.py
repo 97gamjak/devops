@@ -899,12 +899,12 @@ class TestRunCppChecksBaseRef:
             rule_input_type=RuleInputType.LINE,
         )
 
-    def test_base_ref_overrides_staged_and_check_dirs(self, tmp_path: Path) -> None:
-        """base_ref wins over check_only_staged_files and check_dirs."""
+    def test_base_ref_overrides_staged_files(self, tmp_path: Path) -> None:
+        """base_ref wins over check_only_staged_files."""
         changed = tmp_path / "changed.cpp"
         changed.write_text("int a;\n")
         seen: list[str] = []
-        config = CppConfig(check_only_staged_files=True, check_dirs=["nowhere"])
+        config = CppConfig(check_only_staged_files=True)
 
         with (
             patch("devops.cpp.checks.get_changed_files", return_value=[changed]) as gcf,
@@ -915,6 +915,25 @@ class TestRunCppChecksBaseRef:
         gcf.assert_called_once_with("main")
         staged.assert_not_called()
         assert seen == ["int a;\n"]
+
+    def test_base_ref_restricted_by_check_dirs(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """check_dirs still restricts changed files when base_ref is used."""
+        monkeypatch.chdir(tmp_path)
+        (tmp_path / "a").mkdir()
+        (tmp_path / "b").mkdir()
+        in_a = tmp_path / "a" / "one.cpp"
+        in_b = tmp_path / "b" / "two.cpp"
+        in_a.write_text("int one;\n")
+        in_b.write_text("int two;\n")
+        seen: list[str] = []
+        config = CppConfig(check_dirs=["a"])
+
+        with patch("devops.cpp.checks.get_changed_files", return_value=[in_a, in_b]):
+            run_cpp_checks([self._recording_rule(seen)], config, base_ref="x")
+
+        assert seen == ["int one;\n"]
 
     def test_base_ref_skips_non_cpp_and_excluded(self, tmp_path: Path) -> None:
         """Non-C++ files and files under exclude_dirs are dropped."""

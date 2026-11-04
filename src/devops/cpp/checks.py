@@ -147,14 +147,39 @@ def _is_excluded(path: Path, exclude: list[str]) -> bool:
     return any(part in exclude for part in path.parts[:-1])
 
 
+def _resolve_check_dirs(patterns: list[str]) -> list[Path]:
+    """Resolve ``check_dirs`` glob patterns to concrete existing directories."""
+    resolved: list[Path] = []
+    for pattern in patterns:
+        matches = [m for m in Path().glob(pattern) if m.is_dir()]
+        if not matches:
+            cpp_check_logger.warning(
+                f"check_dirs: pattern '{pattern}' matched no directories"
+            )
+        resolved.extend(matches)
+    return resolved
+
+
 def _collect_changed_files(
-    base_ref: str, dirs: list[Path] | None, exclude: list[str]
+    base_ref: str,
+    dirs: list[Path] | None,
+    exclude: list[str],
+    check_dirs: list[str] | None = None,
 ) -> list[Path]:
-    """Collect files changed since ``base_ref``, honoring dirs and exclude_dirs."""
+    """Collect files changed since ``base_ref``, honoring dirs/check_dirs/exclude."""
     cpp_check_logger.info(f"Running checks on files changed since '{base_ref}'...")
     changed = [f for f in get_changed_files(base_ref) if not _is_excluded(f, exclude)]
+
+    if dirs is None and check_dirs:
+        dirs = _resolve_check_dirs(check_dirs)
+        cpp_check_logger.info(
+            f"Restricting changed files to configured directories: "
+            f"{[str(d) for d in dirs]}"
+        )
+
     if dirs is None:
         return changed
+
     resolved_dirs = [d.resolve() for d in dirs]
     return [f for f in changed if any(d in f.resolve().parents for d in resolved_dirs)]
 
@@ -166,7 +191,7 @@ def _collect_cpp_files(
     exclude = config.exclude_dirs or []
 
     if base_ref is not None:
-        return _collect_changed_files(base_ref, dirs, exclude)
+        return _collect_changed_files(base_ref, dirs, exclude, config.check_dirs)
 
     if dirs is not None:
         cpp_check_logger.info(
@@ -179,14 +204,7 @@ def _collect_cpp_files(
         return get_staged_files()
 
     if config.check_dirs:
-        resolved: list[Path] = []
-        for pattern in config.check_dirs:
-            matches = [m for m in Path().glob(pattern) if m.is_dir()]
-            if not matches:
-                cpp_check_logger.warning(
-                    f"check_dirs: pattern '{pattern}' matched no directories"
-                )
-            resolved.extend(matches)
+        resolved = _resolve_check_dirs(config.check_dirs)
         cpp_check_logger.info(
             f"Running checks in configured directories: {[str(d) for d in resolved]}"
         )
@@ -413,8 +431,9 @@ def run_cpp_checks(
     base_ref: str | None
         A git commit hash or branch name.  When given, only files changed
         relative to it (see ``get_changed_files``) are checked, overriding
-        ``check_only_staged_files`` and ``check_dirs``.  ``dirs`` further
-        restricts the changed files when also given.
+        ``check_only_staged_files``.  The changed files are still further
+        restricted to ``config.check_dirs`` (if set) and, when given, to
+        ``dirs``, which takes precedence over ``config.check_dirs``.
     config_file: Path | None
         The TOML config file in use.  Its content hash is stored in the state
         file; when it differs on the next run, all incremental state is

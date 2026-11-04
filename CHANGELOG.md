@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+### Fixes
+
+#### CPP Checks
+
+- `check_dirs` is no longer silently ignored when `--base-ref` is used: changed files outside the configured `check_dirs` folders are no longer checked in CI's diff-based runs (Fixes #180)
+
 <!-- insertion marker -->
 ## [0.15.0](https://github.com/repo/owner/releases/tag/0.15.0) - 2026-10-31
 
