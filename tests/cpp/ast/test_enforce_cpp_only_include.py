@@ -23,15 +23,20 @@ def _diags(
     tmp_path: Path,
     filename: str = "test.cpp",
     headers: list[str] | None = None,
+    exclude_paths: list[str] | None = None,
 ) -> list[str]:
     (tmp_path / "detail").mkdir()
     (tmp_path / "detail" / "foo_impl.hpp").write_text("// empty header\n")
     (tmp_path / "bar.hpp").write_text("// empty header\n")
     p = tmp_path / filename
+    p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(code)
     check = EnforceCppOnlyInclude()
     check.configure(
-        {"libs": headers if headers is not None else ["detail/foo_impl.hpp"]}
+        {
+            "libs": headers if headers is not None else ["detail/foo_impl.hpp"],
+            "exclude_paths": exclude_paths or [],
+        }
     )
     args = [*_ARGS, f"-I{tmp_path}"]
     return [d.message for d in run_ast_checks(p, code, args, checks=[check])]
@@ -72,6 +77,33 @@ class TestEnforceCppOnlyIncludeAllowed:
         code = '#include "detail/foo_impl.hpp"\n'
         assert _diags(code, tmp_path, filename="other.hpp", headers=[]) == []
 
+    def test_excluded_path_allowed(self, tmp_path: Path) -> None:
+        """Test an including file matching exclude_paths is never flagged.
+
+        Covers a header that itself wraps/defines a cpp-only header (and
+        must therefore include it unconditionally), exempted via
+        ``exclude_paths``.
+        """
+        code = '#include "detail/foo_impl.hpp"\n'
+        diags = _diags(
+            code,
+            tmp_path,
+            filename="wrapper/other.hpp",
+            exclude_paths=["wrapper/"],
+        )
+        assert diags == []
+
+    def test_excluded_path_does_not_affect_other_files(self, tmp_path: Path) -> None:
+        """Test exclude_paths only exempts matching files, not every header."""
+        code = '#include "detail/foo_impl.hpp"\n'
+        diags = _diags(
+            code,
+            tmp_path,
+            filename="other.hpp",
+            exclude_paths=["wrapper/"],
+        )
+        assert len(diags) == 1
+
 
 class TestEnforceCppOnlyIncludeConfig:
     """Configuration validation for the 'libs' key."""
@@ -81,6 +113,14 @@ class TestEnforceCppOnlyIncludeConfig:
         check = EnforceCppOnlyInclude()
         with pytest.raises(ConfigError):
             check.configure({"libs": "detail/foo_impl.hpp"})
+
+    def test_invalid_exclude_paths_raises(self) -> None:
+        """Test invalid exclude_paths config raises."""
+        check = EnforceCppOnlyInclude()
+        with pytest.raises(ConfigError):
+            check.configure(
+                {"libs": ["detail/foo_impl.hpp"], "exclude_paths": "wrapper/"}
+            )
 
 
 class TestEnforceCppOnlyIncludeCheckId:

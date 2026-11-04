@@ -18,6 +18,17 @@ Patterns are matched with `fnmatch` rules (``*`` matches within a path
 component) against the ``#include`` path exactly as written in the source
 and against its basename, so both a full relative path and a bare filename
 pattern work.
+
+A header that itself wraps or defines a cpp-only header (and must
+therefore include it unconditionally) can be exempted via
+``exclude_paths``, matched against the *including* file's path using the
+same rules as `devops.cpp.ast.checks.name_filtered`'s ``path_exceptions``
+(a trailing ``/`` matches a directory prefix; anything else is an
+`fnmatch` glob)::
+
+    [cpp.ast_check_config.enforceCppOnlyInclude]
+    libs = ["units.hpp"]
+    exclude_paths = ["include/config/units.hpp"]
 """
 
 from __future__ import annotations
@@ -27,6 +38,7 @@ import clang.cindex as clang
 from devops.config.base import ConfigError
 from devops.cpp.ast.base import Check, Diagnostic
 from devops.cpp.cpp_only_include_scan import matches_cpp_only_header
+from devops.cpp.path_patterns import matches_path
 from devops.files.files import FileType, determine_file_type
 
 
@@ -38,6 +50,7 @@ class EnforceCppOnlyInclude(Check):
     def __init__(self) -> None:
         """Initialize with no headers configured (check is a no-op)."""
         self.headers: tuple[str, ...] = ()
+        self.exclude_paths: tuple[str, ...] = ()
 
     def configure(self, config: dict) -> None:
         """Load the patterns identifying headers that are cpp-only.
@@ -45,23 +58,29 @@ class EnforceCppOnlyInclude(Check):
         Parameters
         ----------
         config: dict
-            Expected shape: ``{"libs": ["detail/foo_impl.hpp"]}``. When
-            absent or empty, this check never flags anything.
+            Expected shape: ``{"libs": ["detail/foo_impl.hpp"], "exclude_paths":
+            ["include/config/"]}``. When ``libs`` is absent or empty, this
+            check never flags anything.
 
         Raises
         ------
         ConfigError
-            If ``libs`` is present but is not a list of strings.
+            If ``libs`` or ``exclude_paths`` is present but is not a list
+            of strings.
 
         """
-        raw = config.get("libs", [])
+        self.headers = tuple(self._parse_str_list(config, "libs"))
+        self.exclude_paths = tuple(self._parse_str_list(config, "exclude_paths"))
+
+    def _parse_str_list(self, config: dict, key: str) -> list[str]:
+        raw = config.get(key, [])
         if not isinstance(raw, list) or not all(isinstance(h, str) for h in raw):
             msg = (
-                f"{self.id}: 'libs' in [cpp.ast_check_config.{self.id}] must be "
+                f"{self.id}: '{key}' in [cpp.ast_check_config.{self.id}] must be "
                 "a list of strings"
             )
             raise ConfigError(msg)
-        self.headers = tuple(raw)
+        return raw
 
     def visit(self, cursor: clang.Cursor, filename: str) -> list[Diagnostic]:
         """Flag the cursor if it's an #include of a cpp-only header in a header.
@@ -89,6 +108,9 @@ class EnforceCppOnlyInclude(Check):
 
         include_path = cursor.spelling
         if not matches_cpp_only_header(include_path, self.headers):
+            return []
+
+        if any(matches_path(filename, pattern) for pattern in self.exclude_paths):
             return []
 
         loc = cursor.location

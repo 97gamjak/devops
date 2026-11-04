@@ -191,6 +191,8 @@ class CppConfig:
             '#libs = ["mstd"]\n'
             "#[cpp.ast_check_config.enforceCppOnlyInclude]\n"
             '#libs = ["detail/foo_impl.hpp", "*_internal.hpp"]\n'
+            '#exclude_paths = ["include/config/units.hpp"]'
+            "  # files allowed to include them anyway\n"
         )
 
         isf = (

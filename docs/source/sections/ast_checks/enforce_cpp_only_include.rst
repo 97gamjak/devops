@@ -40,11 +40,19 @@ Configuration
      - ``[]``
      - Patterns identifying headers that may only be included from ``.cpp``
        files. An empty/unset list means this check never flags anything.
+   * - ``exclude_paths``
+     - list of strings
+     - ``[]``
+     - Path patterns (trailing ``/`` = directory prefix, otherwise an
+       `fnmatch` glob) for *including* files that are exempt — e.g. the
+       header that itself wraps/defines a cpp-only header and must
+       therefore include it unconditionally.
 
 .. code-block:: toml
 
    [cpp.ast_check_config.enforceCppOnlyInclude]
-   libs = ["detail/foo_impl.hpp", "*_internal.hpp"]
+   libs = ["units.hpp"]
+   exclude_paths = ["include/config/units.hpp"]
 
 Like ``paramNameForType``, ``libs`` is required for the check to have
 any effect — it is a no-op with an empty list, so it isn't meaningful to

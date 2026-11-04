@@ -66,3 +66,25 @@ class TestScanTextForViolations:
         """Test no diagnostics are produced when nothing matches."""
         content = '#include "bar.hpp"\n'
         assert scan_text_for_violations("other.hpp", content, ["foo_impl.hpp"]) == []
+
+    def test_excluded_path_is_never_flagged(self) -> None:
+        """Test a filename matching exclude_paths is exempt regardless of headers."""
+        content = '#include "detail/foo_impl.hpp"\n'
+        diags = scan_text_for_violations(
+            "wrapper/other.hpp",
+            content,
+            ["detail/foo_impl.hpp"],
+            exclude_paths=["wrapper/"],
+        )
+        assert diags == []
+
+    def test_exclude_paths_does_not_affect_other_files(self) -> None:
+        """Test exclude_paths only exempts matching files."""
+        content = '#include "detail/foo_impl.hpp"\n'
+        diags = scan_text_for_violations(
+            "other.hpp",
+            content,
+            ["detail/foo_impl.hpp"],
+            exclude_paths=["wrapper/"],
+        )
+        assert len(diags) == 1

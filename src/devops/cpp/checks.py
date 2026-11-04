@@ -218,23 +218,23 @@ def _collect_cpp_files(
     return get_files_in_dirs(all_dirs, exclude_dirs=exclude)
 
 
-def _cpp_only_include_headers(config: CppConfig) -> list[str]:
-    """Return the configured `enforceCppOnlyInclude` header patterns, if active.
+def _cpp_only_include_config(config: CppConfig) -> tuple[list[str], list[str]]:
+    """Return the configured `enforceCppOnlyInclude` (libs, exclude_paths), if active.
 
     Honors the same on/off switches as the AST check itself
     (``config.ast_checks``, ``ast_check_enabled_ids``/``ast_check_disabled_ids``)
-    so the pre-check can be turned off the normal way; returns an empty list
-    (meaning "nothing to check") whenever the check is disabled or has no
-    headers configured.
+    so the pre-check can be turned off the normal way; returns ``([], [])``
+    whenever the check is disabled or has no headers configured.
     """
     if not config.ast_checks:
-        return []
+        return [], []
     if _CPP_ONLY_INCLUDE_ID in (config.ast_check_disabled_ids or []):
-        return []
+        return [], []
     enabled_ids = config.ast_check_enabled_ids or []
     if enabled_ids and _CPP_ONLY_INCLUDE_ID not in enabled_ids:
-        return []
-    return config.ast_check_config.get(_CPP_ONLY_INCLUDE_ID, {}).get("libs", [])
+        return [], []
+    check_config = config.ast_check_config.get(_CPP_ONLY_INCLUDE_ID, {})
+    return check_config.get("libs", []), check_config.get("exclude_paths", [])
 
 
 def _collect_all_header_files(config: CppConfig) -> list[Path]:
@@ -285,14 +285,17 @@ def run_cpp_only_include_precheck(config: CppConfig) -> bool:
         disabled or unconfigured), False otherwise.
 
     """
-    headers = _cpp_only_include_headers(config)
+    headers, exclude_paths = _cpp_only_include_config(config)
     if not headers:
         return True
 
     passed = True
     for filename in _collect_all_header_files(config):
         content = _read_file_content(filename)
-        for diag in scan_text_for_violations(str(filename), content, headers):
+        diags = scan_text_for_violations(
+            str(filename), content, headers, exclude_paths
+        )
+        for diag in diags:
             cpp_check_logger.error(f"CPP check error: {diag.format()}")
             passed = False
     return passed

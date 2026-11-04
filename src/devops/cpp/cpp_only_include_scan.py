@@ -22,6 +22,7 @@ import re
 import typing
 
 from devops.cpp.ast.base import Diagnostic
+from devops.cpp.path_patterns import matches_path
 
 if typing.TYPE_CHECKING:
     from collections.abc import Iterable
@@ -85,28 +86,40 @@ def matches_cpp_only_header(include_path: str, headers: Iterable[str]) -> bool:
 
 
 def scan_text_for_violations(
-    filename: str, content: str, headers: Iterable[str]
+    filename: str,
+    content: str,
+    headers: Iterable[str],
+    exclude_paths: Iterable[str] = (),
 ) -> list[Diagnostic]:
     """Scan a header file's raw text for #includes of a configured cpp-only header.
 
     Parameters
     ----------
     filename: str
-        Path of the header file being scanned (used for diagnostics only;
-        the caller is responsible for only scanning actual header files).
+        Path of the header file being scanned (used for diagnostics, and
+        matched against `exclude_paths`; the caller is responsible for only
+        scanning actual header files).
     content: str
         The file's full text.
     headers: Iterable[str]
         The configured cpp-only header patterns (see
         `matches_cpp_only_header`).
+    exclude_paths: Iterable[str]
+        Path patterns (see `devops.cpp.path_patterns.matches_path`)
+        identifying including files that are exempt from this check — e.g.
+        the header that itself wraps/defines a cpp-only header and must
+        therefore include it unconditionally. When `filename` matches any
+        pattern here, nothing is flagged regardless of `headers`.
 
     Returns
     -------
     list[Diagnostic]
         One diagnostic per ``#include`` line matching a configured
-        cpp-only header pattern.
+        cpp-only header pattern, unless `filename` is excluded.
 
     """
+    if any(matches_path(filename, pattern) for pattern in exclude_paths):
+        return []
     return [
         Diagnostic(
             file=filename,

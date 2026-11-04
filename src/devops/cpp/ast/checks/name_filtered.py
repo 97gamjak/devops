@@ -24,11 +24,11 @@ prefix (recursively).  Any other pattern is matched using ``fnmatch`` rules
 
 from __future__ import annotations
 
-import fnmatch
 from dataclasses import dataclass
 
 from devops.config.base import ConfigError
 from devops.cpp.ast.base import Check
+from devops.cpp.path_patterns import matches_path
 
 
 @dataclass(frozen=True)
@@ -37,31 +37,6 @@ class PathException:
 
     names: frozenset[str]
     paths: tuple[str, ...]
-
-
-def _matches_path(filename: str, pattern: str) -> bool:
-    """Return True if *filename* matches *pattern*.
-
-    *filename* is typically an absolute path (the AST engine resolves each
-    checked file), while *pattern* is written relative to the project root
-    (e.g. ``"src/units/"``), so matching is done against *filename*'s path
-    components rather than requiring an exact prefix/whole-string match.
-
-    Patterns ending with ``/`` are treated as directory prefixes: any file
-    with that directory anywhere in its path is a match (covering all
-    subdirectories). All other patterns are matched with
-    :func:`fnmatch.fnmatch` against the trailing path components of the
-    same depth as the pattern, so a pattern like ``"src/units/*.cpp"``
-    matches regardless of what precedes ``src/`` in the absolute path.
-    """
-    norm = filename.replace("\\", "/")
-    if pattern.endswith("/"):
-        anchored = "/" + pattern.strip("/") + "/"
-        return anchored in f"/{norm}" or norm.startswith(pattern)
-
-    depth = pattern.count("/") + 1
-    suffix = "/".join(norm.split("/")[-depth:])
-    return fnmatch.fnmatch(norm, pattern) or fnmatch.fnmatch(suffix, pattern)
 
 
 class NameFilteredCheck(Check):
@@ -175,7 +150,7 @@ class NameFilteredCheck(Check):
         clean = name.removeprefix("::")
         for exc in self.path_exceptions:
             if clean in exc.names and any(
-                _matches_path(filename, pat) for pat in exc.paths
+                matches_path(filename, pat) for pat in exc.paths
             ):
                 return False
         return True
