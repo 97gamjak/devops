@@ -13,6 +13,12 @@ All notable changes to this project will be documented in this file.
 - Path-derived header guard macro names now split camelCase/PascalCase directory and file names into words (e.g. `velocityVerlet.hpp` expects `VELOCITY_VERLET`, not `VELOCITYVERLET`) instead of flattening them with a plain uppercase
 - All problems found with a file's header guard (structural issues and a path-derived name mismatch) are now reported together in a single error instead of one at a time across repeated runs
 
+### Fixes
+
+#### CPP Checks
+
+- `check_dirs` is no longer silently ignored when `--base-ref` is used: changed files outside the configured `check_dirs` folders are no longer checked in CI's diff-based runs (Fixes #180)
+
 <!-- insertion marker -->
 ## [0.14.1](https://github.com/repo/owner/releases/tag/0.14.1) - 2026-10-29
 

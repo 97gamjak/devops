@@ -56,9 +56,10 @@ def cpp_checks(  # noqa: PLR0913 - each param is an independent CLI flag
         help=(
             "Git commit hash or branch name.  Only files changed relative to "
             "it (merge-base with HEAD, including uncommitted changes) are "
-            "checked.  Overrides ``check_only_staged_files`` and "
-            "``check_dirs`` in the [cpp] TOML section; explicit directories "
-            "further restrict the changed files."
+            "checked.  Overrides ``check_only_staged_files`` in the [cpp] "
+            "TOML section.  ``check_dirs`` (if set) still restricts the "
+            "changed files; explicit --dirs take precedence over "
+            "``check_dirs`` when both are given."
         ),
     ),
     jobs: int | None = typer.Option(
