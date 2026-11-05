@@ -296,9 +296,7 @@ def run_cpp_only_include_precheck(config: CppConfig) -> bool:
     passed = True
     for filename in _collect_all_header_files(config):
         content = _read_file_content(filename)
-        diags = scan_text_for_violations(
-            str(filename), content, headers, exclude_paths
-        )
+        diags = scan_text_for_violations(str(filename), content, headers, exclude_paths)
         for diag in diags:
             cpp_check_logger.error(f"CPP check error: {diag.format()}")
             passed = False

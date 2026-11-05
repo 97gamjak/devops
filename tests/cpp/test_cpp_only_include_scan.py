@@ -54,9 +54,7 @@ class TestScanTextForViolations:
     def test_flags_matching_include(self) -> None:
         """Test a matching #include produces one diagnostic at the right line."""
         content = 'int x;\n#include "detail/foo_impl.hpp"\n'
-        diags = scan_text_for_violations(
-            "other.hpp", content, ["detail/foo_impl.hpp"]
-        )
+        diags = scan_text_for_violations("other.hpp", content, ["detail/foo_impl.hpp"])
         assert len(diags) == 1
         assert diags[0].line == 2
         assert diags[0].file == "other.hpp"
