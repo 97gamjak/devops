@@ -120,6 +120,10 @@ Available checks
        an IWYU pragma keyword outside an allowlist, or a required pragma
        missing its reason.
      - Optional (``allowed_pragmas``, ``pragma_required_reasons``)
+   * - :doc:`enforceCppOnlyInclude <enforce_cpp_only_include>`
+     - A configured header ``#include``\ d from another header instead of
+       directly from a ``.cpp`` file.
+     - Required (``libs``)
 
 .. toctree::
    :maxdepth: 1
@@ -141,3 +145,4 @@ Available checks
    enforce_typename_over_class
    enforce_system_header_libs
    include_iwyu_pragma_only
+   enforce_cpp_only_include

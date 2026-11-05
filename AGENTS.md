@@ -30,3 +30,10 @@ The project's Sphinx documentation lives under `docs/source` and is built with t
 - Explanatory guide pages go under `docs/source/sections/`.
 - Build locally with `sphinx-build -b html -W docs/source docs/build/html`; treat any warning as a build failure, matching CI.
 - `.github/workflows/docs.yml` builds the docs on push/PR to `main`/`dev` and deploys to GitHub Pages on push to `main`.
+
+## Changelog
+
+`CHANGELOG.md` has a `## Next Release` heading followed by an `<!-- insertion marker -->` comment (see `devops.files.update_changelog`).
+
+- New entries go **directly below the `## Next Release` heading and above the `<!-- insertion marker -->` comment** — never below the marker.
+- The marker is where `update_changelog`/`update_changelogs` insert the next version heading on release; anything left below the marker gets silently attributed to that new version instead of staying under "Next Release".
