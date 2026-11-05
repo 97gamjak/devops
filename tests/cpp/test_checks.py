@@ -974,3 +974,182 @@ class TestRunCppChecksBaseRef:
         """An unresolvable ref surfaces as GitRefError."""
         with pytest.raises(GitRefError):
             run_cpp_checks([], CppConfig(), base_ref="does-not-exist-ref")
+
+
+class TestCppOnlyIncludePrecheck:
+    """The enforceCppOnlyInclude pre-check scans the whole project every run."""
+
+    @staticmethod
+    def _config(**kwargs: object) -> CppConfig:
+        return CppConfig(
+            ast_check_config={"enforceCppOnlyInclude": {"libs": ["foo_impl.hpp"]}},
+            **kwargs,
+        )
+
+    def test_violation_outside_selected_files_still_fails(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A violation in a header not part of this run's selection is still caught.
+
+        Simulates the exact gap the pre-check closes: `--base-ref`/staged-file
+        selection only returns `changed.cpp`, yet a *different*, untouched
+        header violates the configured rule and must still fail the run.
+        """
+        monkeypatch.chdir(tmp_path)
+        src_dir = tmp_path / "src"
+        src_dir.mkdir()
+        (src_dir / "other.hpp").write_text('#include "foo_impl.hpp"\n')
+        changed = src_dir / "changed.cpp"
+        changed.write_text("int x;\n")
+
+        rule = Rule(
+            name="ok_rule",
+            func=lambda _line: ResultType(ResultTypeEnum.Ok),
+            rule_type=RuleType.CPP_STYLE,
+            rule_input_type=RuleInputType.LINE,
+        )
+
+        with patch("devops.cpp.checks.get_staged_files", return_value=[changed]):
+            config = self._config(check_only_staged_files=True)
+            assert run_cpp_checks([rule], config) is False
+
+    def test_fail_fast_skips_the_rest_of_the_pipeline(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """With fail_fast (the default), a pre-check failure short-circuits the run.
+
+        The normal file/line-rule pipeline must never even run once the
+        pre-check has already failed — otherwise a failing pre-check still
+        pays for (and waits on) the full normal check pass before reporting
+        what it already knew.
+        """
+        monkeypatch.chdir(tmp_path)
+        src_dir = tmp_path / "src"
+        src_dir.mkdir()
+        (src_dir / "other.hpp").write_text('#include "foo_impl.hpp"\n')
+        changed = src_dir / "changed.cpp"
+        changed.write_text("int x;\n")
+
+        call_count = [0]
+
+        def counting_func(_line: str) -> ResultType:
+            call_count[0] += 1
+            return ResultType(ResultTypeEnum.Ok)
+
+        rule = Rule(
+            name="counting_rule",
+            func=counting_func,
+            rule_type=RuleType.CPP_STYLE,
+            rule_input_type=RuleInputType.LINE,
+        )
+
+        with patch("devops.cpp.checks.get_staged_files", return_value=[changed]):
+            config = self._config(check_only_staged_files=True, fail_fast=True)
+            assert run_cpp_checks([rule], config) is False
+
+        assert call_count[0] == 0
+
+    def test_no_fail_fast_still_runs_the_rest_of_the_pipeline(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """With fail_fast disabled, the normal pipeline still runs after a failure.
+
+        Preserves the "get a full picture in one pass" behavior fail_fast=False
+        already promises elsewhere.
+        """
+        monkeypatch.chdir(tmp_path)
+        src_dir = tmp_path / "src"
+        src_dir.mkdir()
+        (src_dir / "other.hpp").write_text('#include "foo_impl.hpp"\n')
+        changed = src_dir / "changed.cpp"
+        changed.write_text("int x;\n")
+
+        call_count = [0]
+
+        def counting_func(_line: str) -> ResultType:
+            call_count[0] += 1
+            return ResultType(ResultTypeEnum.Ok)
+
+        rule = Rule(
+            name="counting_rule",
+            func=counting_func,
+            rule_type=RuleType.CPP_STYLE,
+            rule_input_type=RuleInputType.LINE,
+        )
+
+        with patch("devops.cpp.checks.get_staged_files", return_value=[changed]):
+            config = self._config(check_only_staged_files=True, fail_fast=False)
+            assert run_cpp_checks([rule], config) is False
+
+        assert call_count[0] > 0
+
+    def test_no_violation_passes(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A clean project with no violating #include passes the pre-check."""
+        monkeypatch.chdir(tmp_path)
+        src_dir = tmp_path / "src"
+        src_dir.mkdir()
+        (src_dir / "other.hpp").write_text('#include "bar.hpp"\n')
+        changed = src_dir / "changed.cpp"
+        changed.write_text("int x;\n")
+
+        rule = Rule(
+            name="ok_rule",
+            func=lambda _line: ResultType(ResultTypeEnum.Ok),
+            rule_type=RuleType.CPP_STYLE,
+            rule_input_type=RuleInputType.LINE,
+        )
+
+        with patch("devops.cpp.checks.get_staged_files", return_value=[changed]):
+            config = self._config(check_only_staged_files=True)
+            assert run_cpp_checks([rule], config) is True
+
+    def test_violation_outside_check_dirs_still_fails(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A violation outside `check_dirs` is still caught.
+
+        Reproduces a real failure: `check_dirs` narrows the *normal* checked
+        scope (e.g. to `apps`), but a violating header sitting in a
+        different, unscoped directory (e.g. `include`) must still fail the
+        pre-check, since cpp-only-header leakage isn't confined to whatever
+        subset of the project `check_dirs` happens to cover.
+        """
+        monkeypatch.chdir(tmp_path)
+        (tmp_path / "apps").mkdir()
+        (tmp_path / "apps" / "main.cpp").write_text("int main() {}\n")
+        include_dir = tmp_path / "include"
+        include_dir.mkdir()
+        (include_dir / "other.hpp").write_text('#include "foo_impl.hpp"\n')
+
+        config = self._config(check_dirs=["apps"])
+        assert run_cpp_checks([], config) is False
+
+    def test_disabled_id_skips_precheck(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Disabling via ast_check_disabled_ids also skips the pre-check."""
+        monkeypatch.chdir(tmp_path)
+        src_dir = tmp_path / "src"
+        src_dir.mkdir()
+        (src_dir / "other.hpp").write_text('#include "foo_impl.hpp"\n')
+
+        config = self._config(
+            check_only_staged_files=True,
+            ast_check_disabled_ids=["enforceCppOnlyInclude"],
+        )
+        with patch("devops.cpp.checks.get_staged_files", return_value=[]):
+            assert run_cpp_checks([], config) is True
+
+    def test_unconfigured_is_a_noop(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """No headers configured means the pre-check never runs/flags anything."""
+        monkeypatch.chdir(tmp_path)
+        src_dir = tmp_path / "src"
+        src_dir.mkdir()
+        (src_dir / "other.hpp").write_text('#include "foo_impl.hpp"\n')
+
+        with patch("devops.cpp.checks.get_staged_files", return_value=[]):
+            assert run_cpp_checks([], CppConfig(check_only_staged_files=True)) is True
