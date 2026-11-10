@@ -193,6 +193,8 @@ class CppConfig:
             '#libs = ["detail/foo_impl.hpp", "*_internal.hpp"]\n'
             '#exclude_paths = ["include/config/units.hpp"]'
             "  # files allowed to include them anyway\n"
+            '#extensions = [".tpp"]'
+            "  # only check including files with these extensions\n"
         )
 
         isf = (
