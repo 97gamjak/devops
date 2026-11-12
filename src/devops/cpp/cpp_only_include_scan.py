@@ -23,6 +23,7 @@ import typing
 
 from devops.cpp.ast.base import Diagnostic
 from devops.cpp.path_patterns import matches_path
+from devops.files.files import FileType, determine_file_type
 
 if typing.TYPE_CHECKING:
     from collections.abc import Iterable
@@ -60,6 +61,30 @@ def find_includes(content: str) -> list[tuple[int, str]]:
     return includes
 
 
+def is_checked_file(filename: str, extensions: Iterable[str] = ()) -> bool:
+    """Return whether `filename` is an including file this check applies to.
+
+    Parameters
+    ----------
+    filename: str
+        Path of the including file.
+    extensions: Iterable[str]
+        File extensions (e.g. ``".tpp"``; a missing leading dot is added).
+        When non-empty, *only* files ending in one of these are checked,
+        replacing the default. When empty, every C++ header is checked.
+
+    Returns
+    -------
+    bool
+        True if the check applies to `filename`.
+
+    """
+    normalized = tuple(e if e.startswith(".") else f".{e}" for e in extensions)
+    if normalized:
+        return str(filename).endswith(normalized)
+    return determine_file_type(filename) == FileType.CPPHeader
+
+
 def matches_cpp_only_header(include_path: str, headers: Iterable[str]) -> bool:
     """Return whether `include_path` matches a configured cpp-only header pattern.
 
@@ -95,6 +120,7 @@ def scan_text_for_violations(
     content: str,
     headers: Iterable[str],
     exclude_paths: Iterable[str] = (),
+    extensions: Iterable[str] = (),
 ) -> list[Diagnostic]:
     """Scan a header file's raw text for #includes of a configured cpp-only header.
 
@@ -115,6 +141,9 @@ def scan_text_for_violations(
         the header that itself wraps/defines a cpp-only header and must
         therefore include it unconditionally. When `filename` matches any
         pattern here, nothing is flagged regardless of `headers`.
+    extensions: Iterable[str]
+        If non-empty, only files with one of these extensions are checked
+        (see `is_checked_file`); other files yield no diagnostics.
 
     Returns
     -------
@@ -123,6 +152,8 @@ def scan_text_for_violations(
         cpp-only header pattern, unless `filename` is excluded.
 
     """
+    if not is_checked_file(filename, extensions):
+        return []
     if any(matches_path(filename, pattern) for pattern in exclude_paths):
         return []
     return [

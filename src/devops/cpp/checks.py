@@ -6,7 +6,7 @@ from pathlib import Path
 from devops import __GLOBAL_CONFIG__
 from devops.config import CppConfig
 from devops.cpp.cpp_only_include_scan import CHECK_ID as _CPP_ONLY_INCLUDE_ID
-from devops.cpp.cpp_only_include_scan import scan_text_for_violations
+from devops.cpp.cpp_only_include_scan import is_checked_file, scan_text_for_violations
 from devops.cpp.state import (
     any_failed,
     compute_config_hash,
@@ -218,8 +218,10 @@ def _collect_cpp_files(
     return get_files_in_dirs(all_dirs, exclude_dirs=exclude)
 
 
-def _cpp_only_include_config(config: CppConfig) -> tuple[list[str], list[str]]:
-    """Return the configured `enforceCppOnlyInclude` (libs, exclude_paths), if active.
+def _cpp_only_include_config(
+    config: CppConfig,
+) -> tuple[list[str], list[str], list[str]]:
+    """Return the configured `enforceCppOnlyInclude` (libs, exclude_paths, extensions).
 
     Honors the same on/off switches as the AST check itself
     (``config.ast_checks``, ``ast_check_enabled_ids``/``ast_check_disabled_ids``)
@@ -227,18 +229,24 @@ def _cpp_only_include_config(config: CppConfig) -> tuple[list[str], list[str]]:
     whenever the check is disabled or has no headers configured.
     """
     if not config.ast_checks:
-        return [], []
+        return [], [], []
     if _CPP_ONLY_INCLUDE_ID in (config.ast_check_disabled_ids or []):
-        return [], []
+        return [], [], []
     enabled_ids = config.ast_check_enabled_ids or []
     if enabled_ids and _CPP_ONLY_INCLUDE_ID not in enabled_ids:
-        return [], []
+        return [], [], []
     check_config = config.ast_check_config.get(_CPP_ONLY_INCLUDE_ID, {})
-    return check_config.get("libs", []), check_config.get("exclude_paths", [])
+    return (
+        check_config.get("libs", []),
+        check_config.get("exclude_paths", []),
+        check_config.get("extensions", []),
+    )
 
 
-def _collect_all_header_files(config: CppConfig) -> list[Path]:
-    """Collect every header file in the whole repository.
+def _collect_all_header_files(
+    config: CppConfig, extensions: list[str] | None = None
+) -> list[Path]:
+    """Collect every header (or, if `extensions` is set, matching) file in the repo.
 
     Deliberately ignores every narrowing mechanism a normal run can apply —
     not just git/incremental selection (CLI ``dirs``, ``--base-ref``,
@@ -254,7 +262,7 @@ def _collect_all_header_files(config: CppConfig) -> list[Path]:
     """
     exclude = config.exclude_dirs or []
     files = get_files_in_dirs(get_dirs_in_dir(), exclude_dirs=exclude)
-    return [f for f in files if determine_file_type(f) == FileType.CPPHeader]
+    return [f for f in files if is_checked_file(str(f), extensions or ())]
 
 
 def run_cpp_only_include_precheck(config: CppConfig) -> bool:
@@ -289,14 +297,16 @@ def run_cpp_only_include_precheck(config: CppConfig) -> bool:
         disabled or unconfigured), False otherwise.
 
     """
-    headers, exclude_paths = _cpp_only_include_config(config)
+    headers, exclude_paths, extensions = _cpp_only_include_config(config)
     if not headers:
         return True
 
     passed = True
-    for filename in _collect_all_header_files(config):
+    for filename in _collect_all_header_files(config, extensions):
         content = _read_file_content(filename)
-        diags = scan_text_for_violations(str(filename), content, headers, exclude_paths)
+        diags = scan_text_for_violations(
+            str(filename), content, headers, exclude_paths, extensions
+        )
         for diag in diags:
             cpp_check_logger.error(f"CPP check error: {diag.format()}")
             passed = False

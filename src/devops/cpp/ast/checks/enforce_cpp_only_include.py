@@ -32,6 +32,13 @@ same rules as `devops.cpp.ast.checks.name_filtered`'s ``path_exceptions``
     [cpp.ast_check_config.enforceCppOnlyInclude]
     libs = ["units.hpp"]
     exclude_paths = ["include/config/units.hpp"]
+
+By default every header is checked. Set ``extensions`` to restrict the
+check to including files with one of the listed extensions only::
+
+    [cpp.ast_check_config.enforceCppOnlyInclude]
+    libs = ["units.hpp"]
+    extensions = [".tpp"]
 """
 
 from __future__ import annotations
@@ -40,9 +47,8 @@ import clang.cindex as clang
 
 from devops.config.base import ConfigError
 from devops.cpp.ast.base import Check, Diagnostic
-from devops.cpp.cpp_only_include_scan import matches_cpp_only_header
+from devops.cpp.cpp_only_include_scan import is_checked_file, matches_cpp_only_header
 from devops.cpp.path_patterns import matches_path
-from devops.files.files import FileType, determine_file_type
 
 
 class EnforceCppOnlyInclude(Check):
@@ -54,6 +60,7 @@ class EnforceCppOnlyInclude(Check):
         """Initialize with no headers configured (check is a no-op)."""
         self.headers: tuple[str, ...] = ()
         self.exclude_paths: tuple[str, ...] = ()
+        self.extensions: tuple[str, ...] = ()
 
     def configure(self, config: dict) -> None:
         """Load the patterns identifying headers that are cpp-only.
@@ -61,19 +68,20 @@ class EnforceCppOnlyInclude(Check):
         Parameters
         ----------
         config: dict
-            Expected shape: ``{"libs": ["detail/foo_impl.hpp"], "exclude_paths":
-            ["include/config/"]}``. When ``libs`` is absent or empty, this
-            check never flags anything.
+            Expected shape: ``{"libs": ["detail/foo_impl.hpp"],
+            "exclude_paths": ["include/config/"], "extensions": [".tpp"]}``.
+            When ``libs`` is absent or empty, this check never flags anything.
 
         Raises
         ------
         ConfigError
-            If ``libs`` or ``exclude_paths`` is present but is not a list
-            of strings.
+            If ``libs``, ``exclude_paths`` or ``extensions`` is present but
+            is not a list of strings.
 
         """
         self.headers = tuple(self._parse_str_list(config, "libs"))
         self.exclude_paths = tuple(self._parse_str_list(config, "exclude_paths"))
+        self.extensions = tuple(self._parse_str_list(config, "extensions"))
 
     def _parse_str_list(self, config: dict, key: str) -> list[str]:
         raw = config.get(key, [])
@@ -106,7 +114,7 @@ class EnforceCppOnlyInclude(Check):
         if not self.headers or cursor.kind != clang.CursorKind.INCLUSION_DIRECTIVE:
             return []
 
-        if determine_file_type(filename) != FileType.CPPHeader:
+        if not is_checked_file(filename, self.extensions):
             return []
 
         include_path = cursor.spelling
