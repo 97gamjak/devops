@@ -4,12 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+<!-- insertion marker -->
+## [0.16.1](https://github.com/repo/owner/releases/tag/0.16.1) - 2026-11-12
+
 ### Features
 
 #### CPP Rules
 
 - `enforceCppOnlyInclude` accepts a new `extensions` list (e.g. `[".tpp"]`) restricting the check, in both the AST check and the whole-repository pre-check, to including files with those extensions instead of all headers
-<!-- insertion marker -->
 ## [0.16.0](https://github.com/repo/owner/releases/tag/0.16.0) - 2026-11-05
 
 ### Features
@@ -404,6 +406,7 @@ All notable changes to this project will be documented in this file.
 - Add automatic release CI for PRs to main (either via title or via hotfix/ branch)
 - Add overnight CI runs for pytest and ruff CIs
 - Add test coverage to pytest CI
+
 
 
 
