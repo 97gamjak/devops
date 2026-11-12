@@ -54,12 +54,19 @@ Configuration
        `fnmatch` glob) for *including* files that are exempt — e.g. the
        header that itself wraps/defines a cpp-only header and must
        therefore include it unconditionally.
+   * - ``extensions``
+     - list of strings
+     - ``[]``
+     - If set, only *including* files with one of these extensions
+       (e.g. ``[".tpp"]``) are checked, instead of all headers. Empty/unset
+       keeps the default of checking every header.
 
 .. code-block:: toml
 
    [cpp.ast_check_config.enforceCppOnlyInclude]
    libs = ["units.hpp"]
    exclude_paths = ["include/config/units.hpp"]
+   extensions = [".tpp"]  # optional: only check .tpp files
 
 Like ``paramNameForType``, ``libs`` is required for the check to have
 any effect — it is a no-op with an empty list, so it isn't meaningful to

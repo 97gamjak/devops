@@ -86,3 +86,22 @@ class TestScanTextForViolations:
             exclude_paths=["wrapper/"],
         )
         assert len(diags) == 1
+
+
+class TestExtensions:
+    """Tests for the `extensions` restriction."""
+
+    def test_only_listed_extensions_checked(self) -> None:
+        """Only files with a listed extension are flagged."""
+        content = '#include "units.hpp"\n'
+        assert (
+            scan_text_for_violations("a.hpp", content, ["units.hpp"], (), [".tpp"])
+            == []
+        )
+        diags = scan_text_for_violations("a.tpp", content, ["units.hpp"], (), [".tpp"])
+        assert len(diags) == 1
+
+    def test_dot_optional(self) -> None:
+        """A leading dot on the extension is optional."""
+        content = '#include "units.hpp"\n'
+        assert scan_text_for_violations("a.tpp", content, ["units.hpp"], (), ["tpp"])
