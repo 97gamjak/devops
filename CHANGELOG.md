@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+### Features
+
+#### CPP Rules
+
+- Add `passByType` AST check enforcing how parameters of configured types are passed, configured per type via `types` (`mode` = `const_ref`, `value` or `const_ref_or_value`); non-const/rvalue references and pointers are flagged; the per-type option `check_getter = true` additionally checks the return type of simple getters (non-static `const` member functions without parameters) of that type (Fixes #189)
+
 <!-- insertion marker -->
 ## [0.16.1](https://github.com/repo/owner/releases/tag/0.16.1) - 2026-11-12
 
