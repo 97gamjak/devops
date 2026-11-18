@@ -124,6 +124,10 @@ Available checks
      - A configured header ``#include``\ d from another header instead of
        directly from a ``.cpp`` file.
      - Required (``libs``)
+   * - :doc:`passByType <pass_by_type>`
+     - A parameter of a configured type not passed by (const) reference
+       or by value as required.
+     - Required (``types``)
 
 .. toctree::
    :maxdepth: 1
@@ -146,3 +150,4 @@ Available checks
    enforce_system_header_libs
    include_iwyu_pragma_only
    enforce_cpp_only_include
+   pass_by_type
