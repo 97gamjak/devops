@@ -34,6 +34,7 @@ from devops.cpp.ast.checks.no_global_using import NoGlobalUsing
 from devops.cpp.ast.checks.no_global_using_enum import NoGlobalUsingEnum
 from devops.cpp.ast.checks.no_new_in_gtest_setup import NoNewInGtestSetup
 from devops.cpp.ast.checks.no_throw_paren import NoThrowParen
+from devops.cpp.ast.checks.prefer_mstd_copy_move_macros import PreferMstdCopyMoveMacros
 
 if typing.TYPE_CHECKING:
     from devops.cpp.ast.base import Check
@@ -61,6 +62,7 @@ ALL_CHECKS: list[Check] = [
     NoGlobalUsingEnum(),
     NoNewInGtestSetup(),
     NoThrowParen(),
+    PreferMstdCopyMoveMacros(),
 ]
 
 

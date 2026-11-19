@@ -128,6 +128,10 @@ Available checks
      - A parameter of a configured type not passed by (const) reference
        or by value as required.
      - Required (``types``)
+   * - :doc:`preferMstdCopyMoveMacros <prefer_mstd_copy_move_macros>`
+     - A hand-written ``= delete`` copy/move constructor or assignment
+       instead of ``MSTD_NO_COPY``/``MSTD_NO_MOVE``.
+     - Optional (``copy_macro``, ``move_macro``)
 
 .. toctree::
    :maxdepth: 1
@@ -151,3 +155,4 @@ Available checks
    include_iwyu_pragma_only
    enforce_cpp_only_include
    pass_by_type
+   prefer_mstd_copy_move_macros

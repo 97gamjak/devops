@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+### Features
+
+#### CPP Rules
+
+- Add `preferMstdCopyMoveMacros` AST check flagging hand-written `= delete` copy/move constructors and assignment operators and suggesting `MSTD_NO_COPY(X)`/`MSTD_NO_MOVE(X)`; members expanded from a macro are not flagged, and the suggested names are configurable via `copy_macro` and `move_macro` (Fixes #197)
+
 <!-- insertion marker -->
 ## [1.0.0](https://github.com/repo/owner/releases/tag/1.0.0) - 2026-11-18
 
