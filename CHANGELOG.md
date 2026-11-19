@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+### Features
+
+#### CPP Rules
+
+- Add `noInClassMemberDefinition` AST check flagging member functions (including constructors, destructors, operators, static members and member templates) whose body is written inside the class definition, in headers and `.cpp` files alike; `= default`, `= delete`, pure virtual members, macro-generated members, hidden friends and members of local or unnamed classes are not flagged (Fixes #195)
+
 <!-- insertion marker -->
 ## [1.0.0](https://github.com/repo/owner/releases/tag/1.0.0) - 2026-11-18
 

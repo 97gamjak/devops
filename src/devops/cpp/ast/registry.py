@@ -32,6 +32,9 @@ from devops.cpp.ast.checks.no_delete_in_gtest_teardown import NoDeleteInGtestTea
 from devops.cpp.ast.checks.no_final_keyword import NoFinalKeyword
 from devops.cpp.ast.checks.no_global_using import NoGlobalUsing
 from devops.cpp.ast.checks.no_global_using_enum import NoGlobalUsingEnum
+from devops.cpp.ast.checks.no_in_class_member_definition import (
+    NoInClassMemberDefinition,
+)
 from devops.cpp.ast.checks.no_new_in_gtest_setup import NoNewInGtestSetup
 from devops.cpp.ast.checks.no_throw_paren import NoThrowParen
 
@@ -59,6 +62,7 @@ ALL_CHECKS: list[Check] = [
     NoFinalKeyword(),
     NoGlobalUsing(),
     NoGlobalUsingEnum(),
+    NoInClassMemberDefinition(),
     NoNewInGtestSetup(),
     NoThrowParen(),
 ]
