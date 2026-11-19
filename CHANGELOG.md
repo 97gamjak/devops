@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+### Features
+
+#### CPP Rules
+
+- Add `maxAnonymousNamespaceSize` AST check flagging an anonymous namespace that defines any class/struct or has more than `max_declarations` (default 3) top-level functions, variables or type aliases, since code with internal linkage cannot be unit tested (Fixes #196)
+
 <!-- insertion marker -->
 ## [1.0.0](https://github.com/repo/owner/releases/tag/1.0.0) - 2026-11-18
 

@@ -128,6 +128,10 @@ Available checks
      - A parameter of a configured type not passed by (const) reference
        or by value as required.
      - Required (``types``)
+   * - :doc:`maxAnonymousNamespaceSize <max_anonymous_namespace_size>`
+     - An anonymous namespace defining a class/struct or holding more than
+       ``max_declarations`` top-level declarations.
+     - Optional (``max_declarations``)
 
 .. toctree::
    :maxdepth: 1
@@ -151,3 +155,4 @@ Available checks
    include_iwyu_pragma_only
    enforce_cpp_only_include
    pass_by_type
+   max_anonymous_namespace_size
