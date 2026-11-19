@@ -332,6 +332,49 @@ Controls changelog file handling and text encoding.
    changelog_paths = ["CHANGELOG.md"]
    default_changelog_path = "CHANGELOG.md"
 
+.. _config-release:
+
+``[release]``
+^^^^^^^^^^^^^
+
+Controls the CI gate of :ref:`devops_release <cli-devops_release>`. Tags use
+``git.tag_prefix``.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 20 15 15 50
+
+   * - Key
+     - Type
+     - Default
+     - Description
+   * - ``branch``
+     - string
+     - ``"main"``
+     - The branch releases are published from; ``wait-ci`` only counts push
+       runs on it.
+   * - ``ci_workflows``
+     - list of strings
+     - ``[]``
+     - Workflow files, for example ``["ci.yml"]``, that must succeed on the
+       release commit. ``wait-ci`` fails while this is empty.
+   * - ``ci_timeout``
+     - integer
+     - ``1800``
+     - Seconds ``wait-ci`` waits before it fails. Must not be negative.
+   * - ``ci_interval``
+     - integer
+     - ``20``
+     - Seconds between two polls. Must be positive.
+
+.. code-block:: toml
+
+   [release]
+   branch = "main"
+   ci_workflows = ["ci.yml"]
+   ci_timeout = 1800
+   ci_interval = 20
+
 Full example
 ------------
 
@@ -364,6 +407,9 @@ Full example
    [file]
    encoding = "utf-8"
    changelog_paths = ["CHANGELOG.md"]
+
+   [release]
+   ci_workflows = ["ci.yml"]
 
 Changelog file format
 ----------------------

@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+### Features
+
+#### Release
+
+- Add the `devops_release` command with the release steps from PQ: `version` (release or hotfix tag from branch and PR title), `check-refs`, `wait-ci` (green CI on the release commit), `publish` (tag and GitHub release, safe to re-run) and `reviewers`; set the CI gate in the new `[release]` config table (#192)
+
 <!-- insertion marker -->
 ## [1.0.0](https://github.com/repo/owner/releases/tag/1.0.0) - 2026-11-18
 
