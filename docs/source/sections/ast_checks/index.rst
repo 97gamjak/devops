@@ -128,6 +128,9 @@ Available checks
      - A parameter of a configured type not passed by (const) reference
        or by value as required.
      - Required (``types``)
+   * - :doc:`noMaybeUnusedParam <no_maybe_unused_param>`
+     - ``[[maybe_unused]]`` on a function, method or lambda parameter.
+     - None
 
 .. toctree::
    :maxdepth: 1
@@ -151,3 +154,4 @@ Available checks
    include_iwyu_pragma_only
    enforce_cpp_only_include
    pass_by_type
+   no_maybe_unused_param
