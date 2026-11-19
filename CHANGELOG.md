@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+### Features
+
+#### CPP Rules
+
+- Add `noVoidPointerParam` AST check flagging `void *` parameters (any cv-qualification and pointer level, also via aliases) of free functions with external linkage and of public/protected methods and constructors; private methods, `static` and anonymous-namespace functions, `extern "C"` declarations, deleted functions and overrides are allowed (Fixes #199)
+
 <!-- insertion marker -->
 ## [1.0.0](https://github.com/repo/owner/releases/tag/1.0.0) - 2026-11-18
 
