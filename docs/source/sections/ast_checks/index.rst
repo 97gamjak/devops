@@ -139,6 +139,10 @@ Available checks
      - An anonymous namespace defining a class/struct or holding more than
        ``max_declarations`` top-level declarations.
      - Optional (``max_declarations``)
+   * - :doc:`preferMstdCopyMoveMacros <prefer_mstd_copy_move_macros>`
+     - A hand-written ``= delete`` copy/move constructor or assignment
+       instead of ``MSTD_NO_COPY``/``MSTD_NO_MOVE``.
+     - Optional (``copy_macro``, ``move_macro``)
 
 .. toctree::
    :maxdepth: 1
@@ -165,3 +169,4 @@ Available checks
    pass_by_type
    no_in_class_member_definition
    max_anonymous_namespace_size
+   prefer_mstd_copy_move_macros
