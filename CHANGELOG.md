@@ -6,6 +6,15 @@ All notable changes to this project will be documented in this file.
 
 ### Features
 
+#### CPP Rules
+
+- Add `noConstValueParam` AST check flagging a named by-value parameter declared with top-level `const` (e.g. `void f(const int x)` or `int *const p`) in function, method and lambda definitions and declarations; `const T &`, `T &&`, pointers to const, unnamed parameters, deleted/defaulted functions and `const` coming from a type alias or macro are not flagged (Fixes #194)
+- Add `noInClassMemberDefinition` AST check flagging member functions (including constructors, destructors, operators, static members and member templates) whose body is written inside the class definition, in headers and `.cpp` files alike; `= default`, `= delete`, pure virtual members, macro-generated members, hidden friends and members of local or unnamed classes are not flagged (Fixes #195)
+- Add `maxAnonymousNamespaceSize` AST check flagging an anonymous namespace that defines any class/struct or has more than `max_declarations` (default 3) top-level functions, variables or type aliases, since code with internal linkage cannot be unit tested (Fixes #196)
+- Add `preferMstdCopyMoveMacros` AST check flagging hand-written `= delete` copy/move constructors and assignment operators and suggesting `MSTD_NO_COPY(X)`/`MSTD_NO_MOVE(X)`; members expanded from a macro are not flagged, and the suggested names are configurable via `copy_macro` and `move_macro` (Fixes #197)
+- Add `noMaybeUnusedParam` AST check flagging `[[maybe_unused]]` on function, method and lambda parameters; leave the parameter unnamed or comment the name out (`const Frame & /*frame*/`) instead (Fixes #198)
+- Add `noVoidPointerParam` AST check flagging `void *` parameters (any cv-qualification and pointer level, also via aliases) of free functions with external linkage and of public/protected methods and constructors; private methods, `static` and anonymous-namespace functions, `extern "C"` declarations, deleted functions and overrides are allowed (Fixes #199)
+
 #### Release
 
 - Add the `devops_release` command with the release steps from PQ: `version` (release or hotfix tag from branch and PR title), `check-refs`, `wait-ci` (green CI on the release commit), `publish` (tag and GitHub release, safe to re-run) and `reviewers`; set the CI gate in the new `[release]` config table (#192)
