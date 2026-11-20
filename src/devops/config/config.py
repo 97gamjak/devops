@@ -13,6 +13,7 @@ from .config_cpp import CppConfig, parse_cpp_config
 from .config_file import FileConfig, parse_file_config
 from .config_git import GitConfig, parse_git_config
 from .config_logging import LoggingConfig, parse_logging_config
+from .config_release import ReleaseConfig, parse_release_config
 from .constants import Constants
 from .toml import load_toml
 
@@ -55,6 +56,7 @@ class GlobalConfig:
     git: GitConfig = field(default_factory=GitConfig)
     cpp: CppConfig = field(default_factory=CppConfig)
     file: FileConfig = field(default_factory=FileConfig)
+    release: ReleaseConfig = field(default_factory=ReleaseConfig)
     # Path of the TOML file this config was read from (None for defaults).
     config_path: Path | None = None
 
@@ -73,6 +75,7 @@ class GlobalConfig:
         lines += [*self.git.to_toml_lines(), "\n"]
         lines += [*self.cpp.to_toml_lines(), "\n"]
         lines += [*self.file.to_toml_lines(), "\n"]
+        lines += [*self.release.to_toml_lines(), "\n"]
         file = Path(Constants.files.default_toml_template)
 
         # NOTE: here we don't want to use any special handling from
@@ -103,6 +106,7 @@ def parse_config(raw: dict[str, Any]) -> GlobalConfig:
     git_config = parse_git_config(raw)
     cpp_config = parse_cpp_config(raw)
     file_config = parse_file_config(raw)
+    release_config = parse_release_config(raw)
 
     # start exclude configuration
     exclude_table = get_table(raw, "exclude")
@@ -120,6 +124,7 @@ def parse_config(raw: dict[str, Any]) -> GlobalConfig:
         git=git_config,
         cpp=cpp_config,
         file=file_config,
+        release=release_config,
     )
 
 

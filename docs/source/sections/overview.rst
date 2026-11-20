@@ -151,6 +151,16 @@ Git tag utilities
 version without hand-maintaining it — this is what this project's own
 release workflow uses to bump versions on ``hotfix/*`` branches.
 
+Release commands
+^^^^^^^^^^^^^^^^
+
+:ref:`devops_release <cli-devops_release>` holds the steps of a release
+workflow: resolve the version from a ``release/<tag>`` or ``hotfix/<name>``
+branch, check that the tag is still free, wait for green CI on the release
+commit, then tag it and publish the GitHub release. Every step is safe to
+re-run, and Git or GitHub errors always stop the release. The CI workflows
+and the release branch are set in :ref:`[release] <config-release>`.
+
 CLI command reference
 ----------------------
 
@@ -256,6 +266,38 @@ Print the next version after bumping the latest Git tag. Exactly one of
 
    increase_latest_tag --patch
    increase_latest_tag --major --prefix v
+
+.. _cli-devops_release:
+
+``devops_release``
+^^^^^^^^^^^^^^^^^^
+
+Release steps for CI. Errors are printed to stderr and exit with code 1.
+
+.. code-block:: console
+
+   devops_release version --head-ref release/v1.2.0 --title Release-1.2.0 --prepare
+   devops_release version --head-ref hotfix/fix-x --title "Hotfix-1.1.1: fix x" --prepare
+   devops_release check-refs v1.2.0
+   devops_release wait-ci MolarVerse/PQ "$GITHUB_SHA"
+   devops_release publish MolarVerse/PQ v1.2.0
+   gh api repos/MolarVerse/PQ/releases/generate-notes -f tag_name=v1.2.0 --jq .body \
+       | devops_release reviewers MolarVerse/PQ
+
+- ``version`` prints the release tag. A release PR title must be
+  ``Release-X.Y.Z``; a hotfix PR title must start with ``Hotfix-X.Y.Z``. With
+  ``--prepare`` it also checks that the tag is new and that a hotfix is the
+  latest tag plus one patch.
+- ``check-refs`` fails if the tag or the ``release/<tag>`` branch exists.
+- ``wait-ci`` waits until the newest push run of every workflow in
+  ``release.ci_workflows`` succeeded on that exact commit.
+- ``publish`` tags ``HEAD`` and creates a stable release with generated notes.
+  A re-run finishes a partial publication; a tag on another commit or a draft
+  release stops it.
+- ``reviewers`` prints the human PR authors of release notes read from stdin.
+
+The GitHub token comes from ``GH_TOKEN`` or ``GITHUB_TOKEN``, and the API URL
+from ``GITHUB_API_URL``.
 
 ``generate_toml_template``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
