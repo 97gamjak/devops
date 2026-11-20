@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+<!-- insertion marker -->
+## [1.1.0](https://github.com/MolarVerse/devops/releases/tag/1.1.0) - 2026-11-20
+
 ### Features
 
 #### CPP Rules
@@ -23,7 +26,6 @@ All notable changes to this project will be documented in this file.
 
 - `update_changelog` links each version to the releases of the repository it runs in (`GITHUB_REPOSITORY` in CI, else the `origin` remote) instead of the placeholder `https://github.com/repo/owner`; past `CHANGELOG.md` links and the package links and the Codecov upload now point to `MolarVerse/devops` (#208)
 
-<!-- insertion marker -->
 ## [1.0.0](https://github.com/MolarVerse/devops/releases/tag/1.0.0) - 2026-11-18
 
 ### Features
@@ -433,6 +435,7 @@ All notable changes to this project will be documented in this file.
 - Add automatic release CI for PRs to main (either via title or via hotfix/ branch)
 - Add overnight CI runs for pytest and ruff CIs
 - Add test coverage to pytest CI
+
 
 
 
