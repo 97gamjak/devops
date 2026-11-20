@@ -31,10 +31,14 @@ from devops.cpp.ast.checks.max_anonymous_namespace_size import (
     MaxAnonymousNamespaceSize,
 )
 from devops.cpp.ast.checks.no_clang_format_toggle import NoClangFormatToggle
+from devops.cpp.ast.checks.no_const_value_param import NoConstValueParam
 from devops.cpp.ast.checks.no_delete_in_gtest_teardown import NoDeleteInGtestTeardown
 from devops.cpp.ast.checks.no_final_keyword import NoFinalKeyword
 from devops.cpp.ast.checks.no_global_using import NoGlobalUsing
 from devops.cpp.ast.checks.no_global_using_enum import NoGlobalUsingEnum
+from devops.cpp.ast.checks.no_in_class_member_definition import (
+    NoInClassMemberDefinition,
+)
 from devops.cpp.ast.checks.no_new_in_gtest_setup import NoNewInGtestSetup
 from devops.cpp.ast.checks.no_throw_paren import NoThrowParen
 
@@ -59,10 +63,12 @@ ALL_CHECKS: list[Check] = [
     MacroReplacement(),
     MaxAnonymousNamespaceSize(),
     NoClangFormatToggle(),
+    NoConstValueParam(),
     NoDeleteInGtestTeardown(),
     NoFinalKeyword(),
     NoGlobalUsing(),
     NoGlobalUsingEnum(),
+    NoInClassMemberDefinition(),
     NoNewInGtestSetup(),
     NoThrowParen(),
 ]

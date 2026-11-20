@@ -1,18 +1,131 @@
 """Unit tests for changelog update functionality in mstd checks."""
 
+import subprocess
 from datetime import UTC, datetime
+from pathlib import Path
 
 import pytest
 
-from devops.config import Constants
 from devops.files.files import DevOpsFileNotFoundError
 from devops.files.update_changelog import (
     __CHANGELOG_INSERTION_MARKER__,
     DevOpsChangelogError,
+    get_repo_url,
     update_changelog,
 )
 
-owner_url = Constants.github.github_default_owner_url
+owner_url = "https://github.com/owner/repo"
+
+
+@pytest.fixture(autouse=True)
+def github_repository(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Set the repository like GitHub Actions does.
+
+    Parameters
+    ----------
+    monkeypatch : pytest.MonkeyPatch
+        Fixture used to set the environment.
+
+    """
+    monkeypatch.setenv("GITHUB_REPOSITORY", "owner/repo")
+    monkeypatch.setenv("GITHUB_SERVER_URL", "https://github.com")
+
+
+def _git_repo(path: Path, monkeypatch: pytest.MonkeyPatch, remote: str | None) -> None:
+    subprocess.run(["git", "init", "-q", str(path)], check=True)  # noqa: S603
+    if remote is not None:
+        subprocess.run(  # noqa: S603
+            ["git", "-C", str(path), "remote", "add", "origin", remote], check=True
+        )
+    monkeypatch.delenv("GITHUB_REPOSITORY")
+    monkeypatch.chdir(path)
+
+
+class TestGetRepoUrl:
+    """Tests for get_repo_url."""
+
+    def test_from_environment(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Test that GITHUB_SERVER_URL and GITHUB_REPOSITORY are used.
+
+        Parameters
+        ----------
+        monkeypatch : pytest.MonkeyPatch
+            Fixture used to set the environment.
+
+        """
+        monkeypatch.setenv("GITHUB_SERVER_URL", "https://ghe.example/")
+        assert get_repo_url() == "https://ghe.example/owner/repo"
+
+    def test_server_defaults_to_github(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Test that github.com is used without GITHUB_SERVER_URL.
+
+        Parameters
+        ----------
+        monkeypatch : pytest.MonkeyPatch
+            Fixture used to set the environment.
+
+        """
+        monkeypatch.delenv("GITHUB_SERVER_URL")
+        assert get_repo_url() == owner_url
+
+    @pytest.mark.parametrize(
+        "remote",
+        [
+            "git@github.com:MolarVerse/devops.git",
+            "https://github.com/MolarVerse/devops",
+            "https://github.com/MolarVerse/devops.git",
+            "ssh://git@github.com/MolarVerse/devops.git",
+        ],
+    )
+    def test_from_origin(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, remote: str
+    ) -> None:
+        """Test that the origin remote is used outside GitHub Actions.
+
+        Parameters
+        ----------
+        tmp_path : Path
+            Temporary directory for the repository.
+        monkeypatch : pytest.MonkeyPatch
+            Fixture used to set the environment.
+        remote : str
+            The origin URL.
+
+        """
+        _git_repo(tmp_path, monkeypatch, remote)
+        assert get_repo_url() == "https://github.com/MolarVerse/devops"
+
+    def test_no_origin(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Test that a missing origin is an error.
+
+        Parameters
+        ----------
+        tmp_path : Path
+            Temporary directory for the repository.
+        monkeypatch : pytest.MonkeyPatch
+            Fixture used to set the environment.
+
+        """
+        _git_repo(tmp_path, monkeypatch, None)
+        with pytest.raises(DevOpsChangelogError, match="GITHUB_REPOSITORY"):
+            get_repo_url()
+
+    def test_origin_not_on_github(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test that a non-GitHub origin is an error.
+
+        Parameters
+        ----------
+        tmp_path : Path
+            Temporary directory for the repository.
+        monkeypatch : pytest.MonkeyPatch
+            Fixture used to set the environment.
+
+        """
+        _git_repo(tmp_path, monkeypatch, "https://gitlab.com/owner/repo.git")
+        with pytest.raises(DevOpsChangelogError, match="not a GitHub remote"):
+            get_repo_url()
 
 
 class TestDevOpsChangelogError:
@@ -32,6 +145,25 @@ class TestDevOpsChangelogError:
 
 class TestUpdateChangelog:
     """Tests for update_changelog function."""
+
+    def test_update_changelog_explicit_repo_url(self, tmp_path: Path) -> None:
+        """Test that an explicit repo_url is used for the link.
+
+        Parameters
+        ----------
+        tmp_path : Path
+            Temporary directory for test files.
+
+        """
+        changelog = tmp_path / "CHANGELOG.md"
+        changelog.write_text("## Next Release\n\n<!-- insertion marker -->\n")
+
+        update_changelog("1.0.0", changelog, "https://github.com/MolarVerse/PQ")
+
+        assert (
+            "## [1.0.0](https://github.com/MolarVerse/PQ/releases/tag/1.0.0)"
+            in changelog.read_text()
+        )
 
     def test_update_changelog_success(self, tmp_path: pytest.TempdirFactory) -> None:
         """Test successful changelog update with new version.
