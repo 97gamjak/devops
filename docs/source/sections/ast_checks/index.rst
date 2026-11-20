@@ -104,6 +104,10 @@ Available checks
    * - :doc:`noClangFormatToggle <no_clang_format_toggle>`
      - ``// clang-format off``/``on`` comments (line or block form).
      - None
+   * - :doc:`noConstValueParam <no_const_value_param>`
+     - A named by-value parameter declared with top-level ``const``
+       (e.g. ``const int x``, ``int *const p``).
+     - None
    * - :doc:`noFinalKeyword <no_final_keyword>`
      - ``final`` on a class/struct declaration or a virtual method.
      - None
@@ -128,6 +132,23 @@ Available checks
      - A parameter of a configured type not passed by (const) reference
        or by value as required.
      - Required (``types``)
+   * - :doc:`noInClassMemberDefinition <no_in_class_member_definition>`
+     - A member function whose body is written inside the class definition.
+     - None
+   * - :doc:`maxAnonymousNamespaceSize <max_anonymous_namespace_size>`
+     - An anonymous namespace defining a class/struct or holding more than
+       ``max_declarations`` top-level declarations.
+     - Optional (``max_declarations``)
+   * - :doc:`preferMstdCopyMoveMacros <prefer_mstd_copy_move_macros>`
+     - A hand-written ``= delete`` copy/move constructor or assignment
+       instead of ``MSTD_NO_COPY``/``MSTD_NO_MOVE``.
+     - Optional (``copy_macro``, ``move_macro``)
+   * - :doc:`noMaybeUnusedParam <no_maybe_unused_param>`
+     - ``[[maybe_unused]]`` on a function, method or lambda parameter.
+     - None
+   * - :doc:`noVoidPointerParam <no_void_pointer_param>`
+     - A ``void *`` parameter of a public or protected function.
+     - None
 
 .. toctree::
    :maxdepth: 1
@@ -145,9 +166,15 @@ Available checks
    no_delete_in_gtest_teardown
    no_new_in_gtest_setup
    no_clang_format_toggle
+   no_const_value_param
    no_final_keyword
    enforce_typename_over_class
    enforce_system_header_libs
    include_iwyu_pragma_only
    enforce_cpp_only_include
    pass_by_type
+   no_in_class_member_definition
+   max_anonymous_namespace_size
+   prefer_mstd_copy_move_macros
+   no_maybe_unused_param
+   no_void_pointer_param

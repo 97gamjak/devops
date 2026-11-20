@@ -4,8 +4,27 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+### Features
+
+#### CPP Rules
+
+- Add `noConstValueParam` AST check flagging a named by-value parameter declared with top-level `const` (e.g. `void f(const int x)` or `int *const p`) in function, method and lambda definitions and declarations; `const T &`, `T &&`, pointers to const, unnamed parameters, deleted/defaulted functions and `const` coming from a type alias or macro are not flagged (Fixes #194)
+- Add `noInClassMemberDefinition` AST check flagging member functions (including constructors, destructors, operators, static members and member templates) whose body is written inside the class definition, in headers and `.cpp` files alike; `= default`, `= delete`, pure virtual members, macro-generated members, hidden friends and members of local or unnamed classes are not flagged (Fixes #195)
+- Add `maxAnonymousNamespaceSize` AST check flagging an anonymous namespace that defines any class/struct or has more than `max_declarations` (default 3) top-level functions, variables or type aliases, since code with internal linkage cannot be unit tested (Fixes #196)
+- Add `preferMstdCopyMoveMacros` AST check flagging hand-written `= delete` copy/move constructors and assignment operators and suggesting `MSTD_NO_COPY(X)`/`MSTD_NO_MOVE(X)`; members expanded from a macro are not flagged, and the suggested names are configurable via `copy_macro` and `move_macro` (Fixes #197)
+- Add `noMaybeUnusedParam` AST check flagging `[[maybe_unused]]` on function, method and lambda parameters; leave the parameter unnamed or comment the name out (`const Frame & /*frame*/`) instead (Fixes #198)
+- Add `noVoidPointerParam` AST check flagging `void *` parameters (any cv-qualification and pointer level, also via aliases) of free functions with external linkage and of public/protected methods and constructors; private methods, `static` and anonymous-namespace functions, `extern "C"` declarations, deleted functions and overrides are allowed (Fixes #199)
+
+- `includeIwyuPragmaOnly`: `pragma_required_reasons` values may now be a list of strings, accepting any one of several alternative trailing reasons for a pragma (a single string still works)
+
+### Bug Fixes
+
+#### Changelog
+
+- `update_changelog` links each version to the releases of the repository it runs in (`GITHUB_REPOSITORY` in CI, else the `origin` remote) instead of the placeholder `https://github.com/repo/owner`; past `CHANGELOG.md` links and the package links and the Codecov upload now point to `MolarVerse/devops` (#208)
+
 <!-- insertion marker -->
-## [1.0.0](https://github.com/repo/owner/releases/tag/1.0.0) - 2026-11-18
+## [1.0.0](https://github.com/MolarVerse/devops/releases/tag/1.0.0) - 2026-11-18
 
 ### Features
 
@@ -13,14 +32,14 @@ All notable changes to this project will be documented in this file.
 
 - Add `passByType` AST check enforcing how parameters of configured types are passed, configured per type via `types` (`mode` = `const_ref`, `value` or `const_ref_or_value`); non-const/rvalue references and pointers are flagged; the per-type option `check_getter = true` additionally checks the return type of simple getters (non-static `const` member functions without parameters) of that type (Fixes #189)
 
-## [0.16.1](https://github.com/repo/owner/releases/tag/0.16.1) - 2026-11-12
+## [0.16.1](https://github.com/MolarVerse/devops/releases/tag/0.16.1) - 2026-11-12
 
 ### Features
 
 #### CPP Rules
 
 - `enforceCppOnlyInclude` accepts a new `extensions` list (e.g. `[".tpp"]`) restricting the check, in both the AST check and the whole-repository pre-check, to including files with those extensions instead of all headers
-## [0.16.0](https://github.com/repo/owner/releases/tag/0.16.0) - 2026-11-05
+## [0.16.0](https://github.com/MolarVerse/devops/releases/tag/0.16.0) - 2026-11-05
 
 ### Features
 
@@ -29,7 +48,7 @@ All notable changes to this project will be documented in this file.
 - Add `enforceCppOnlyInclude` AST check (configured via `libs`, with an `exclude_paths` escape hatch for files allowed to include them anyway) flagging a configured header `#include`d from another header instead of directly from a `.cpp` file; `libs` patterns are matched against the full `#include` path only, never against just the basename, so e.g. `"units.hpp"` matches a bare `#include "units.hpp"` but not an unrelated `#include <mstd/units.hpp>` from a different library (Fixes #183)
 - `enforceCppOnlyInclude` is additionally enforced by a whole-repository text-scan pre-check that always runs over every header, independent of `--base-ref`, `check_only_staged_files`, incremental caching, or `check_dirs`, so a violation in a file outside the current run's selection can no longer be missed; it runs before the normal check pipeline and honors `fail_fast` like every other check, stopping immediately on the first violation instead of still running the full normal pass (Fixes #183)
 
-## [0.15.1](https://github.com/repo/owner/releases/tag/0.15.1) - 2026-11-04
+## [0.15.1](https://github.com/MolarVerse/devops/releases/tag/0.15.1) - 2026-11-04
 
 ### Fixes
 
@@ -37,7 +56,7 @@ All notable changes to this project will be documented in this file.
 
 - `check_dirs` is no longer silently ignored when `--base-ref` is used: changed files outside the configured `check_dirs` folders are no longer checked in CI's diff-based runs (Fixes #180)
 
-## [0.15.0](https://github.com/repo/owner/releases/tag/0.15.0) - 2026-10-31
+## [0.15.0](https://github.com/MolarVerse/devops/releases/tag/0.15.0) - 2026-10-31
 
 ### Features
 
@@ -48,7 +67,7 @@ All notable changes to this project will be documented in this file.
 - Path-derived header guard macro names now split camelCase/PascalCase directory and file names into words (e.g. `velocityVerlet.hpp` expects `VELOCITY_VERLET`, not `VELOCITYVERLET`) instead of flattening them with a plain uppercase
 - All problems found with a file's header guard (structural issues and a path-derived name mismatch) are now reported together in a single error instead of one at a time across repeated runs
 
-## [0.14.1](https://github.com/repo/owner/releases/tag/0.14.1) - 2026-10-29
+## [0.14.1](https://github.com/MolarVerse/devops/releases/tag/0.14.1) - 2026-10-29
 
 ### Features
 
@@ -63,7 +82,7 @@ All notable changes to this project will be documented in this file.
 - Fix spurious `'<header>.hpp' file not found`/libclang fatal-parse-error AST-check failures for a header whose include path (own or a fallback TU's) force-includes a CMake `target_precompile_headers()` PCH header (`-include cmake_pch.hxx`). GCC/Clang both silently auto-prefer the compiled `.gch`/`.pch` cache sitting next to that textual header over the header itself, and that cache — serialized by the project's own compiler — is generally incompatible with pip's bundled libclang, producing a fatal parse error. A plain `-include <file>` is now also dropped when such a compiled sibling exists, the same way `-include-pch` already was
 - An unknown id in `ast_check_enabled_ids`/`ast_check_disabled_ids` (a typo, or a check id that only exists in a newer devops version than the one actually installed) now raises a `ConfigError` instead of only logging a warning and silently ignoring it, so a stale/mismatched install can no longer run with fewer checks than configured without failing loudly
 
-## [0.14.0](https://github.com/repo/owner/releases/tag/0.14.0) - 2026-10-26
+## [0.14.0](https://github.com/MolarVerse/devops/releases/tag/0.14.0) - 2026-10-26
 
 ### Features
 
@@ -78,7 +97,7 @@ All notable changes to this project will be documented in this file.
 - Fix spurious `'<header>.hpp' file not found` AST-check failures for a header shared by many test TUs (e.g. a fixture header under `tests/include/...`). When several TUs tied on the most specific matching `-I` directory, the previous breadth-based tie-break could pick a TU unrelated to the header instead of its own same-named `.cpp`, losing an `-I` the header actually needed. `_best_explicit_match` now prefers a TU whose filename stem matches the header's before falling back to breadth
 - Fix the same `file not found` failure for a header living directly in a directory several TUs compile from (e.g. `apps/validation.hpp`), where a single unrelated TU that happened to put that whole directory on its `-I` path (without needing anything the header depends on) blocked the fallback to its own same-named, same-directory sibling. `_best_match` now lets a same-directory, stem-matching sibling outrank such a weak explicit match
 
-## [0.13.2](https://github.com/repo/owner/releases/tag/0.13.2) - 2026-10-26
+## [0.13.2](https://github.com/MolarVerse/devops/releases/tag/0.13.2) - 2026-10-26
 
 ### Fixes
 
@@ -86,7 +105,7 @@ All notable changes to this project will be documented in this file.
 
 - Fix spurious `'<header>.hpp' file not found` AST-check failures when checking a header with no translation unit of its own on its include path (common when checking only header files changed since a base ref, since `.cpp` files always resolve to their own exact compile command). `_args_for_header` now falls back to a TU whose source file merely sits beside the header when no TU's declared `-I`/`-isystem` path reaches it, and breaks ties between TUs that share the same best-matching include directory by preferring the one with the most include directories overall instead of an arbitrary alphabetical pick
 
-## [0.13.1](https://github.com/repo/owner/releases/tag/0.13.1) - 2026-10-24
+## [0.13.1](https://github.com/MolarVerse/devops/releases/tag/0.13.1) - 2026-10-24
 
 ### Fixes
 
@@ -94,7 +113,7 @@ All notable changes to this project will be documented in this file.
 
 - Drop AST-check diagnostics located at or after a fatal libclang parse error. libclang's error-recovery parsing past that point can misreport cursor properties such as `access_specifier`, which previously surfaced as false `classMemberOrder`/`noPublicLeadingUnderscore` (and similar) findings on declarations that were actually correct (Fixes #165)
 
-## [0.13.0](https://github.com/repo/owner/releases/tag/0.13.0) - 2026-10-23
+## [0.13.0](https://github.com/MolarVerse/devops/releases/tag/0.13.0) - 2026-10-23
 
 ### Features
 
@@ -103,7 +122,7 @@ All notable changes to this project will be documented in this file.
 - Add `path_exceptions` support to `noGlobalUsing` and `noGlobalUsingEnum` AST checks. Each entry in the `[[...path_exceptions]]` array-of-tables specifies a set of `names` that are allowed in designated files or directories (`paths`). Patterns ending with `/` match any file under that directory prefix (recursively); other patterns follow `fnmatch` glob rules. This makes it possible to permit specific `using` aliases (e.g. `using rad = ...;`) only in certain parts of the codebase while still enforcing the rule everywhere else
 - Add `enforceTypenameOverClass` AST check flagging template type parameters introduced with `class` instead of `typename` (Fixes #162)
 
-## [0.12.0](https://github.com/repo/owner/releases/tag/0.12.0) - 2026-10-04
+## [0.12.0](https://github.com/MolarVerse/devops/releases/tag/0.12.0) - 2026-10-04
 
 ### Features
 
@@ -111,7 +130,7 @@ All notable changes to this project will be documented in this file.
 
 - Add `noFinalKeyword` AST check flagging use of the `final` specifier on classes, structs, and virtual methods (Fixes #158)
 
-## [0.11.0](https://github.com/repo/owner/releases/tag/0.11.0) - 2026-10-03
+## [0.11.0](https://github.com/MolarVerse/devops/releases/tag/0.11.0) - 2026-10-03
 
 ### Features
 
@@ -129,7 +148,7 @@ All notable changes to this project will be documented in this file.
 
 - Stop reading each checked file from disk twice per run (once for file-based rules, once for line-based rules); the content is now read once and shared between both
 
-## [0.10.0](https://github.com/repo/owner/releases/tag/0.10.0) - 2026-10-02
+## [0.10.0](https://github.com/MolarVerse/devops/releases/tag/0.10.0) - 2026-10-02
 
 ### Features
 
@@ -137,7 +156,7 @@ All notable changes to this project will be documented in this file.
 
 - Add `includeIwyuPragmaOnly` AST check flagging a `#include` line whose trailing comment is not a valid `// IWYU pragma: ...` comment (Fixes #150). An `#include` with no trailing comment is always allowed. Takes an optional `allowed_pragmas` list restricting which IWYU pragma keywords (e.g. `export`, `keep`) are accepted; when unset, every pragma keyword is allowed
 
-## [0.9.0](https://github.com/repo/owner/releases/tag/0.9.0) - 2026-09-30
+## [0.9.0](https://github.com/MolarVerse/devops/releases/tag/0.9.0) - 2026-09-30
 
 ### Features
 
@@ -146,7 +165,7 @@ All notable changes to this project will be documented in this file.
 - Add `noNewInGtestSetup` AST check flagging `new` expressions anywhere inside a member function named `SetUp`, `SetUpTestSuite`, or `SetUpTestCase` — the fixture-setup hooks GTest calls by name. A raw pointer allocated there needs a matching manual release whose timing depends on a separate teardown hook firing correctly later; prefer an RAII/smart-pointer owner instead. Only a literal `new` lexically inside the setup function's own body is flagged, not calls into other functions. Takes no configuration
 - Add `noDeleteInGtestTeardown` AST check flagging `delete`/`delete[]` expressions anywhere inside a member function named `TearDown`, `TearDownTestSuite`, or `TearDownTestCase` — the fixture-teardown hooks GTest calls by name. Manually deleting a raw pointer there is fragile (a `SetUp()` that throws or returns early skips the matching `delete`, and a test body that already freed the pointer causes a double-free); prefer an RAII/smart-pointer owner instead. Only a literal `delete`/`delete[]` lexically inside the teardown function's own body is flagged, not calls into other functions. Takes no configuration
 
-## [0.8.0](https://github.com/repo/owner/releases/tag/0.8.0) - 2026-09-30
+## [0.8.0](https://github.com/MolarVerse/devops/releases/tag/0.8.0) - 2026-09-30
 
 ### Features
 
@@ -155,7 +174,7 @@ All notable changes to this project will be documented in this file.
 - Add `noPublicLeadingUnderscore` AST check flagging public member variables and member functions (including static and template ones) whose name starts with `_`, e.g. `int _count;` or `void _compute();` under `public:` (or under a `struct`'s default access) should drop the leading underscore. Private/protected members are never checked here, since that's the concern of `memberLeadingUnderscore`/`memberFunctionLeadingUnderscore`. Constructors/destructors, operator overloads/conversions, and methods overriding a base-class virtual method are always exempt, and members synthesized entirely by a macro invoked on the same source line are excluded too. Takes no configuration
 - Add `classMemberOrder` AST check enforcing a fixed section order within each class/struct/union body: public, protected, then private member variables, followed by public, protected, then private member functions. Only in-class declarations count — out-of-line member-function definitions don't affect ordering — and declarations outside that list (nested types, `using` declarations, enums, friend declarations, ...) are ignored rather than resetting the sequence. Takes an optional `excluded_macros` list (e.g. `["Q_OBJECT"]`) so members/access-specifier changes synthesized by a named macro invocation are excluded from ordering entirely
 
-## [0.7.0](https://github.com/repo/owner/releases/tag/0.7.0) - 2026-09-28
+## [0.7.0](https://github.com/MolarVerse/devops/releases/tag/0.7.0) - 2026-09-28
 
 ### Python Requirement
 
@@ -174,7 +193,7 @@ All notable changes to this project will be documented in this file.
 
 - Fix `sphinx-build` failing under `-W` when the optional `ast` extra (`libclang`) isn't installed — as in the docs CI job, which only installs the `docs` extra. `memberFunctionLeadingUnderscore` bound a libclang ctypes function signature (`ctypes.POINTER(clang.Cursor)`) at module import time, which raised `TypeError: must be a ctypes type` against Sphinx's mocked `clang` module and broke autosummary for `devops.cpp` and everything that imports it (`add_license_header`, `cpp_checks`, `cpp_files`). The binding is now deferred to first use, when a real `clang.Cursor` is guaranteed to be available
 
-## [0.6.0](https://github.com/repo/owner/releases/tag/0.6.0) - 2026-09-27
+## [0.6.0](https://github.com/MolarVerse/devops/releases/tag/0.6.0) - 2026-09-27
 
 ### Features
 
@@ -186,7 +205,7 @@ All notable changes to this project will be documented in this file.
 
 - Add a dedicated "AST-Based C++ Checks" section to the Sphinx docs with an overview table of every AST check and its own sidebar-linked page per check (`paramNameForType`, `macroReplacement`, `noGlobalUsing`, `noGlobalUsingEnum`, `noThrowParen`), each with flagged-code examples and its full configuration reference. The scattered/partial AST-check descriptions previously duplicated across the overview and configuration pages now point to these pages instead
 
-## [0.5.0](https://github.com/repo/owner/releases/tag/0.5.0) - 2026-09-27
+## [0.5.0](https://github.com/MolarVerse/devops/releases/tag/0.5.0) - 2026-09-27
 
 ### Features
 
@@ -200,7 +219,7 @@ All notable changes to this project will be documented in this file.
 
 - Fix a libclang crash (`astParseError` with no useful diagnostic) when parsing a file whose compile args force-include a PCH header via the `-include <file>` compiler flag (as kept by the earlier `-include`-handling fix). Pip's libclang build has been observed to hard-crash on some real PCH headers when force-included this way — even though the exact same header content parses cleanly as an ordinary `#include`, and even though the project's own real compiler accepts the identical flag without issue. `-include <file>` is now stripped from the compiler args and instead turned into a real `#include` line ahead of the checked file in a synthetic wrapper (the same technique already used for header checks), which avoids the crash while preserving the checked file's own path and line numbers exactly
 
-## [0.4.2](https://github.com/repo/owner/releases/tag/0.4.2) - 2026-09-26
+## [0.4.2](https://github.com/MolarVerse/devops/releases/tag/0.4.2) - 2026-09-26
 
 ### Fixes
 
@@ -208,7 +227,7 @@ All notable changes to this project will be documented in this file.
 
 - Refine the `-include`/`-include-pch` handling in `compile_commands.json` arg filtering (following up on the 0.4.1 fix): `-include-pch` (the compiled PCH binary) is still always dropped, since it's serialized by whichever real compiler produced it and is generally incompatible with pip's bundled libclang regardless of whether the file exists. A plain `-include <file>` (the textual PCH header CMake also generates alongside the binary one) is now kept — normalized to a bare pair regardless of how it was originally wrapped — whenever that file exists on disk, since real project headers often rely on it being force-included first for standard-library symbols (`<optional>`, `<format>`, ...) they don't include themselves; unconditionally dropping it (the previous fix) produced a cascade of unrelated "no member"/"too many errors" failures when such a header was checked standalone. It's still dropped when missing, to avoid the original "file not found" fatal error
 
-## [0.4.1](https://github.com/repo/owner/releases/tag/0.4.1) - 2026-09-26
+## [0.4.1](https://github.com/MolarVerse/devops/releases/tag/0.4.1) - 2026-09-26
 
 ### Fixes
 
@@ -216,7 +235,7 @@ All notable changes to this project will be documented in this file.
 
 - Fix a bug in `compile_commands.json` arg filtering where a bare `-include <file>` (as GCC/CMake's `target_precompile_headers` emits, unlike Clang's `-Xclang -include -Xclang <file>`) had its file argument silently dropped by the positional-source-file heuristic, leaving a dangling `-include` that swallowed the next unrelated flag as its filename and caused a fatal parse error. `-include` (bare or `-Xclang`-wrapped, including `-include-pch`) is now always dropped together with its file argument, since a force-included PCH header may not exist for every cmake target
 
-## [0.4.0](https://github.com/repo/owner/releases/tag/0.4.0) - 2026-09-26
+## [0.4.0](https://github.com/MolarVerse/devops/releases/tag/0.4.0) - 2026-09-26
 
 ### Features
 
@@ -232,7 +251,7 @@ All notable changes to this project will be documented in this file.
 - Auto-detect and pass `-resource-dir` to libclang when parsing, using the project's own compiler from `compile_commands.json` (or `clang++`/`clang` on PATH as a fallback). Pip's `libclang` wheel ships no builtin headers, so without this, parsing real files could silently hit a fatal error partway through and stop analyzing the rest of the file
 - Surface a fatal libclang parse error (e.g. an unresolvable `#include`) as a visible `astParseError` diagnostic instead of silently reporting no issues for the unparsed remainder of the file
 
-## [0.3.0](https://github.com/repo/owner/releases/tag/0.3.0) - 2026-09-22
+## [0.3.0](https://github.com/MolarVerse/devops/releases/tag/0.3.0) - 2026-09-22
 
 ### Features
 
@@ -246,7 +265,7 @@ All notable changes to this project will be documented in this file.
 
 - Invalidate the incremental state file whenever the TOML config file changes (a hash of its contents is stored in the state file), so all files are re-checked with the new configuration
 
-## [0.3.0](https://github.com/repo/owner/releases/tag/0.3.0) - 2026-09-20
+## [0.3.0](https://github.com/MolarVerse/devops/releases/tag/0.3.0) - 2026-09-20
 
 ### Features
 
@@ -254,7 +273,7 @@ All notable changes to this project will be documented in this file.
 
 - add cli arg `--base-ref` to only check git changed files
 
-## [0.2.1](https://github.com/repo/owner/releases/tag/0.2.1) - 2026-09-20
+## [0.2.1](https://github.com/MolarVerse/devops/releases/tag/0.2.1) - 2026-09-20
 
 ### Bug Fixes
 
@@ -262,7 +281,7 @@ All notable changes to this project will be documented in this file.
 
 - Add `.tpp` files to header file extensions
 
-## [0.2.0](https://github.com/repo/owner/releases/tag/0.2.0) - 2026-09-20
+## [0.2.0](https://github.com/MolarVerse/devops/releases/tag/0.2.0) - 2026-09-20
 
 ### Features
 
@@ -290,7 +309,7 @@ All notable changes to this project will be documented in this file.
 - Fix `cpp_checks` CLI always scanning all directories regardless of `check_dirs` config
 - Fix AST parse failures being silently ignored: files that libclang cannot parse now produce a real check error (`[astParseError]`) and fail the run instead of being treated as passing
 
-## [0.1.4](https://github.com/repo/owner/releases/tag/0.1.4) - 2026-09-13
+## [0.1.4](https://github.com/MolarVerse/devops/releases/tag/0.1.4) - 2026-09-13
 
 ### Bug Fixes
 
@@ -299,7 +318,7 @@ All notable changes to this project will be documented in this file.
 - Explicitly dispatch the `Docs` workflow from `create-tag.yml` instead of relying on the tag push to trigger it, since pushes made with `GITHUB_TOKEN` don't trigger other workflows (GitHub's anti-recursion protection) - the release tag push was silently never deploying the docs
 - Allow the `Docs` workflow to be redeployed manually via `workflow_dispatch` regardless of ref
 
-## [0.1.3](https://github.com/repo/owner/releases/tag/0.1.3) - 2026-09-13
+## [0.1.3](https://github.com/MolarVerse/devops/releases/tag/0.1.3) - 2026-09-13
 
 ### Bug Fixes
 
@@ -308,7 +327,7 @@ All notable changes to this project will be documented in this file.
 - Only deploy documentation to GitHub Pages on release tag pushes, so the published version reflects the clean release version (e.g. `0.1.2`) instead of a dev version (e.g. `0.1.2.dev0+g...`)
 - Add `docs` status badge to the README
 
-## [0.1.2](https://github.com/repo/owner/releases/tag/0.1.2) - 2026-09-13
+## [0.1.2](https://github.com/MolarVerse/devops/releases/tag/0.1.2) - 2026-09-13
 
 ### Features
 
@@ -323,7 +342,7 @@ All notable changes to this project will be documented in this file.
 
 - Add GitHub Actions workflow to build the documentation and deploy it to GitHub Pages on merges to `main`
 
-## [0.1.1](https://github.com/repo/owner/releases/tag/0.1.1) - 2026-02-20
+## [0.1.1](https://github.com/MolarVerse/devops/releases/tag/0.1.1) - 2026-02-20
 
 ### Features
 
@@ -331,7 +350,7 @@ All notable changes to this project will be documented in this file.
 
 - make it possible to check header guards also for `.tpp` and `.impl.hpp` files
 
-## [0.1.0](https://github.com/repo/owner/releases/tag/0.1.0) - 2026-01-18
+## [0.1.0](https://github.com/MolarVerse/devops/releases/tag/0.1.0) - 2026-01-18
 
 #### Config
 
@@ -343,7 +362,7 @@ All notable changes to this project will be documented in this file.
 - Add `changelog_path` input to `update_changelog`
 - Add `update_changelogs` to update multiple changelogs at once
 
-## [0.0.4](https://github.com/repo/owner/releases/tag/0.0.4) - 2025-12-20
+## [0.0.4](https://github.com/MolarVerse/devops/releases/tag/0.0.4) - 2025-12-20
 
 ### Features
 
@@ -352,7 +371,7 @@ All notable changes to this project will be documented in this file.
 - Add CPP rule to check that in a header file there is always a header guard present
 - Adding option to enforce header guard format via file path
 
-## [0.0.3](https://github.com/repo/owner/releases/tag/0.0.3) - 2025-12-20
+## [0.0.3](https://github.com/MolarVerse/devops/releases/tag/0.0.3) - 2025-12-20
 
 ### Bug Fixes
 
@@ -360,7 +379,7 @@ All notable changes to this project will be documented in this file.
 
 - Now `cpp_checks` returns exit(1) if any test fails
 
-## [0.0.2](https://github.com/repo/owner/releases/tag/0.0.2) - 2025-12-20
+## [0.0.2](https://github.com/MolarVerse/devops/releases/tag/0.0.2) - 2025-12-20
 
 ### API
 
@@ -372,7 +391,7 @@ All notable changes to this project will be documented in this file.
 
 - generated default .toml file contains now key `license_header`
 
-## [0.0.1](https://github.com/repo/owner/releases/tag/0.0.1) - 2025-12-20
+## [0.0.1](https://github.com/MolarVerse/devops/releases/tag/0.0.1) - 2025-12-20
 
 ### API
 
