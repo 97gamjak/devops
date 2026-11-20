@@ -13,6 +13,7 @@ All notable changes to this project will be documented in this file.
 - Add `maxAnonymousNamespaceSize` AST check flagging an anonymous namespace that defines any class/struct or has more than `max_declarations` (default 3) top-level functions, variables or type aliases, since code with internal linkage cannot be unit tested (Fixes #196)
 - Add `preferMstdCopyMoveMacros` AST check flagging hand-written `= delete` copy/move constructors and assignment operators and suggesting `MSTD_NO_COPY(X)`/`MSTD_NO_MOVE(X)`; members expanded from a macro are not flagged, and the suggested names are configurable via `copy_macro` and `move_macro` (Fixes #197)
 - Add `noMaybeUnusedParam` AST check flagging `[[maybe_unused]]` on function, method and lambda parameters; leave the parameter unnamed or comment the name out (`const Frame & /*frame*/`) instead (Fixes #198)
+- Add `noVoidPointerParam` AST check flagging `void *` parameters (any cv-qualification and pointer level, also via aliases) of free functions with external linkage and of public/protected methods and constructors; private methods, `static` and anonymous-namespace functions, `extern "C"` declarations, deleted functions and overrides are allowed (Fixes #199)
 
 ### Bug Fixes
 

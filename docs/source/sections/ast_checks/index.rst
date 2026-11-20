@@ -146,6 +146,9 @@ Available checks
    * - :doc:`noMaybeUnusedParam <no_maybe_unused_param>`
      - ``[[maybe_unused]]`` on a function, method or lambda parameter.
      - None
+   * - :doc:`noVoidPointerParam <no_void_pointer_param>`
+     - A ``void *`` parameter of a public or protected function.
+     - None
 
 .. toctree::
    :maxdepth: 1
@@ -174,3 +177,4 @@ Available checks
    max_anonymous_namespace_size
    prefer_mstd_copy_move_macros
    no_maybe_unused_param
+   no_void_pointer_param
