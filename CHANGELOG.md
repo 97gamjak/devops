@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+### Features
+
+#### Release
+
+- Add the `devops_release` command with the release steps from PQ: `version` (release or hotfix tag from branch and PR title), `check-refs`, `wait-ci` (green CI on the release commit), `publish` (tag and GitHub release, safe to re-run) and `reviewers`; set the CI gate in the new `[release]` config table (#192)
+
+#### CPP Rules
+
+- Add `noForbiddenInclude` AST check flagging any `#include` (quoted or angle-bracketed) of a configured library, e.g. `libs = ["mp-units"]` forbids `mp-units` and all its subfiles; entries may also be `fnmatch` globs, and `exclude_paths` exempts files (Fixes #215)
+- 
 <!-- insertion marker -->
 ## [1.1.0](https://github.com/MolarVerse/devops/releases/tag/1.1.0) - 2026-11-20
 
