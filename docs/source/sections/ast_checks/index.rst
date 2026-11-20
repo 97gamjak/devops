@@ -124,6 +124,10 @@ Available checks
        an IWYU pragma keyword outside an allowlist, or a required pragma
        missing its reason.
      - Optional (``allowed_pragmas``, ``pragma_required_reasons``)
+   * - :doc:`noForbiddenInclude <no_forbidden_include>`
+     - An ``#include`` of a configured library that must never be included
+       (e.g. ``mp-units`` and all its subfiles).
+     - Required (``libs``)
    * - :doc:`enforceCppOnlyInclude <enforce_cpp_only_include>`
      - A configured header ``#include``\ d from another header instead of
        directly from a ``.cpp`` file.
@@ -172,6 +176,7 @@ Available checks
    enforce_system_header_libs
    include_iwyu_pragma_only
    enforce_cpp_only_include
+   no_forbidden_include
    pass_by_type
    no_in_class_member_definition
    max_anonymous_namespace_size
