@@ -50,6 +50,13 @@ trailing reason, so the exemption is self-documenting:
    // Good.
    #include "foo.hpp" // IWYU pragma: keep -- for template specialization
 
+To accept several alternative reasons for one pragma, give a list; the
+trailing reason must match any one of them:
+
+.. code-block:: toml
+
+   pragma_required_reasons = { keep = ["-- for template specialization", "-- needed for ADL"] }
+
 The required text must match exactly (after trimming surrounding
 whitespace, and the closing ``*/`` for block comments). Pragma keywords not
 listed in ``pragma_required_reasons`` are unaffected.
@@ -71,10 +78,10 @@ Configuration
      - IWYU pragma keywords that are allowed. An empty/unset list allows
        every keyword.
    * - ``pragma_required_reasons``
-     - table of string to string
+     - table of string to string or list of strings
      - ``{}``
      - Maps a pragma keyword to the exact trailing reason text it must be
-       followed by. Keywords not listed here have no reason requirement.
+       followed by (or a list of accepted alternatives). Keywords not listed here have no reason requirement.
 
 Disabling
 ----------

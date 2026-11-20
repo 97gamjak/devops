@@ -31,6 +31,11 @@ trailing reason, e.g. only allowing ``keep`` when it documents why::
 With the above, ``// IWYU pragma: keep -- for template specialization`` is
 allowed, but a bare ``// IWYU pragma: keep`` (or one with a different
 trailing reason) is flagged.
+
+A pragma may accept several alternative reasons by giving a list; the
+trailing reason must then match any one of them::
+
+    pragma_required_reasons = { keep = ["-- for ADL", "-- for templates"] }
 """
 
 from __future__ import annotations
@@ -53,7 +58,7 @@ class IncludeIwyuPragmaOnly(Check):
     def __init__(self) -> None:
         """Initialize with no pragma restriction (every IWYU pragma is allowed)."""
         self.allowed_pragmas: frozenset[str] = frozenset()
-        self.pragma_required_reasons: dict[str, str] = {}
+        self.pragma_required_reasons: dict[str, tuple[str, ...]] = {}
 
     def configure(self, config: dict) -> None:
         """Load the allowed IWYU pragma keywords from the check's TOML config block.
@@ -63,6 +68,8 @@ class IncludeIwyuPragmaOnly(Check):
         config: dict
             Expected shape: ``{"allowed_pragmas": ["export", "keep"],
             "pragma_required_reasons": {"keep": "-- for template specialization"}}``.
+            Each reason value is either a single string or a non-empty list
+            of strings (any one of which is accepted).
             When ``allowed_pragmas`` is absent or empty, every IWYU pragma
             keyword is allowed. When ``pragma_required_reasons`` is absent or
             empty, no pragma requires a trailing reason.
@@ -72,7 +79,7 @@ class IncludeIwyuPragmaOnly(Check):
         ConfigError
             If ``allowed_pragmas`` is present but is not a list of strings,
             or if ``pragma_required_reasons`` is present but is not a dict
-            of strings to strings.
+            of strings to strings or non-empty lists of strings.
 
         """
         raw = config.get("allowed_pragmas", [])
@@ -85,16 +92,35 @@ class IncludeIwyuPragmaOnly(Check):
         self.allowed_pragmas = frozenset(raw)
 
         reasons = config.get("pragma_required_reasons", {})
-        if not isinstance(reasons, dict) or not all(
-            isinstance(k, str) and isinstance(v, str) for k, v in reasons.items()
-        ):
-            msg = (
-                f"{self.id}: 'pragma_required_reasons' in "
-                f"[cpp.ast_check_config.{self.id}] must be a table of "
-                "string keys to string values"
-            )
-            raise ConfigError(msg)
-        self.pragma_required_reasons = dict(reasons)
+        if not isinstance(reasons, dict):
+            raise ConfigError(self._reasons_error())
+        normalized: dict[str, tuple[str, ...]] = {}
+        for key, value in reasons.items():
+            values = [value] if isinstance(value, str) else value
+            if (
+                not isinstance(key, str)
+                or not isinstance(values, list)
+                or not values
+                or not all(isinstance(v, str) for v in values)
+            ):
+                raise ConfigError(self._reasons_error())
+            normalized[key] = tuple(values)
+        self.pragma_required_reasons = normalized
+
+    def _reasons_error(self) -> str:
+        """Return the error message for an invalid ``pragma_required_reasons``.
+
+        Returns
+        -------
+        str
+            The message to raise in a `ConfigError`.
+
+        """
+        return (
+            f"{self.id}: 'pragma_required_reasons' in "
+            f"[cpp.ast_check_config.{self.id}] must be a table of string keys "
+            "to a string or a non-empty list of strings"
+        )
 
     def visit(self, cursor: clang.Cursor, filename: str) -> list[Diagnostic]:
         """Flag the cursor's trailing comment if it is a disallowed one.
@@ -156,12 +182,13 @@ class IncludeIwyuPragmaOnly(Check):
                 )
             ]
 
-        required_reason = self.pragma_required_reasons.get(pragma)
-        if required_reason is not None:
+        required_reasons = self.pragma_required_reasons.get(pragma)
+        if required_reasons is not None:
             rest = match.group(2).strip()
             if comment.startswith("/*"):
                 rest = rest.removesuffix("*/").strip()
-            if rest != required_reason:
+            if rest not in required_reasons:
+                quoted = " or ".join(f"'{r}'" for r in required_reasons)
                 return [
                     Diagnostic(
                         file=filename,
@@ -170,8 +197,8 @@ class IncludeIwyuPragmaOnly(Check):
                         message=(
                             f"#include '{cursor.spelling}' uses IWYU pragma "
                             f"'{pragma}', which requires the trailing reason "
-                            f"'{required_reason}' (e.g. '// IWYU pragma: "
-                            f"{pragma} {required_reason}')"
+                            f"{quoted} (e.g. '// IWYU pragma: "
+                            f"{pragma} {required_reasons[0]}')"
                         ),
                         check_id=self.id,
                         severity="style",

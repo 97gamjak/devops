@@ -6,6 +6,15 @@ All notable changes to this project will be documented in this file.
 
 ### Features
 
+#### Release
+
+- Add the `devops_release` command with the release steps from PQ: `version` (release or hotfix tag from branch and PR title), `check-refs`, `wait-ci` (green CI on the release commit), `publish` (tag and GitHub release, safe to re-run) and `reviewers`; set the CI gate in the new `[release]` config table (#192)
+
+<!-- insertion marker -->
+## [1.1.0](https://github.com/MolarVerse/devops/releases/tag/1.1.0) - 2026-11-20
+
+### Features
+
 #### CPP Rules
 
 - Add `noConstValueParam` AST check flagging a named by-value parameter declared with top-level `const` (e.g. `void f(const int x)` or `int *const p`) in function, method and lambda definitions and declarations; `const T &`, `T &&`, pointers to const, unnamed parameters, deleted/defaulted functions and `const` coming from a type alias or macro are not flagged (Fixes #194)
@@ -15,9 +24,7 @@ All notable changes to this project will be documented in this file.
 - Add `noMaybeUnusedParam` AST check flagging `[[maybe_unused]]` on function, method and lambda parameters; leave the parameter unnamed or comment the name out (`const Frame & /*frame*/`) instead (Fixes #198)
 - Add `noVoidPointerParam` AST check flagging `void *` parameters (any cv-qualification and pointer level, also via aliases) of free functions with external linkage and of public/protected methods and constructors; private methods, `static` and anonymous-namespace functions, `extern "C"` declarations, deleted functions and overrides are allowed (Fixes #199)
 
-#### Release
-
-- Add the `devops_release` command with the release steps from PQ: `version` (release or hotfix tag from branch and PR title), `check-refs`, `wait-ci` (green CI on the release commit), `publish` (tag and GitHub release, safe to re-run) and `reviewers`; set the CI gate in the new `[release]` config table (#192)
+- `includeIwyuPragmaOnly`: `pragma_required_reasons` values may now be a list of strings, accepting any one of several alternative trailing reasons for a pragma (a single string still works)
 
 ### Bug Fixes
 
@@ -25,7 +32,6 @@ All notable changes to this project will be documented in this file.
 
 - `update_changelog` links each version to the releases of the repository it runs in (`GITHUB_REPOSITORY` in CI, else the `origin` remote) instead of the placeholder `https://github.com/repo/owner`; past `CHANGELOG.md` links and the package links and the Codecov upload now point to `MolarVerse/devops` (#208)
 
-<!-- insertion marker -->
 ## [1.0.0](https://github.com/MolarVerse/devops/releases/tag/1.0.0) - 2026-11-18
 
 ### Features
@@ -435,6 +441,7 @@ All notable changes to this project will be documented in this file.
 - Add automatic release CI for PRs to main (either via title or via hotfix/ branch)
 - Add overnight CI runs for pytest and ruff CIs
 - Add test coverage to pytest CI
+
 
 
 
