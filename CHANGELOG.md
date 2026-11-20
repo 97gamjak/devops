@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## Next Release
 
+<!-- insertion marker -->
+## [1.2.0](https://github.com/MolarVerse/devops/releases/tag/1.2.0) - 2026-11-20
+
 ### Features
 
 #### Release
@@ -14,7 +17,6 @@ All notable changes to this project will be documented in this file.
 
 - Add `noForbiddenInclude` AST check flagging any `#include` (quoted or angle-bracketed) of a configured library, e.g. `libs = ["mp-units"]` forbids `mp-units` and all its subfiles; entries may also be `fnmatch` globs, and `exclude_paths` exempts files (Fixes #215)
 - 
-<!-- insertion marker -->
 ## [1.1.0](https://github.com/MolarVerse/devops/releases/tag/1.1.0) - 2026-11-20
 
 ### Features
@@ -445,6 +447,7 @@ All notable changes to this project will be documented in this file.
 - Add automatic release CI for PRs to main (either via title or via hotfix/ branch)
 - Add overnight CI runs for pytest and ruff CIs
 - Add test coverage to pytest CI
+
 
 
 
