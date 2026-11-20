@@ -83,6 +83,11 @@ class TestConfig:
         with pytest.raises(ConfigError):
             NoForbiddenInclude().configure({"libs": "mp-units"})
 
+    def test_unknown_key_raises(self) -> None:
+        """Test a misspelled key is an error instead of silently ignored."""
+        with pytest.raises(ConfigError, match="forbidden_includes"):
+            NoForbiddenInclude().configure({"forbidden_includes": ["mp-units"]})
+
     def test_check_id(self) -> None:
         """Test check id."""
         assert NoForbiddenInclude().id == "noForbiddenInclude"

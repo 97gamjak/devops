@@ -86,9 +86,17 @@ class NoForbiddenInclude(Check):
         ------
         ConfigError
             If ``libs`` or ``exclude_paths`` is present but is not a list of
-            strings.
+            strings, or if the table contains any other (e.g. misspelled) key.
 
         """
+        unknown = sorted(set(config) - {"libs", "exclude_paths"})
+        if unknown:
+            msg = (
+                f"{self.id}: unknown key(s) {unknown} in "
+                f"[cpp.ast_check_config.{self.id}]; expected 'libs' and/or "
+                "'exclude_paths'"
+            )
+            raise ConfigError(msg)
         self.libs = tuple(self._parse_str_list(config, "libs"))
         self.exclude_paths = tuple(self._parse_str_list(config, "exclude_paths"))
 
