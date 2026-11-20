@@ -8,7 +8,7 @@ from typing import Any
 
 
 # TODO(97gamjak): centralize exception handling
-# https://github.com/97gamjak/devops/issues/24
+# https://github.com/MolarVerse/devops/issues/24
 class TomlError(Exception):
     """Custom exception for TOML-related errors."""
 
