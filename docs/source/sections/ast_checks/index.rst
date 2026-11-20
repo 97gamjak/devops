@@ -132,6 +132,9 @@ Available checks
      - A parameter of a configured type not passed by (const) reference
        or by value as required.
      - Required (``types``)
+   * - :doc:`noInClassMemberDefinition <no_in_class_member_definition>`
+     - A member function whose body is written inside the class definition.
+     - None
 
 .. toctree::
    :maxdepth: 1
@@ -156,3 +159,4 @@ Available checks
    include_iwyu_pragma_only
    enforce_cpp_only_include
    pass_by_type
+   no_in_class_member_definition

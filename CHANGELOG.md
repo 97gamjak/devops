@@ -9,6 +9,8 @@ All notable changes to this project will be documented in this file.
 #### CPP Rules
 
 - Add `noConstValueParam` AST check flagging a named by-value parameter declared with top-level `const` (e.g. `void f(const int x)` or `int *const p`) in function, method and lambda definitions and declarations; `const T &`, `T &&`, pointers to const, unnamed parameters, deleted/defaulted functions and `const` coming from a type alias or macro are not flagged (Fixes #194)
+- Add `noInClassMemberDefinition` AST check flagging member functions (including constructors, destructors, operators, static members and member templates) whose body is written inside the class definition, in headers and `.cpp` files alike; `= default`, `= delete`, pure virtual members, macro-generated members, hidden friends and members of local or unnamed classes are not flagged (Fixes #195)
+
 ### Bug Fixes
 
 #### Changelog
