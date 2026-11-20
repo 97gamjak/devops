@@ -15,6 +15,8 @@ All notable changes to this project will be documented in this file.
 - Add `noMaybeUnusedParam` AST check flagging `[[maybe_unused]]` on function, method and lambda parameters; leave the parameter unnamed or comment the name out (`const Frame & /*frame*/`) instead (Fixes #198)
 - Add `noVoidPointerParam` AST check flagging `void *` parameters (any cv-qualification and pointer level, also via aliases) of free functions with external linkage and of public/protected methods and constructors; private methods, `static` and anonymous-namespace functions, `extern "C"` declarations, deleted functions and overrides are allowed (Fixes #199)
 
+- `includeIwyuPragmaOnly`: `pragma_required_reasons` values may now be a list of strings, accepting any one of several alternative trailing reasons for a pragma (a single string still works)
+
 ### Bug Fixes
 
 #### Changelog
