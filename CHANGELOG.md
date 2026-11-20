@@ -12,6 +12,7 @@ All notable changes to this project will be documented in this file.
 - Add `noInClassMemberDefinition` AST check flagging member functions (including constructors, destructors, operators, static members and member templates) whose body is written inside the class definition, in headers and `.cpp` files alike; `= default`, `= delete`, pure virtual members, macro-generated members, hidden friends and members of local or unnamed classes are not flagged (Fixes #195)
 - Add `maxAnonymousNamespaceSize` AST check flagging an anonymous namespace that defines any class/struct or has more than `max_declarations` (default 3) top-level functions, variables or type aliases, since code with internal linkage cannot be unit tested (Fixes #196)
 - Add `preferMstdCopyMoveMacros` AST check flagging hand-written `= delete` copy/move constructors and assignment operators and suggesting `MSTD_NO_COPY(X)`/`MSTD_NO_MOVE(X)`; members expanded from a macro are not flagged, and the suggested names are configurable via `copy_macro` and `move_macro` (Fixes #197)
+- Add `noMaybeUnusedParam` AST check flagging `[[maybe_unused]]` on function, method and lambda parameters; leave the parameter unnamed or comment the name out (`const Frame & /*frame*/`) instead (Fixes #198)
 
 ### Bug Fixes
 

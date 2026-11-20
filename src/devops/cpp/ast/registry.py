@@ -39,6 +39,7 @@ from devops.cpp.ast.checks.no_global_using_enum import NoGlobalUsingEnum
 from devops.cpp.ast.checks.no_in_class_member_definition import (
     NoInClassMemberDefinition,
 )
+from devops.cpp.ast.checks.no_maybe_unused_param import NoMaybeUnusedParam
 from devops.cpp.ast.checks.no_new_in_gtest_setup import NoNewInGtestSetup
 from devops.cpp.ast.checks.no_throw_paren import NoThrowParen
 from devops.cpp.ast.checks.prefer_mstd_copy_move_macros import PreferMstdCopyMoveMacros
@@ -70,6 +71,7 @@ ALL_CHECKS: list[Check] = [
     NoGlobalUsing(),
     NoGlobalUsingEnum(),
     NoInClassMemberDefinition(),
+    NoMaybeUnusedParam(),
     NoNewInGtestSetup(),
     NoThrowParen(),
     PreferMstdCopyMoveMacros(),

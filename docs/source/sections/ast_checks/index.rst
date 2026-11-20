@@ -143,6 +143,9 @@ Available checks
      - A hand-written ``= delete`` copy/move constructor or assignment
        instead of ``MSTD_NO_COPY``/``MSTD_NO_MOVE``.
      - Optional (``copy_macro``, ``move_macro``)
+   * - :doc:`noMaybeUnusedParam <no_maybe_unused_param>`
+     - ``[[maybe_unused]]`` on a function, method or lambda parameter.
+     - None
 
 .. toctree::
    :maxdepth: 1
@@ -170,3 +173,4 @@ Available checks
    no_in_class_member_definition
    max_anonymous_namespace_size
    prefer_mstd_copy_move_macros
+   no_maybe_unused_param
