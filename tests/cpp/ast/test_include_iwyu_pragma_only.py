@@ -141,6 +141,34 @@ class TestIncludeIwyuPragmaOnlyRequiredReasonsConfig:
         code = '#include "foo.h" // IWYU pragma: export\n'
         assert _diags(code, tmp_path, check) == []
 
+    def test_list_of_reasons_accepts_any(self, tmp_path: Path) -> None:
+        """Test each reason in a list is accepted."""
+        check = IncludeIwyuPragmaOnly()
+        check.configure(
+            {"pragma_required_reasons": {"keep": ["-- for ADL", "-- for templates"]}}
+        )
+        for reason in ("-- for ADL", "-- for templates"):
+            code = f'#include "foo.h" // IWYU pragma: keep {reason}\n'
+            assert _diags(code, tmp_path, check) == []
+
+    def test_list_of_reasons_rejects_other(self, tmp_path: Path) -> None:
+        """Test a reason not in the list is flagged and all are listed."""
+        check = IncludeIwyuPragmaOnly()
+        check.configure(
+            {"pragma_required_reasons": {"keep": ["-- for ADL", "-- for templates"]}}
+        )
+        code = '#include "foo.h" // IWYU pragma: keep -- nope\n'
+        diags = _diags(code, tmp_path, check)
+        assert len(diags) == 1
+        assert "'-- for ADL' or '-- for templates'" in diags[0]
+
+    @pytest.mark.parametrize("bad", [[], [1], ["ok", 2]])
+    def test_invalid_reason_list_raises(self, bad: list) -> None:
+        """Test empty or non-string reason lists raise."""
+        check = IncludeIwyuPragmaOnly()
+        with pytest.raises(ConfigError):
+            check.configure({"pragma_required_reasons": {"keep": bad}})
+
     def test_invalid_required_reasons_config_raises(self) -> None:
         """Test invalid required reasons config raises."""
         check = IncludeIwyuPragmaOnly()
