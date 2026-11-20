@@ -34,6 +34,7 @@ from devops.cpp.ast.checks.no_clang_format_toggle import NoClangFormatToggle
 from devops.cpp.ast.checks.no_const_value_param import NoConstValueParam
 from devops.cpp.ast.checks.no_delete_in_gtest_teardown import NoDeleteInGtestTeardown
 from devops.cpp.ast.checks.no_final_keyword import NoFinalKeyword
+from devops.cpp.ast.checks.no_forbidden_include import NoForbiddenInclude
 from devops.cpp.ast.checks.no_global_using import NoGlobalUsing
 from devops.cpp.ast.checks.no_global_using_enum import NoGlobalUsingEnum
 from devops.cpp.ast.checks.no_in_class_member_definition import (
@@ -69,6 +70,7 @@ ALL_CHECKS: list[Check] = [
     NoConstValueParam(),
     NoDeleteInGtestTeardown(),
     NoFinalKeyword(),
+    NoForbiddenInclude(),
     NoGlobalUsing(),
     NoGlobalUsingEnum(),
     NoInClassMemberDefinition(),
