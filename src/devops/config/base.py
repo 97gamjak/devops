@@ -11,7 +11,7 @@ if typing.TYPE_CHECKING:
 
 
 # TODO(97gamjak): centralize exception handling
-# https://github.com/97gamjak/devops/issues/24
+# https://github.com/MolarVerse/devops/issues/24
 class ConfigError(Exception):
     """Custom exception for configuration-related errors."""
 
