@@ -8,7 +8,7 @@ All notable changes to this project will be documented in this file.
 
 #### Changelog
 
-- `update_changelog` links each version to the releases of the repository it runs in (`GITHUB_REPOSITORY` in CI, else the `origin` remote) instead of the placeholder `https://github.com/repo/owner`; past `CHANGELOG.md` links and the package links now point to `MolarVerse/devops` (#208)
+- `update_changelog` links each version to the releases of the repository it runs in (`GITHUB_REPOSITORY` in CI, else the `origin` remote) instead of the placeholder `https://github.com/repo/owner`; past `CHANGELOG.md` links and the package links and the Codecov upload now point to `MolarVerse/devops` (#208)
 
 <!-- insertion marker -->
 ## [1.0.0](https://github.com/MolarVerse/devops/releases/tag/1.0.0) - 2026-11-18
