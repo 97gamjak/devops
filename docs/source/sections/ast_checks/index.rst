@@ -135,6 +135,10 @@ Available checks
    * - :doc:`noInClassMemberDefinition <no_in_class_member_definition>`
      - A member function whose body is written inside the class definition.
      - None
+   * - :doc:`maxAnonymousNamespaceSize <max_anonymous_namespace_size>`
+     - An anonymous namespace defining a class/struct or holding more than
+       ``max_declarations`` top-level declarations.
+     - Optional (``max_declarations``)
 
 .. toctree::
    :maxdepth: 1
@@ -160,3 +164,4 @@ Available checks
    enforce_cpp_only_include
    pass_by_type
    no_in_class_member_definition
+   max_anonymous_namespace_size

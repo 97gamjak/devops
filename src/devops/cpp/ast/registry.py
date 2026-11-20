@@ -27,6 +27,9 @@ from devops.cpp.ast.checks.enforce_system_header_libs import EnforceSystemHeader
 from devops.cpp.ast.checks.enforce_typename_over_class import EnforceTypenameOverClass
 from devops.cpp.ast.checks.include_iwyu_pragma_only import IncludeIwyuPragmaOnly
 from devops.cpp.ast.checks.macro_replacement import MacroReplacement
+from devops.cpp.ast.checks.max_anonymous_namespace_size import (
+    MaxAnonymousNamespaceSize,
+)
 from devops.cpp.ast.checks.no_clang_format_toggle import NoClangFormatToggle
 from devops.cpp.ast.checks.no_const_value_param import NoConstValueParam
 from devops.cpp.ast.checks.no_delete_in_gtest_teardown import NoDeleteInGtestTeardown
@@ -58,6 +61,7 @@ ALL_CHECKS: list[Check] = [
     EnforceTypenameOverClass(),
     IncludeIwyuPragmaOnly(),
     MacroReplacement(),
+    MaxAnonymousNamespaceSize(),
     NoClangFormatToggle(),
     NoConstValueParam(),
     NoDeleteInGtestTeardown(),
