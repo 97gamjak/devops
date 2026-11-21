@@ -67,4 +67,4 @@ class CheckForbiddenSpellings(Rule):
             errors.append(f"{location}:{line_no}: forbidden spelling, use {hints}")
         if not errors:
             return ResultType(ResultTypeEnum.Ok)
-        return ResultType(ResultTypeEnum.Error, "\n".join(errors))
+        return ResultType(ResultTypeEnum.Error, "\n" + "\n".join(errors))
