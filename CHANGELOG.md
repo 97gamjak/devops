@@ -9,6 +9,11 @@ All notable changes to this project will be documented in this file.
 #### CPP Rules
 
 - Add the `forbidden_spellings` option to `[cpp]`: a dictionary of spellings (e.g. `colour = "color"`) that are flagged as whole words in every C++ file, together with the spelling to use instead; `colour = { replacement = "color", within_words = true }` also flags it inside longer words. It is a plain line-based text rule, independent of the AST framework (Fixes #220)
+
+#### Performance
+
+- Run the cheap text-based C++ rules before the libclang AST rule; with `fail_fast`, a file that already fails one of them is no longer parsed (#220)
+
 <!-- insertion marker -->
 ## [1.2.0](https://github.com/MolarVerse/devops/releases/tag/1.2.0) - 2026-11-20
 

@@ -337,12 +337,28 @@ def _check_single_file(
     file_rules: list[Rule],
     line_rules: list[Rule],
     filename: Path,
+    *,
+    fail_fast: bool = False,
 ) -> bool:
-    """Run all rules on one file, log failures, return True if all passed."""
+    """Run all rules on one file, log failures, return True if all passed.
+
+    The cheap text-based rules run first. The expensive libclang AST rule
+    runs last and, when ``fail_fast`` is set, is skipped for a file that
+    already failed a cheap rule (the run is going to stop anyway).
+    """
     content = _read_file_content(filename)
-    file_results = run_file_rules(file_rules, filename, content=content)
-    file_results += run_line_checks(line_rules, filename, content=content)
-    return _evaluate_results(filename, file_results)
+    ast_rule = _find_ast_rule(file_rules)
+    cheap_file_rules = [r for r in file_rules if r is not ast_rule]
+    results = run_file_rules(cheap_file_rules, filename, content=content)
+    results += run_line_checks(line_rules, filename, content=content)
+    if ast_rule is not None and not (fail_fast and _has_failure(results)):
+        results += run_file_rules([ast_rule], filename, content=content)
+    return _evaluate_results(filename, results)
+
+
+def _has_failure(results: list[ResultType]) -> bool:
+    """Return True if any result is not Ok."""
+    return any(result.value != ResultTypeEnum.Ok for result in results)
 
 
 def _find_ast_rule(file_rules: list[Rule]) -> Rule | None:
@@ -374,7 +390,9 @@ def _run_checks_serial(
     passed = True
     for i, filename in enumerate(files, start=1):
         cpp_check_logger.info(f"({i}/{total}) {filename}")
-        file_passed = _check_single_file(file_rules, line_rules, filename)
+        file_passed = _check_single_file(
+            file_rules, line_rules, filename, fail_fast=config.fail_fast
+        )
         if not file_passed:
             passed = False
             if state_file is not None:
@@ -439,21 +457,28 @@ def _run_checks_parallel(
         for start in range(0, total, batch_size):
             batch = files[start : start + batch_size]
             contents = {f: _read_file_content(f) for f in batch}
+            # Cheap rules first; only parse files that still need the AST check
+            # (with fail_fast, a file that already failed will not be parsed).
+            cheap_results = {
+                f: run_file_rules(other_file_rules, f, content=contents[f])
+                + run_line_checks(line_rules, f, content=contents[f])
+                for f in batch
+            }
             future_to_file = {
                 executor.submit(run_ast_checks_in_worker, f, contents[f]): f
                 for f in batch
+                if not (config.fail_fast and _has_failure(cheap_results[f]))
             }
             batch_failed = False
-            for future, filename in future_to_file.items():
-                ast_result, worker_state = future.result()
-                ast_rule.merge_state(worker_state)
-
-                content = contents[filename]
-                file_results = run_file_rules(
-                    other_file_rules, filename, content=content
+            for filename in batch:
+                file_results = cheap_results[filename]
+                future = next(
+                    (fu for fu, f in future_to_file.items() if f == filename), None
                 )
-                file_results += run_line_checks(line_rules, filename, content=content)
-                file_results.append(ast_result)
+                if future is not None:
+                    ast_result, worker_state = future.result()
+                    ast_rule.merge_state(worker_state)
+                    file_results.append(ast_result)
 
                 checked += 1
                 cpp_check_logger.info(f"({checked}/{total}) {filename}")

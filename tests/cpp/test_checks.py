@@ -1153,3 +1153,63 @@ class TestCppOnlyIncludePrecheck:
 
         with patch("devops.cpp.checks.get_staged_files", return_value=[]):
             assert run_cpp_checks([], CppConfig(check_only_staged_files=True)) is True
+
+
+class TestCheapRulesBeforeAst:
+    """Cheap text rules run before, and with fail_fast short-circuit, the AST rule."""
+
+    @pytest.mark.parametrize("parallel_jobs", [1, 2])
+    @pytest.mark.parametrize("fail_fast", [True, False])
+    def test_ast_skipped_only_when_fail_fast_and_cheap_rule_failed(
+        self, tmp_path: Path, *, parallel_jobs: int, fail_fast: bool
+    ) -> None:
+        """The AST rule is skipped for a file failing a line rule iff fail_fast."""
+        if ASTChecksRule is None:
+            pytest.skip("libclang not installed")
+
+        cpp_file = tmp_path / "file.cpp"
+        cpp_file.write_text("int colour = 1;\n")
+        bad_line_rule = Rule(
+            name="bad",
+            func=lambda _line: ResultType(ResultTypeEnum.Error, "bad spelling"),
+            rule_type=RuleType.CPP_STYLE,
+            rule_input_type=RuleInputType.LINE,
+        )
+        ast_rule = ASTChecksRule()
+        config = CppConfig(
+            check_only_staged_files=True,
+            fail_fast=fail_fast,
+            parallel_jobs=parallel_jobs,
+        )
+
+        with (
+            patch("devops.cpp.checks.get_staged_files", return_value=[cpp_file]),
+            patch.object(
+                ASTChecksRule,
+                "apply",
+                return_value=ResultType(ResultTypeEnum.Ok),
+            ) as ast_apply,
+            patch(
+                "devops.cpp.checks.run_ast_checks_in_worker",
+                return_value=(ResultType(ResultTypeEnum.Ok), {}),
+            ) as worker,
+            patch("devops.cpp.checks.ProcessPoolExecutor") as pool,
+        ):
+            pool.return_value.__enter__.return_value.submit.side_effect = (
+                lambda fn, *a: _ImmediateFuture(fn(*a))
+            )
+            result = run_cpp_checks([bad_line_rule, ast_rule], config)
+
+        assert result is False
+        ast_ran = ast_apply.called or worker.called
+        assert ast_ran is (not fail_fast)
+
+
+class _ImmediateFuture:
+    """Minimal already-completed future."""
+
+    def __init__(self, value: object) -> None:
+        self._value = value
+
+    def result(self) -> object:
+        return self._value
