@@ -197,6 +197,25 @@ class TestFatalErrorInNestedInclude:
         assert "not/there.hpp" in parse_errors[0].message
 
 
+class TestTooManyErrorsNamesFirstError:
+    """A "too many errors" fatal also names the first real error."""
+
+    def test_first_error_is_named(self, tmp_path: Path) -> None:
+        """The cause in an included header is reported, not just the limit."""
+        inner = tmp_path / "inner.hpp"
+        inner.write_text("".join(f"undeclared_t{i} v{i};\n" for i in range(40)))
+        outer = tmp_path / "outer.cpp"
+        outer.write_text('#include "inner.hpp"\n')
+
+        diags = run_ast_checks(outer, outer.read_text(), [f"-I{tmp_path}"])
+
+        msg = next(d.message for d in diags if d.check_id == "astParseError")
+        assert "too many errors" in msg
+        assert "first error:" in msg
+        assert "undeclared_t0" in msg
+        assert "inner.hpp:1" in msg
+
+
 class TestGccBuiltinIncludeFallback:
     """A GCC compiler (no ``-print-resource-dir``) contributes its builtin headers."""
 

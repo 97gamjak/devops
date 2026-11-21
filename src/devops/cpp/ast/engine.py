@@ -325,6 +325,23 @@ def run_ast_checks(
                 f"{fatal.location.line}:{fatal.location.column})"
             )
         )
+        # "too many errors emitted" carries no location and hides the real
+        # cause: name the first ordinary error that led up to it.
+        first_error = next(
+            (
+                d
+                for d in translation_unit.diagnostics
+                if d.severity == clang.Diagnostic.Error
+            ),
+            None,
+        )
+        if first_error is not None and fatal.spelling.startswith("too many errors"):
+            err_file = first_error.location.file
+            where += (
+                f" — first error: {first_error.spelling} "
+                f"({err_file.name if err_file else filename}:"
+                f"{first_error.location.line}:{first_error.location.column})"
+            )
         diagnostics.append(
             Diagnostic(
                 file=filename,
