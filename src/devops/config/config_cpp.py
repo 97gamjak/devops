@@ -7,6 +7,18 @@ from devops.logger import config_logger
 from .base import ConfigError, get_bool, get_int, get_str, get_str_list, get_table
 
 
+@dataclass(frozen=True)
+class ForbiddenSpelling:
+    """A forbidden spelling's replacement and matching mode."""
+
+    # The spelling (or hint) to use instead.
+    replacement: str
+
+    # If True, the spelling is also flagged inside longer words
+    # (e.g. "colour" in "colourful"); otherwise whole words only.
+    within_words: bool = False
+
+
 @dataclass
 class CppConfig:
     """Dataclass to hold C++ configuration values."""
@@ -75,10 +87,11 @@ class CppConfig:
     ast_check_config: dict[str, dict] = field(default_factory=dict)
 
     # Spellings that must not appear in C++ files, mapped to the spelling (or
-    # hint) to use instead, e.g. {"colour": "color"}. Matched case-sensitively
-    # on whole words by a plain line-based text rule (not part of the AST
-    # framework). Empty (the default) disables the rule.
-    forbidden_spellings: dict[str, str] = field(default_factory=dict)
+    # hint) to use instead, e.g. {"colour": ForbiddenSpelling("color")}. Matched
+    # case-sensitively, by default on whole words only (see
+    # ForbiddenSpelling.within_words), by a plain line-based text rule (not
+    # part of the AST framework). Empty (the default) disables the rule.
+    forbidden_spellings: dict[str, ForbiddenSpelling] = field(default_factory=dict)
 
     # Path to the JSON file used to persist incremental check state.
     # When set (non-None, non-empty), cpp_checks runs in incremental mode
@@ -213,6 +226,8 @@ class CppConfig:
             "# Forbidden spellings (word -> replacement), matched on whole words:\n"
             "#[cpp.forbidden_spellings]\n"
             '#colour = "color"\n'
+            "# Also flag inside longer words (e.g. colourful):\n"
+            '#colour = { replacement = "color", within_words = true }\n'
         )
 
         isf = (
@@ -229,27 +244,46 @@ class CppConfig:
         return lines
 
 
-def _parse_forbidden_spellings(table: dict) -> dict[str, str]:
+def _parse_forbidden_spellings(table: dict) -> dict[str, ForbiddenSpelling]:
     """Parse and validate ``[cpp.forbidden_spellings]``.
+
+    Each value is either a replacement string (whole-word matching) or an
+    inline table ``{ replacement = "...", within_words = true }``.
 
     Raises
     ------
     ConfigError
-        If the table has an empty key or a non-string/empty value.
+        If a spelling is empty or a value has an invalid shape.
 
     """
-    spellings = get_table(table, "forbidden_spellings")
-    for word, replacement in spellings.items():
+    result: dict[str, ForbiddenSpelling] = {}
+    for word, value in get_table(table, "forbidden_spellings").items():
         if not word.strip():
             msg = "forbidden_spellings: spellings must not be empty."
             raise ConfigError(msg)
-        if not isinstance(replacement, str):
+        if isinstance(value, str):
+            result[word] = ForbiddenSpelling(value)
+            continue
+        if not isinstance(value, dict):
             msg = (
-                f"forbidden_spellings: replacement for '{word}' must be a "
-                f"string, got {type(replacement).__name__}."
+                f"forbidden_spellings: value for '{word}' must be a string or "
+                f"a table, got {type(value).__name__}."
             )
             raise ConfigError(msg)
-    return dict(spellings)
+        unknown = sorted(set(value) - {"replacement", "within_words"})
+        replacement = value.get("replacement")
+        within_words = value.get("within_words", False)
+        if unknown or not isinstance(replacement, str):
+            msg = (
+                f"forbidden_spellings: '{word}' needs a string 'replacement' "
+                f"and optionally 'within_words' (unknown keys: {unknown})."
+            )
+            raise ConfigError(msg)
+        if not isinstance(within_words, bool):
+            msg = f"forbidden_spellings: 'within_words' of '{word}' must be a bool."
+            raise ConfigError(msg)
+        result[word] = ForbiddenSpelling(replacement, within_words)
+    return result
 
 
 def parse_cpp_config(raw_config: dict) -> CppConfig:

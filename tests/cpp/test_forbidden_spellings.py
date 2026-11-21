@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from devops.config.base import ConfigError
-from devops.config.config_cpp import CppConfig, parse_cpp_config
+from devops.config.config_cpp import CppConfig, ForbiddenSpelling, parse_cpp_config
 from devops.cpp.build_rules import build_cpp_rules
 from devops.cpp.forbidden_spellings import CheckForbiddenSpellings
 from devops.rules import ResultTypeEnum, RuleInputType, RuleType
@@ -16,7 +16,13 @@ class TestCheckForbiddenSpellings:
 
     def setup_method(self) -> None:
         """Create the rule under test."""
-        self.rule = CheckForbiddenSpellings({"colour": "color", "e.g": "for example"})
+        self.rule = CheckForbiddenSpellings(
+            {
+                "colour": ForbiddenSpelling("color"),
+                "e.g": ForbiddenSpelling("for example"),
+                "grey": ForbiddenSpelling("gray", within_words=True),
+            }
+        )
 
     def test_rule_metadata(self) -> None:
         """The rule is a line-based C++ style rule."""
@@ -37,6 +43,13 @@ class TestCheckForbiddenSpellings:
         """Substrings of longer words are not flagged."""
         assert self.rule.apply("int colourful = 1;\n").value == ResultTypeEnum.Ok
         assert self.rule.apply("int mycolour = 1;\n").value == ResultTypeEnum.Ok
+
+    def test_within_words(self) -> None:
+        """A within_words spelling is also flagged inside longer words."""
+        result = self.rule.apply("int greyScale = 1;\n")
+        assert result.value == ResultTypeEnum.Error
+        assert "'grey' -> 'gray'" in result.description
+        assert self.rule.apply("int Grey = 1;\n").value == ResultTypeEnum.Ok
 
     def test_case_sensitive(self) -> None:
         """Matching is case-sensitive."""
@@ -64,7 +77,30 @@ class TestForbiddenSpellingsConfig:
     def test_parse(self) -> None:
         """The table is parsed into a dict."""
         raw = {"cpp": {"forbidden_spellings": {"colour": "color"}}}
-        assert parse_cpp_config(raw).forbidden_spellings == {"colour": "color"}
+        assert parse_cpp_config(raw).forbidden_spellings == {
+            "colour": ForbiddenSpelling("color")
+        }
+
+    def test_parse_table_form(self) -> None:
+        """The inline-table form sets within_words."""
+        spelling = {"replacement": "color", "within_words": True}
+        raw = {"cpp": {"forbidden_spellings": {"colour": spelling}}}
+        assert parse_cpp_config(raw).forbidden_spellings["colour"] == (
+            ForbiddenSpelling("color", within_words=True)
+        )
+
+    @pytest.mark.parametrize(
+        "value",
+        [
+            {"within_words": True},
+            {"replacement": "c", "within_words": "yes"},
+            {"replacement": "c", "typo": 1},
+        ],
+    )
+    def test_invalid_table_raises(self, value: dict) -> None:
+        """Malformed inline tables are config errors."""
+        with pytest.raises(ConfigError):
+            parse_cpp_config({"cpp": {"forbidden_spellings": {"colour": value}}})
 
     def test_non_string_replacement_raises(self) -> None:
         """A non-string replacement is a config error."""
@@ -82,6 +118,8 @@ class TestForbiddenSpellingsConfig:
         """The rule is added to the rule list only if spellings are set."""
         base = {"ast_checks": False, "license_header_check": False}
         none = build_cpp_rules(CppConfig(**base))
-        some = build_cpp_rules(CppConfig(**base, forbidden_spellings={"a": "b"}))
+        some = build_cpp_rules(
+            CppConfig(**base, forbidden_spellings={"a": ForbiddenSpelling("b")})
+        )
         assert not any(isinstance(r, CheckForbiddenSpellings) for r in none)
         assert any(isinstance(r, CheckForbiddenSpellings) for r in some)

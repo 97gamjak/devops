@@ -210,8 +210,10 @@ Controls the checks run by :ref:`cpp_checks <cli-cpp_checks>`.
      - Dictionary of spellings that must not appear in C++ files, mapped to
        the spelling to use instead (``[cpp.forbidden_spellings]``,
        e.g. ``colour = "color"``). Matched case-sensitively on whole words
-       (``colour`` does not match ``colourful``) by a plain line-based text
-       rule, not the AST framework. Empty disables the rule.
+       by default (``colour`` does not match ``colourful``); use
+       ``colour = { replacement = "color", within_words = true }`` to also
+       flag it inside longer words. A plain line-based text rule, not the
+       AST framework. Empty disables the rule.
    * - ``ast_checks``
      - boolean
      - ``true``
