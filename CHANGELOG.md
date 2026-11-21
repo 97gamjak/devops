@@ -13,6 +13,7 @@ All notable changes to this project will be documented in this file.
 #### AST Checks
 
 - The `astParseError` for libclang's "too many errors emitted, stopping now" now also names the first real error (message and `file:line:col`) that caused it, instead of only the location-less error limit
+- With a GCC compile database, use the `-resource-dir` of a Clang on `PATH` instead of GCC's builtin include dir (its `<xmmintrin.h>`/`<immintrin.h>` intrinsics made libclang fail with e.g. "conflicting types for '_mm_prefetch'"); GCC's dir is only used when no Clang is available
 
 #### Performance
 
