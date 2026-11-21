@@ -1,4 +1,4 @@
-"""Line-based rule flagging forbidden spellings, like a reverse dictionary.
+"""File-based rule flagging forbidden spellings, like a reverse dictionary.
 
 Configured via ``[cpp.forbidden_spellings]`` as ``word = "replacement"``
 pairs. Matching is a plain, case-sensitive text search (whole words by
@@ -15,6 +15,7 @@ from devops.rules import ResultType, ResultTypeEnum, Rule, RuleInputType, RuleTy
 
 if typing.TYPE_CHECKING:
     from devops.config.config_cpp import ForbiddenSpelling
+    from devops.rules import FileRuleInput
 
 
 class CheckForbiddenSpellings(Rule):
@@ -46,18 +47,24 @@ class CheckForbiddenSpellings(Rule):
         self._pattern = re.compile("|".join(parts))
         super().__init__(
             name="CheckForbiddenSpellings",
-            func=self._check_line,
+            func=self._check_file,
             rule_type=RuleType.CPP_STYLE,
-            rule_input_type=RuleInputType.LINE,
+            rule_input_type=RuleInputType.FILE,
             description="Do not use forbidden spellings.",
         )
 
-    def _check_line(self, line: str) -> ResultType:
-        found = list(dict.fromkeys(m.group(0) for m in self._pattern.finditer(line)))
-        if not found:
+    def _check_file(self, file_rule_input: FileRuleInput) -> ResultType:
+        """Report every forbidden spelling with its ``file:line`` location."""
+        location = file_rule_input.path or "<unknown>"
+        errors = []
+        for line_no, line in enumerate(file_rule_input.file_content.splitlines(), 1):
+            found = dict.fromkeys(m.group(0) for m in self._pattern.finditer(line))
+            if not found:
+                continue
+            hints = ", ".join(
+                f"'{w}' -> '{self.spellings[w].replacement}'" for w in found
+            )
+            errors.append(f"{location}:{line_no}: forbidden spelling, use {hints}")
+        if not errors:
             return ResultType(ResultTypeEnum.Ok)
-        hints = ", ".join(f"'{w}' -> '{self.spellings[w].replacement}'" for w in found)
-        return ResultType(
-            ResultTypeEnum.Error,
-            f"Forbidden spelling in line {line.strip()!r}: use {hints}.",
-        )
+        return ResultType(ResultTypeEnum.Error, "\n".join(errors))

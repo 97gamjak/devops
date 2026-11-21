@@ -89,7 +89,7 @@ class CppConfig:
     # Spellings that must not appear in C++ files, mapped to the spelling (or
     # hint) to use instead, e.g. {"colour": ForbiddenSpelling("color")}. Matched
     # case-sensitively, by default on whole words only (see
-    # ForbiddenSpelling.within_words), by a plain line-based text rule (not
+    # ForbiddenSpelling.within_words), by a plain text rule (not
     # part of the AST framework). Empty (the default) disables the rule.
     forbidden_spellings: dict[str, ForbiddenSpelling] = field(default_factory=dict)
 

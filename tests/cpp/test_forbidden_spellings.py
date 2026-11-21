@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from devops.config.base import ConfigError
 from devops.config.config_cpp import CppConfig, ForbiddenSpelling, parse_cpp_config
 from devops.cpp.build_rules import build_cpp_rules
 from devops.cpp.forbidden_spellings import CheckForbiddenSpellings
-from devops.rules import ResultTypeEnum, RuleInputType, RuleType
+from devops.rules import FileRuleInput, ResultTypeEnum, RuleInputType, RuleType
 
 
 class TestCheckForbiddenSpellings:
@@ -24,45 +26,55 @@ class TestCheckForbiddenSpellings:
             }
         )
 
+    def _apply(self, content: str) -> object:
+        return self.rule.apply(FileRuleInput(content, Path("file.cpp")))
+
+    def test_reports_file_and_line(self) -> None:
+        """Each finding is reported as path:line."""
+        result = self._apply("int ok;\n\n// colour\nint x; // colour e.g\n")
+        assert "file.cpp:3:" in result.description
+        assert "file.cpp:4:" in result.description
+        assert "file.cpp:1:" not in result.description
+
     def test_rule_metadata(self) -> None:
-        """The rule is a line-based C++ style rule."""
+        """The rule is a file-based C++ style rule."""
         assert self.rule.rule_type == RuleType.CPP_STYLE
-        assert self.rule.rule_input_type == RuleInputType.LINE
+        assert self.rule.rule_input_type == RuleInputType.FILE
 
     def test_ok_line(self) -> None:
         """A line without forbidden spellings passes."""
-        assert self.rule.apply("int color = 1;\n").value == ResultTypeEnum.Ok
+        assert self._apply("int color = 1;\n").value == ResultTypeEnum.Ok
 
     def test_flags_word_with_replacement(self) -> None:
         """A forbidden word is flagged and the replacement is named."""
-        result = self.rule.apply("// the colour of it\n")
+        result = self._apply("// the colour of it\n")
         assert result.value == ResultTypeEnum.Error
         assert "'colour' -> 'color'" in result.description
 
     def test_whole_word_only(self) -> None:
         """Substrings of longer words are not flagged."""
-        assert self.rule.apply("int colourful = 1;\n").value == ResultTypeEnum.Ok
-        assert self.rule.apply("int mycolour = 1;\n").value == ResultTypeEnum.Ok
+        assert self._apply("int colourful = 1;\n").value == ResultTypeEnum.Ok
+        assert self._apply("int mycolour = 1;\n").value == ResultTypeEnum.Ok
 
     def test_within_words(self) -> None:
         """A within_words spelling is also flagged inside longer words."""
-        result = self.rule.apply("int greyScale = 1;\n")
+        result = self._apply("int greyScale = 1;\n")
         assert result.value == ResultTypeEnum.Error
         assert "'grey' -> 'gray'" in result.description
-        assert self.rule.apply("int Grey = 1;\n").value == ResultTypeEnum.Ok
+        assert self._apply("int Grey = 1;\n").value == ResultTypeEnum.Ok
 
     def test_case_sensitive(self) -> None:
         """Matching is case-sensitive."""
-        assert self.rule.apply("Colour\n").value == ResultTypeEnum.Ok
+        assert self._apply("Colour\n").value == ResultTypeEnum.Ok
 
     def test_special_characters_are_escaped(self) -> None:
         """Regex metacharacters in spellings are matched literally."""
-        assert self.rule.apply("// e.g and so on\n").value == ResultTypeEnum.Error
-        assert self.rule.apply("// eXg\n").value == ResultTypeEnum.Ok
+        assert self._apply("// e.g and so on\n").value == ResultTypeEnum.Error
+        assert self._apply("// eXg\n").value == ResultTypeEnum.Ok
 
     def test_multiple_findings_reported(self) -> None:
         """All distinct forbidden spellings in a line are reported."""
-        result = self.rule.apply("colour e.g colour\n")
+        result = self._apply("colour e.g colour\n")
         assert "'colour'" in result.description
         assert "'e.g'" in result.description
 

@@ -8,7 +8,7 @@ All notable changes to this project will be documented in this file.
 
 #### CPP Rules
 
-- Add the `forbidden_spellings` option to `[cpp]`: a dictionary of spellings (e.g. `colour = "color"`) that are flagged as whole words in every C++ file, together with the spelling to use instead; `colour = { replacement = "color", within_words = true }` also flags it inside longer words. It is a plain line-based text rule, independent of the AST framework (Fixes #220)
+- Add the `forbidden_spellings` option to `[cpp]`: a dictionary of spellings (e.g. `colour = "color"`) that are flagged as whole words in every C++ file, together with the spelling to use instead; `colour = { replacement = "color", within_words = true }` also flags it inside longer words. Errors report `file:line`; it is a plain text rule, independent of the AST framework (Fixes #220)
 
 #### Performance
 

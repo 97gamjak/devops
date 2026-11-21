@@ -212,7 +212,7 @@ Controls the checks run by :ref:`cpp_checks <cli-cpp_checks>`.
        e.g. ``colour = "color"``). Matched case-sensitively on whole words
        by default (``colour`` does not match ``colourful``); use
        ``colour = { replacement = "color", within_words = true }`` to also
-       flag it inside longer words. A plain line-based text rule, not the
+       flag it inside longer words. A plain text rule, not the
        AST framework. Empty disables the rule.
    * - ``ast_checks``
      - boolean
