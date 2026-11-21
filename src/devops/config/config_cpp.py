@@ -1,6 +1,6 @@
 """Module for parsing C++ configuration."""
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 
 from devops.logger import config_logger
 
@@ -266,9 +266,15 @@ def _parse_forbidden_spellings(table: dict) -> dict[str, ForbiddenSpelling]:
             continue
         if not isinstance(value, dict):
             msg = (
-                f"forbidden_spellings: value for '{word}' must be a string or "
-                f"a table, got {type(value).__name__}."
+                f"[cpp.forbidden_spellings]: '{word}' must map to a replacement "
+                f"string or a table, got {type(value).__name__}."
             )
+            if word in {f.name for f in fields(CppConfig)}:
+                msg += (
+                    f" '{word}' is a [cpp] option: in TOML every key after a "
+                    "[cpp.forbidden_spellings] header belongs to that table, so "
+                    "move [cpp.forbidden_spellings] below all other [cpp] options."
+                )
             raise ConfigError(msg)
         unknown = sorted(set(value) - {"replacement", "within_words"})
         replacement = value.get("replacement")

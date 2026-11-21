@@ -102,6 +102,12 @@ class TestForbiddenSpellingsConfig:
         with pytest.raises(ConfigError):
             parse_cpp_config({"cpp": {"forbidden_spellings": {"colour": value}}})
 
+    def test_misplaced_cpp_option_hint(self) -> None:
+        """A [cpp] option swallowed by the table gets an explanatory message."""
+        raw = {"cpp": {"forbidden_spellings": {"ast_check_compile_args": ["-std"]}}}
+        with pytest.raises(ConfigError, match="belongs to that table"):
+            parse_cpp_config(raw)
+
     def test_non_string_replacement_raises(self) -> None:
         """A non-string replacement is a config error."""
         raw = {"cpp": {"forbidden_spellings": {"colour": 1}}}
