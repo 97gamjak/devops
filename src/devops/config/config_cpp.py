@@ -74,6 +74,12 @@ class CppConfig:
     # method.  Declared in TOML as sub-tables of cpp.ast_check_config.
     ast_check_config: dict[str, dict] = field(default_factory=dict)
 
+    # Spellings that must not appear in C++ files, mapped to the spelling (or
+    # hint) to use instead, e.g. {"colour": "color"}. Matched case-sensitively
+    # on whole words by a plain line-based text rule (not part of the AST
+    # framework). Empty (the default) disables the rule.
+    forbidden_spellings: dict[str, str] = field(default_factory=dict)
+
     # Path to the JSON file used to persist incremental check state.
     # When set (non-None, non-empty), cpp_checks runs in incremental mode
     # automatically: only new, previously-failed, or modified files are
@@ -202,6 +208,13 @@ class CppConfig:
             "  # only check including files with these extensions\n"
         )
 
+        lines.append(
+            "#\n"
+            "# Forbidden spellings (word -> replacement), matched on whole words:\n"
+            "#[cpp.forbidden_spellings]\n"
+            '#colour = "color"\n'
+        )
+
         isf = (
             f'"{self.incremental_state_file}"'
             if self.incremental_state_file
@@ -214,6 +227,29 @@ class CppConfig:
         lines.append(f"#parallel_jobs = {self.parallel_jobs}\n")
 
         return lines
+
+
+def _parse_forbidden_spellings(table: dict) -> dict[str, str]:
+    """Parse and validate ``[cpp.forbidden_spellings]``.
+
+    Raises
+    ------
+    ConfigError
+        If the table has an empty key or a non-string/empty value.
+
+    """
+    spellings = get_table(table, "forbidden_spellings")
+    for word, replacement in spellings.items():
+        if not word.strip():
+            msg = "forbidden_spellings: spellings must not be empty."
+            raise ConfigError(msg)
+        if not isinstance(replacement, str):
+            msg = (
+                f"forbidden_spellings: replacement for '{word}' must be a "
+                f"string, got {type(replacement).__name__}."
+            )
+            raise ConfigError(msg)
+    return dict(spellings)
 
 
 def parse_cpp_config(raw_config: dict) -> CppConfig:
@@ -281,6 +317,8 @@ def parse_cpp_config(raw_config: dict) -> CppConfig:
         check_id: get_table(raw_check_config, check_id) for check_id in raw_check_config
     }
 
+    forbidden_spellings = _parse_forbidden_spellings(table)
+
     incremental_state_file = get_str(table, "incremental_state_file") or None
 
     fail_fast = get_bool(table, "fail_fast", default=CppConfig.fail_fast)
@@ -302,6 +340,7 @@ def parse_cpp_config(raw_config: dict) -> CppConfig:
         ast_check_enabled_ids=ast_check_enabled_ids,
         ast_check_disabled_ids=ast_check_disabled_ids,
         ast_check_config=ast_check_config,
+        forbidden_spellings=forbidden_spellings,
         incremental_state_file=incremental_state_file,
         fail_fast=fail_fast,
         parallel_jobs=parallel_jobs,

@@ -5,6 +5,7 @@ from devops.config import CppConfig
 from devops.logger import cpp_check_logger
 from devops.rules import Rule
 
+from .forbidden_spellings import CheckForbiddenSpellings
 from .license_header import CheckLicenseHeader
 from .style_rules import cpp_style_rules
 
@@ -51,6 +52,9 @@ def build_cpp_rules(config: CppConfig = __GLOBAL_CONFIG__.cpp) -> list[Rule]:
                 "(`pip install devops[ast]`) to enable them. "
                 "Skipping AST checks."
             )
+
+    if config.forbidden_spellings:
+        rules.append(CheckForbiddenSpellings(config.forbidden_spellings))
 
     if config.license_header_check:
         if config.license_header is not None:
